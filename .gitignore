@@ -1,0 +1,14 @@
+# Workspace configurations
+/.vscode
+
+# Binaries for programs and plugins
+/build
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries and files
+/test
+*.test
+*.test.*
