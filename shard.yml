@@ -4,6 +4,11 @@ version: 0.1.0
 authors:
   - Devonte W <https://github.com/devnote-dev>
 
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.4.3
+
 targets:
   compiler:
     main: src/compiler.cr
