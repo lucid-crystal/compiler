@@ -1,0 +1,13 @@
+name: compiler
+version: 0.1.0
+
+authors:
+  - Devonte W <https://github.com/devnote-dev>
+
+targets:
+  compiler:
+    main: src/compiler.cr
+
+crystal: 1.8.0
+
+license: MIT
