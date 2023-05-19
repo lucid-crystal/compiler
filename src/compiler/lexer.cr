@@ -90,8 +90,8 @@ module Compiler
     end
 
     private def finalize_token(with_value : Bool = false) : Nil
-      @token.loc.line_end @line
-      @token.loc.column_end current_pos
+      @token.loc.line_end_at @line
+      @token.loc.column_end_at current_pos
 
       if with_value
         start, end = @token.loc.column

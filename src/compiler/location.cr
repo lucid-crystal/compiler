@@ -21,11 +21,11 @@ module Compiler
       @value[2] += 1
     end
 
-    def line_end(value : Int32) : Nil
+    def line_end_at(value : Int32) : Nil
       @value[1] = value
     end
 
-    def column_end(value : Int32) : Nil
+    def column_end_at(value : Int32) : Nil
       @value[3] = value
     end
   end
