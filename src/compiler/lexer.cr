@@ -52,7 +52,7 @@ module Compiler
       when '"'
         next_char
         @token.loc.increment_column_start
-        lex_string '"'
+        lex_string_to '"'
         next_char
       when 'd'
         if next_char == 'e' && next_char == 'f'
@@ -109,7 +109,7 @@ module Compiler
       finalize_token true
     end
 
-    private def lex_string(end_char : Char) : Nil
+    private def lex_string_to(end_char : Char) : Nil
       escaped = false
 
       loop do
