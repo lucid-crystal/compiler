@@ -17,11 +17,17 @@ module Compiler
     end
 
     property type : Type
-    property value : String
     property loc : Location
+    @value : String?
 
     def initialize(@type : Type, @loc : Location)
-      @value = ""
+    end
+
+    def value : String
+      @value.not_nil!
+    end
+
+    def value=(@value : String?)
     end
   end
 end
