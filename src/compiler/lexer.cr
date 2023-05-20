@@ -59,6 +59,10 @@ module Compiler
           @token.type = :colon
         end
         finalize_token
+      when ','
+        next_char
+        @token.type = :comma
+        finalize_token
       when '"'
         next_char
         @token.loc.increment_column_start
