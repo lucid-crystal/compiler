@@ -9,6 +9,8 @@ module Compiler
 
       LeftParen
       RightParen
+      Colon
+      DoubleColon
 
       Ident
 

@@ -49,6 +49,14 @@ module Compiler
         next_char
         @token.type = :right_paren
         finalize_token
+      when ':'
+        if next_char == ':'
+          next_char
+          @token.type = :double_colon
+        else
+          @token.type = :colon
+        end
+        finalize_token
       when '"'
         next_char
         @token.loc.increment_column_start
