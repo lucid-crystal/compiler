@@ -5,14 +5,15 @@ module Compiler
       Space
       Newline
 
+      Ident
+
       String
+      Number
 
       LeftParen
       RightParen
       Colon
       DoubleColon
-
-      Ident
 
       Def
       End

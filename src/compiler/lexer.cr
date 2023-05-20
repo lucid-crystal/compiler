@@ -80,7 +80,9 @@ module Compiler
         else
           lex_ident
         end
-      when .ascii_alphanumeric?
+      when .ascii_number?
+        lex_number
+      when .ascii_letter?
         lex_ident
       else
         raise "unexpected token #{current_char.inspect}"
@@ -134,6 +136,80 @@ module Compiler
       end
 
       @token.type = :string
+      finalize_token true
+    end
+
+    private def lex_number : Nil
+      if current_char == '0'
+        case next_char
+        when 'o'
+          lex_octal
+        when 'x'
+          lex_hexadecimal
+        else
+          lex_raw_number
+        end
+      else
+        lex_raw_number
+      end
+    end
+
+    private def lex_octal : Nil
+    end
+
+    private def lex_hexadecimal : Nil
+    end
+
+    private def lex_raw_number : Nil
+      float = false
+
+      loop do
+        case next_char
+        when 'f'
+          case next_char
+          when '3'
+            raise "invalid float literal" unless next_char == '2'
+            break
+          when '6'
+            raise "invalid float literal" unless next_char == '4'
+            break
+          else
+            raise "invalid float literal"
+          end
+        when 'i'
+          case next_char
+          when '8'
+            break
+          when '1'
+            case next_char
+            when '2'
+              raise "invalid integer literal" unless next_char == '8'
+            when '6'
+              break
+            else
+              raise "invalid integer literal"
+            end
+            break
+          when '3'
+            raise "invalid integer literal" unless next_char == '2'
+          when '6'
+            raise "invalid integer literal" unless next_char == '4'
+          else
+            raise "invalid integer literal"
+          end
+        when '_'
+          next
+        when '.'
+          raise "invalid float literal" if float
+          float = true
+        when .ascii_number?
+          next
+        else
+          break
+        end
+      end
+
+      @token.type = :number
       finalize_token true
     end
 
