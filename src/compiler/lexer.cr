@@ -80,6 +80,14 @@ module Compiler
         else
           lex_ident
         end
+      when 'n'
+        if next_char == 'i' && next_char == 'l'
+          next_char
+          @token.type = :nil
+          finalize_token
+        else
+          lex_ident
+        end
       when .ascii_number?
         lex_number
       when .ascii_letter?

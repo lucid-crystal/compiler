@@ -13,6 +13,10 @@ describe Compiler::Lexer do
     assert_token_sequence(seq!(:number, :eof), %(3.141_592))
   end
 
+  it "parses nil expressions" do
+    assert_token_sequence(seq!(:nil, :eof), "nil")
+  end
+
   it "parses normal expressions" do
     assert_token_sequence(seq!(:ident, :space, :string, :eof), %(puts "hello world"))
   end

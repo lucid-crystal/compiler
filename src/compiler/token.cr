@@ -9,6 +9,7 @@ module Compiler
 
       String
       Number
+      Nil
 
       LeftParen
       RightParen
