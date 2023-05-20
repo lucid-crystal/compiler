@@ -37,10 +37,12 @@ module Compiler
         next_char
         @token.type = :newline
         finalize_token true
+        @line += 1
       when '\n'
         next_char
         @token.type = :newline
         finalize_token true
+        @line += 1
       when '('
         next_char
         @token.type = :left_paren
