@@ -60,6 +60,7 @@ module Compiler
         end
         finalize_token
       when '='
+        next_char
         @token.type = :equal
         finalize_token
       when ','
