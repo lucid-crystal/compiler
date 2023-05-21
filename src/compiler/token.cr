@@ -15,6 +15,7 @@ module Compiler
       RightParen
       Colon
       DoubleColon
+      Equal
 
       Def
       End
