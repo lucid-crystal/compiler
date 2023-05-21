@@ -17,6 +17,10 @@ describe Compiler::Lexer do
     assert_token_sequence(seq!(:nil, :eof), "nil")
   end
 
+  it "parses the equal sign" do
+    assert_token_sequence(seq!(:ident, :space, :equal, :space, :number), "x = 7")
+  end
+
   it "parses normal expressions" do
     assert_token_sequence(seq!(:ident, :space, :string, :eof), %(puts "hello world"))
   end
