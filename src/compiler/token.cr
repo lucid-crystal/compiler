@@ -29,7 +29,7 @@ module Compiler
     end
 
     def value : String
-      @value.not_nil!
+      @value.as(String)
     end
 
     def value=(@value : String?)
