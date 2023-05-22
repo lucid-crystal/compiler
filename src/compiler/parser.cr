@@ -56,6 +56,8 @@ module Compiler
         else
           IntLiteral.new(token.value).at(token.loc)
         end
+      when Token::Kind::Nil # .nil? doesn't work here
+        NilLiteral.new.at(token.loc)
       end
     end
 

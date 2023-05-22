@@ -73,4 +73,7 @@ module Compiler
       @value = @raw.to_f64 strict: false
     end
   end
+
+  class NilLiteral < Node
+  end
 end

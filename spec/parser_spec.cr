@@ -13,7 +13,7 @@ describe Compiler::Parser do
     assert_node_sequence([Compiler::FloatLiteral], %(3.141_592))
   end
 
-  pending "parses nil expressions" do
+  it "parses nil expressions" do
     assert_node_sequence([Compiler::NilLiteral], %(nil))
   end
 
