@@ -141,10 +141,10 @@ module Compiler
 
       raise "invalid operator #{value.inspect}" unless VALID_OPERATORS.includes? value
 
-      left = @prev || raise "missing left-hand expression for operator #{value}"
-      right = next_node || raise "missing right-hand expression for operator #{value}"
+      # left = @prev || raise "missing left-hand expression for operator #{value}"
+      # right = next_node || raise "missing right-hand expression for operator #{value}"
 
-      Op.new(value, left, right).at(token.loc)
+      Op.new(value, Nop.new, Nop.new).at(token.loc)
     end
   end
 end
