@@ -28,6 +28,16 @@ module Compiler
     end
   end
 
+  class Op < Node
+    property value : String
+    property left : Node
+    property right : Node
+
+    def initialize(@value : String, @left : Node, @right : Node)
+      super()
+    end
+  end
+
   class Assign < Node
     property name : String
     property value : Node

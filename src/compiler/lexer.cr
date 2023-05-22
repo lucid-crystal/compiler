@@ -1,5 +1,7 @@
 module Compiler
   class Lexer
+    OPERATOR_SYMBOLS = {'+', '-', '*', '/', '='}
+
     @reader : Char::Reader
     @pool : StringPool
     @line : Int32
@@ -67,6 +69,8 @@ module Compiler
         next_char
         @token.kind = :equal
         finalize_token
+      when .in?(OPERATOR_SYMBOLS)
+        lex_operator
       when '"'
         next_char
         @token.loc.increment_column_start
@@ -152,6 +156,15 @@ module Compiler
       end
 
       @token.kind = :string
+      finalize_token true
+    end
+
+    private def lex_operator : Nil
+      while current_char.in?(OPERATOR_SYMBOLS)
+        next_char
+      end
+
+      @token.kind = :operator
       finalize_token true
     end
 

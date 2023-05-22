@@ -1,7 +1,9 @@
 module Compiler
   class Parser
+    VALID_OPERATORS = {"+", "-", "*", "/"}
+
     @tokens : Array(Token)
-    @prev : Token?
+    @prev : Node?
     @pos : Int32
 
     def initialize(@tokens : Array(Token))
@@ -15,6 +17,7 @@ module Compiler
         break unless node = next_node
         break if node.is_a? Nop
         nodes << node
+        @prev = node
       end
 
       nodes
@@ -58,6 +61,8 @@ module Compiler
         end
       when Token::Kind::Nil # .nil? doesn't work here
         NilLiteral.new.at(token.loc)
+      when .operator?
+        parse_operator token
       end
     end
 
@@ -113,12 +118,33 @@ module Compiler
           node = parse_token _next
           break unless node
           args << node
-          expect_next :comma, :right_paren, allow_space: true, allow_end: true
-          @pos -= 1
+          @prev = node
+
+          # TODO: workaround this for now
+          # expect_next :comma, :right_paren, allow_space: true, allow_end: true
+          # @pos -= 1
         end
       end
 
       Call.new(token.value, args).at(token.loc)
+    end
+
+    private def parse_operator(token : Token) : Node
+      # TODO: implement OpAssign
+      # assign = false
+
+      value = token.value
+      if token.value.ends_with? '='
+        value = value.byte_slice 1
+        # assign = true
+      end
+
+      raise "invalid operator #{value.inspect}" unless VALID_OPERATORS.includes? value
+
+      left = @prev || raise "missing left-hand expression for operator #{value}"
+      right = next_node || raise "missing right-hand expression for operator #{value}"
+
+      Op.new(value, left, right).at(token.loc)
     end
   end
 end

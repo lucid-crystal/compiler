@@ -16,7 +16,9 @@ module Compiler
       Colon
       DoubleColon
       Comma
+
       Equal
+      Operator
 
       Def
       End
