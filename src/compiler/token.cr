@@ -1,6 +1,6 @@
 module Compiler
   class Token
-    enum Type
+    enum Kind
       EOF
       Space
       Newline
@@ -15,18 +15,18 @@ module Compiler
       RightParen
       Colon
       DoubleColon
-      Equal
       Comma
+      Equal
 
       Def
       End
     end
 
-    property type : Type
+    property kind : Kind
     property loc : Location
     @value : String?
 
-    def initialize(@type : Type, @loc : Location)
+    def initialize(@kind : Kind, @loc : Location)
     end
 
     def value : String

@@ -18,7 +18,7 @@ module Compiler
       loop do
         next_token
         tokens << @token
-        break if @token.type.eof?
+        break if @token.kind.eof?
       end
 
       tokens
@@ -35,37 +35,37 @@ module Compiler
       when '\r'
         raise "expected '\\n' after '\\r'" unless next_char == '\n'
         next_char
-        @token.type = :newline
+        @token.kind = :newline
         finalize_token true
         @line += 1
       when '\n'
         next_char
-        @token.type = :newline
+        @token.kind = :newline
         finalize_token true
         @line += 1
       when '('
         next_char
-        @token.type = :left_paren
+        @token.kind = :left_paren
         finalize_token
       when ')'
         next_char
-        @token.type = :right_paren
+        @token.kind = :right_paren
         finalize_token
       when ':'
         if next_char == ':'
           next_char
-          @token.type = :double_colon
+          @token.kind = :double_colon
         else
-          @token.type = :colon
+          @token.kind = :colon
         end
-        finalize_token
-      when '='
-        next_char
-        @token.type = :equal
         finalize_token
       when ','
         next_char
-        @token.type = :comma
+        @token.kind = :comma
+        finalize_token
+      when '='
+        next_char
+        @token.kind = :equal
         finalize_token
       when '"'
         next_char
@@ -75,7 +75,7 @@ module Compiler
       when 'd'
         if next_char == 'e' && next_char == 'f'
           next_char
-          @token.type = :def
+          @token.kind = :def
           finalize_token
         else
           lex_ident
@@ -83,7 +83,7 @@ module Compiler
       when 'e'
         if next_char == 'n' && next_char == 'd'
           next_char
-          @token.type = :end
+          @token.kind = :end
           finalize_token
         else
           lex_ident
@@ -91,7 +91,7 @@ module Compiler
       when 'n'
         if next_char == 'i' && next_char == 'l'
           next_char
-          @token.type = :nil
+          @token.kind = :nil
           finalize_token
         else
           lex_ident
@@ -133,7 +133,7 @@ module Compiler
         next_char
       end
 
-      @token.type = :space
+      @token.kind = :space
       finalize_token true
     end
 
@@ -151,7 +151,7 @@ module Compiler
         next_char
       end
 
-      @token.type = :string
+      @token.kind = :string
       finalize_token true
     end
 
@@ -225,7 +225,7 @@ module Compiler
         end
       end
 
-      @token.type = :number
+      @token.kind = :number
       finalize_token true
     end
 
@@ -234,7 +234,7 @@ module Compiler
         next_char
       end
 
-      @token.type = :ident
+      @token.kind = :ident
       finalize_token true
     end
   end

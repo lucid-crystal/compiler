@@ -1,11 +1,11 @@
 require "spec"
 require "../src/compiler"
 
-macro seq!(*types)
-  [{{ *types }}] of Compiler::Token::Type
+macro seq!(*kinds)
+  [{{ *kinds }}] of Compiler::Token::Kind
 end
 
-def assert_token_sequence(sequence : Array(Compiler::Token::Type), for input : String) : Nil
-  types = Compiler::Lexer.new(input).run.map &.type
-  types.should eq sequence
+def assert_token_sequence(sequence : Array(Compiler::Token::Kind), for input : String) : Nil
+  kinds = Compiler::Lexer.new(input).run.map &.kind
+  kinds.should eq sequence
 end
