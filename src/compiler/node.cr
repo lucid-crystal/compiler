@@ -55,18 +55,22 @@ module Compiler
   end
 
   class IntLiteral < Node
+    property raw : String
     property value : Int64
 
-    def initialize(@value : Int64)
+    def initialize(@raw : String)
       super()
+      @value = @raw.to_i64 strict: false
     end
   end
 
   class FloatLiteral < Node
+    property raw : String
     property value : Float64
 
-    def initialize(@value : Float64)
+    def initialize(@raw : String)
       super()
+      @value = @raw.to_f64 strict: false
     end
   end
 end

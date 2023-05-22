@@ -52,9 +52,9 @@ module Compiler
         StringLiteral.new(token.value).at(token.loc)
       when .number?
         if token.value.includes? '.'
-          FloatLiteral.new(token.value.to_f64).at(token.loc)
+          FloatLiteral.new(token.value).at(token.loc)
         else
-          IntLiteral.new(token.value.to_i64).at(token.loc)
+          IntLiteral.new(token.value).at(token.loc)
         end
       end
     end
