@@ -32,8 +32,6 @@ module Compiler
       loop do
         token = next_token
         case token.kind
-        when .eof?
-          raise "unexpected End of File"
         when .space?, .newline?
           next
         else
