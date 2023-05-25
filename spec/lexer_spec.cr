@@ -23,12 +23,12 @@ describe Compiler::Lexer do
 
   it "parses an ident that contains a keyword" do
     assert_token_sequence(
-      seq!(:ident, :space, :equal, :space, :number, :newline, 
-           :ident, :space, :equal, :space, :number, :newline,
-           :ident, :space, :equal, :space, :number, :eof), <<-CR)
+      seq!(:ident, :space, :equal, :space, :number, :newline,
+        :ident, :space, :equal, :space, :number, :newline,
+        :ident, :space, :equal, :space, :number, :eof), <<-CR)
     nil_a = 2
     end_me = 2
-    cool_module = 2
+    module_is_cool = 2
     CR
   end
 

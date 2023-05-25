@@ -256,7 +256,7 @@ module Compiler
     end
 
     private def next_sequence?(*chars : Char)
-      return chars.all? { |c| next_char == c }
+      chars.all? { |c| next_char == c }
     end
 
     private def lex_keyword_or_ident(keyword : Token::Kind) : Nil
