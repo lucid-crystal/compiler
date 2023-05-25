@@ -78,25 +78,25 @@ module Compiler
         next_char
       when 'd'
         if next_char == 'e' && next_char == 'f'
-          next_char
-          @token.kind = :def
-          finalize_token
+          lex_keyword_or_ident :def
         else
           lex_ident
         end
       when 'e'
         if next_char == 'n' && next_char == 'd'
-          next_char
-          @token.kind = :end
-          finalize_token
+          lex_keyword_or_ident :end
         else
           lex_ident
         end
       when 'n'
         if next_char == 'i' && next_char == 'l'
-          next_char
-          @token.kind = :nil
-          finalize_token
+          lex_keyword_or_ident :nil
+        else
+          lex_ident
+        end
+      when 'm'
+        if next_sequence?('o', 'd', 'u', 'l', 'e')
+          lex_keyword_or_ident :module
         else
           lex_ident
         end
@@ -119,6 +119,10 @@ module Compiler
 
     private def next_char : Char
       @reader.next_char
+    end
+
+    private def peek_next_char : Char
+      @reader.peek_next_char
     end
 
     private def finalize_token(with_value : Bool = false) : Nil
@@ -249,6 +253,21 @@ module Compiler
 
       @token.kind = :ident
       finalize_token true
+    end
+
+    private def next_sequence?(*chars : Char)
+      return chars.all? { |c| next_char == c }
+    end
+
+    private def lex_keyword_or_ident(keyword : Token::Kind) : Nil
+      char = peek_next_char
+      if char.ascii_alphanumeric? || char.in?('_', '!', '?', '=')
+        lex_ident
+      else
+        next_char
+        @token.kind = keyword
+        finalize_token
+      end
     end
   end
 end

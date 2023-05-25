@@ -20,6 +20,10 @@ module Compiler
       Equal
       Operator
 
+      Module
+      # Enum
+      # Struct
+      # Class
       Def
       End
     end

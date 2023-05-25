@@ -21,6 +21,17 @@ describe Compiler::Lexer do
     assert_token_sequence(seq!(:ident, :space, :equal, :space, :number, :eof), "x = 7")
   end
 
+  it "parses an ident that contains a keyword" do
+    assert_token_sequence(
+      seq!(:ident, :space, :equal, :space, :number, :newline, 
+           :ident, :space, :equal, :space, :number, :newline,
+           :ident, :space, :equal, :space, :number, :eof), <<-CR)
+    nil_a = 2
+    end_me = 2
+    cool_module = 2
+    CR
+  end
+
   it "parses normal expressions" do
     assert_token_sequence(seq!(:ident, :space, :string, :eof), %(puts "hello world"))
   end
@@ -48,6 +59,14 @@ describe Compiler::Lexer do
         :eof), <<-CR)
       def foo : Int32
         123
+      end
+      CR
+  end
+
+  it "parses module expressions" do
+    assert_token_sequence(
+      seq!(:module, :space, :ident, :newline, :end, :eof), <<-CR)
+      module Yay
       end
       CR
   end
