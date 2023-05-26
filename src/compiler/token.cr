@@ -4,6 +4,7 @@ module Compiler
       EOF
       Space
       Newline
+      Comment
 
       Ident
 

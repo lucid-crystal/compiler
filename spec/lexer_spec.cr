@@ -21,6 +21,14 @@ describe Compiler::Lexer do
     assert_token_sequence(seq!(:ident, :space, :equal, :space, :number, :eof), "x = 7")
   end
 
+  it "parses comments" do
+    assert_token_sequence(
+      seq!(:comment, :newline, :ident, :space, :comment, :eof), <<-CR)
+      # This is a comment
+      an_ident # This is an ident
+      CR
+  end
+
   it "parses ident that starts with en" do
     assert_token_sequence(seq!(:ident, :space, :equal, :space, :number, :eof), "encryption = 1")
   end
@@ -29,7 +37,7 @@ describe Compiler::Lexer do
   it "parses pseudo methods" do
     assert_token_sequence(
       seq!(:ident, :period, :is_a, :left_paren, :ident, :right_paren, :eof), <<-CR)
-        a.is_a?(String)
+      a.is_a?(String)
       CR
   end
 

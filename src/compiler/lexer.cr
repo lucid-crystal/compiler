@@ -45,6 +45,8 @@ module Compiler
         @token.kind = :newline
         finalize_token true
         @line += 1
+      when '#'
+        lex_comment
       when '('
         next_char
         @token.kind = :left_paren
@@ -277,6 +279,14 @@ module Compiler
       end
 
       @token.kind = :number
+      finalize_token true
+    end
+
+    private def lex_comment : Nil
+      until !@reader.has_next? || current_char.in?('\n', '\r')
+        next_char
+      end
+      @token.kind = :comment
       finalize_token true
     end
 
