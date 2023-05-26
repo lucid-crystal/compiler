@@ -70,7 +70,7 @@ describe Compiler::Lexer do
       end
       CR
   end
-  
+
   it "parses class expressions" do
     assert_token_sequence(
       seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
@@ -94,7 +94,7 @@ describe Compiler::Lexer do
       end
       CR
   end
-  
+
   it "parses struct expressions" do
     assert_token_sequence(
       seq!(:struct, :space, :ident, :newline, :end, :eof), <<-CR)
