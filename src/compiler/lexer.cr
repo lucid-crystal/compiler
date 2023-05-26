@@ -88,6 +88,8 @@ module Compiler
             lex_keyword_or_ident :end
           elsif current_char == 'u' && next_char == 'm'
             lex_keyword_or_ident :enum
+          else
+            lex_ident
           end
         else
           lex_ident
