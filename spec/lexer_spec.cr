@@ -25,6 +25,14 @@ describe Compiler::Lexer do
     assert_token_sequence(seq!(:ident, :space, :equal, :space, :number, :eof), "encryption = 1")
   end
 
+  # TODO: add responds_to? spec when symbols are implemented
+  it "parses pseudo methods" do
+    assert_token_sequence(
+      seq!(:ident, :period, :is_a, :left_paren, :ident, :right_paren, :eof), <<-CR)
+        a.is_a?(String)
+      CR
+  end
+
   it "parses an ident that contains a keyword" do
     assert_token_sequence(
       seq!(:ident, :space, :equal, :space, :number, :newline,

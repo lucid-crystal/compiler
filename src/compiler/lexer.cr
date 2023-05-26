@@ -69,6 +69,10 @@ module Compiler
         next_char
         @token.kind = :equal
         finalize_token
+      when '.'
+        next_char
+        @token.kind = :period
+        finalize_token
       when .in?(OPERATOR_SYMBOLS)
         lex_operator
       when '"'
@@ -76,6 +80,18 @@ module Compiler
         @token.loc.increment_column_start
         lex_string_to '"'
         next_char
+      when 'i'
+        if next_sequence?('s', '_', 'a', '?')
+          lex_keyword_or_ident :is_a
+        else
+          lex_ident
+        end
+      when 'r'
+        if next_sequence?('e', 's', 'p', 'o', 'n', 'd', 's', '_', 't', 'o', '?')
+          lex_keyword_or_ident :responds_to
+        else
+          lex_ident
+        end
       when 'd'
         if next_char == 'e' && next_char == 'f'
           lex_keyword_or_ident :def

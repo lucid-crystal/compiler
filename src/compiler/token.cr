@@ -16,6 +16,10 @@ module Compiler
       Colon
       DoubleColon
       Comma
+      Period
+
+      IsA
+      RespondsTo
 
       Equal
       Operator
