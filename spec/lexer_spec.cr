@@ -70,4 +70,44 @@ describe Compiler::Lexer do
       end
       CR
   end
+  
+  it "parses class expressions" do
+    assert_token_sequence(
+      seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
+      class Kot
+      end
+      CR
+  end
+
+  it "parses class expressions" do
+    assert_token_sequence(
+      seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
+      class Kot
+      end
+      CR
+  end
+
+  it "parses class expressions" do
+    assert_token_sequence(
+      seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
+      class Klass
+      end
+      CR
+  end
+  
+  it "parses struct expressions" do
+    assert_token_sequence(
+      seq!(:struct, :space, :ident, :newline, :end, :eof), <<-CR)
+      struct Strukt
+      end
+      CR
+  end
+
+  it "parses enum expressions" do
+    assert_token_sequence(
+      seq!(:enum, :space, :ident, :newline, :end, :eof), <<-CR)
+      enum Enumn
+      end
+      CR
+  end
 end

@@ -21,9 +21,9 @@ module Compiler
       Operator
 
       Module
-      # Enum
-      # Struct
-      # Class
+      Enum
+      Struct
+      Class
       Def
       End
     end

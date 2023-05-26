@@ -83,8 +83,13 @@ module Compiler
           lex_ident
         end
       when 'e'
-        if next_char == 'n' && next_char == 'd'
-          lex_keyword_or_ident :end
+        if next_char == 'n'
+          if next_char == 'd'
+            lex_keyword_or_ident :end
+          else
+            current_char == 'u' && next_char == 'm'
+            lex_keyword_or_ident :enum
+          end
         else
           lex_ident
         end
@@ -97,6 +102,18 @@ module Compiler
       when 'm'
         if next_sequence?('o', 'd', 'u', 'l', 'e')
           lex_keyword_or_ident :module
+        else
+          lex_ident
+        end
+      when 'c'
+        if next_sequence?('l', 'a', 's', 's')
+          lex_keyword_or_ident :class
+        else
+          lex_ident
+        end
+      when 's'
+        if next_sequence?('t', 'r', 'u', 'c', 't')
+          lex_keyword_or_ident :struct
         else
           lex_ident
         end
