@@ -5,3 +5,6 @@
 /.vscode/
 /.shards/
 *.dwarf
+*.bat
+*.cmd
+*.sh
