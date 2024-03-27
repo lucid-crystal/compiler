@@ -1,4 +1,4 @@
-module Compiler
+module Lucid::Compiler
   class Location
     @value : StaticArray(Int32, 4)
 

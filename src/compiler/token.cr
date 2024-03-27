@@ -1,7 +1,6 @@
-module Compiler
+module Lucid::Compiler
   class Token
     enum Kind
-      EOF
       Space
       Newline
 
@@ -17,6 +16,7 @@ module Compiler
       DoubleColon
       Comma
 
+      Assign
       Equal
       Operator
 
@@ -28,11 +28,11 @@ module Compiler
       End
     end
 
-    property kind : Kind
-    property loc : Location
+    getter kind : Kind
+    getter loc : Location
     @value : String?
 
-    def initialize(@kind : Kind, @loc : Location)
+    def initialize(@kind : Kind, @loc : Location, @value : String? = nil)
     end
 
     def value : String

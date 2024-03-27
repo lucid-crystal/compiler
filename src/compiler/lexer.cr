@@ -1,95 +1,101 @@
-module Compiler
+module Lucid::Compiler
   class Lexer
-    OPERATOR_SYMBOLS = {'+', '-', '*', '/', '='}
+    OPERATOR_SYMBOLS = {'+', '-', '*', '/'}
 
     @reader : Char::Reader
     @pool : StringPool
     @line : Int32
-    @token : Token
+    @column : Int32
+    @loc : Location
 
-    def initialize(source : String)
+    def self.run(source : String) : Array(Token)
+      new(source).run
+    end
+
+    private def initialize(source : String)
       @reader = Char::Reader.new source
       @pool = StringPool.new
-      @line = 0
-      @token = uninitialized Token
+      @line = @column = 0
+      @loc = Location[0, 0]
     end
 
     def run : Array(Token)
       tokens = [] of Token
 
       loop do
-        next_token
-        tokens << @token
-        break if @token.kind.eof?
+        break unless token = next_token
+        tokens << token
       end
 
       tokens
     end
 
-    private def next_token : Nil
-      @token = Token.new :eof, Location[@line, current_pos]
+    private def next_token : Token?
+      @loc = Location[@line, @column]
 
       case current_char
       when '\0'
-        finalize_token
+        return
       when ' '
         lex_space
       when '\r'
         raise "expected '\\n' after '\\r'" unless next_char == '\n'
         next_char
-        @token.kind = :newline
-        finalize_token true
+        loc = location
         @line += 1
+        @column = 0
+        Token.new :newline, loc
       when '\n'
         next_char
-        @token.kind = :newline
-        finalize_token true
+        loc = location
         @line += 1
+        @column = 0
+        Token.new :newline, loc
       when '('
         next_char
-        @token.kind = :left_paren
-        finalize_token
+        Token.new :left_paren, location
       when ')'
         next_char
-        @token.kind = :right_paren
-        finalize_token
+        Token.new :right_paren, location
       when ':'
         if next_char == ':'
           next_char
-          @token.kind = :double_colon
+          Token.new :double_colon, location
         else
-          @token.kind = :colon
+          Token.new :colon, location
         end
-        finalize_token
       when ','
         next_char
-        @token.kind = :comma
-        finalize_token
+        Token.new :comma, location
       when '='
-        next_char
-        @token.kind = :equal
-        finalize_token
+        if next_char == '='
+          next_char
+          Token.new :equal, location
+        else
+          Token.new :assign, location
+        end
       when .in?(OPERATOR_SYMBOLS)
         lex_operator
       when '"'
         next_char
-        @token.loc.increment_column_start
-        lex_string_to '"'
+        @loc.increment_column_start
+        value = read_string_to '"'
         next_char
+        Token.new :string, location, value
       when 'd'
-        if next_char == 'e' && next_char == 'f'
+        if next_sequence?('e', 'f')
           lex_keyword_or_ident :def
         else
           lex_ident
         end
       when 'e'
-        if next_char == 'n' && next_char == 'd'
+        if next_sequence?('n', 'd')
           lex_keyword_or_ident :end
         else
           lex_ident
         end
       when 'n'
-        if next_char == 'i' && next_char == 'l'
+        if next_sequence?('i', 'l')
           lex_keyword_or_ident :nil
         else
           lex_ident
@@ -109,70 +115,69 @@ module Compiler
       end
     end
 
-    private def current_pos : Int32
-      @reader.pos
-    end
-
     private def current_char : Char
       @reader.current_char
     end
 
+    private def current_pos : Int32
+      @reader.pos
+    end
+
     private def next_char : Char
+      @column += 1
       @reader.next_char
     end
 
-    private def peek_next_char : Char
-      @reader.peek_next_char
+    private def next_sequence?(*chars : Char) : Bool
+      chars.all? { |c| next_char == c }
     end
 
-    private def finalize_token(with_value : Bool = false) : Nil
-      @token.loc.line_end_at @line
-      @token.loc.column_end_at current_pos
-
-      if with_value
-        start, end = @token.loc.column
-        slice = Slice.new(@reader.string.to_unsafe + start, end - start)
-        @token.value = @pool.get slice
-      end
+    private def location : Location
+      @loc.line_end_at @line
+      @loc.column_end_at @column
+      @loc
     end
 
-    private def lex_space : Nil
+    private def lex_space : Token
+      start = current_pos
       while current_char == ' '
         next_char
       end
 
-      @token.kind = :space
-      finalize_token true
+      Token.new :space, location, read_string_from start
     end
 
-    private def lex_string_to(end_char : Char) : Nil
-      escaped = false
+    private def lex_ident : Token
+      start = current_pos
 
-      loop do
-        case current_char
-        when '\\'
-          escaped = !escaped
-        when end_char
-          break unless escaped
-          escaped = false
-        end
+      while current_char.ascii_alphanumeric? || current_char.in?('_', '[', ']', '!', '?', '=')
         next_char
       end
 
-      @token.kind = :string
-      finalize_token true
+      Token.new :space, location, read_string_from start
     end
 
-    private def lex_operator : Nil
+    private def lex_keyword_or_ident(keyword : Token::Kind) : Token
+      char = @reader.peek_next_char
+
+      if char.ascii_alphanumeric? || char.in?('_', '!', '?', '=')
+        lex_ident
+      else
+        next_char
+        Token.new keyword, location
+      end
+    end
+
+    private def lex_operator : Token
+      start = current_pos
       while current_char.in?(OPERATOR_SYMBOLS)
         next_char
       end
 
-      @token.kind = :operator
-      finalize_token true
+      Token.new :operator, location, read_string_from start
     end
 
-    private def lex_number : Nil
+    private def lex_number : Token
       if current_char == '0'
         case next_char
         when 'o'
@@ -187,13 +192,16 @@ module Compiler
       end
     end
 
-    private def lex_octal : Nil
+    private def lex_octal : Token
+      raise "not implemented"
     end
 
-    private def lex_hexadecimal : Nil
+    private def lex_hexadecimal : Token
+      raise "not implemented"
     end
 
-    private def lex_raw_number : Nil
+    private def lex_raw_number : Token
+      start = current_pos
       float = false
 
       loop do
@@ -242,32 +250,29 @@ module Compiler
         end
       end
 
-      @token.kind = :number
-      finalize_token true
+      Token.new :number, location, read_string_from start
     end
 
-    private def lex_ident : Nil
-      while current_char.ascii_alphanumeric? || current_char.in?('_', '[', ']', '!', '?', '=')
+    private def read_string_from(start : Int32) : String
+      @pool.get Slice.new(@reader.string.to_unsafe + start, current_pos - start)
+    end
+
+    private def read_string_to(end_char : Char) : String
+      escaped = false
+      start = current_pos
+
+      loop do
+        case current_char
+        when '\\'
+          escaped = !escaped
+        when end_char
+          break unless escaped
+          escaped = false
+        end
         next_char
       end
 
-      @token.kind = :ident
-      finalize_token true
-    end
-
-    private def next_sequence?(*chars : Char)
-      chars.all? { |c| next_char == c }
-    end
-
-    private def lex_keyword_or_ident(keyword : Token::Kind) : Nil
-      char = peek_next_char
-      if char.ascii_alphanumeric? || char.in?('_', '!', '?', '=')
-        lex_ident
-      else
-        next_char
-        @token.kind = keyword
-        finalize_token
-      end
+      read_string_from start
     end
   end
 end
