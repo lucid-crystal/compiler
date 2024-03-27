@@ -33,6 +33,21 @@ module Lucid::Compiler
       @tokens[@pos += 1]?
     end
 
+    private def peek_token? : Token?
+      @tokens[@pos + 1]?
+    end
+
+    private def peek_token_no_space(offset : Int32 = 1) : Token?
+      return unless token = @tokens[@pos + offset]?
+
+      case token.kind
+      when .space?, .newline?
+        peek_token_no_space offset + 1
+      else
+        token
+      end
+    end
+
     private def next_token_no_space : Token?
       return unless token = next_token?
 
@@ -54,14 +69,22 @@ module Lucid::Compiler
         StringLiteral.new(token.value).at(token.loc)
       when .number? # TODO: split into integer & float
         if token.value.includes? '.'
-          FloatLiteral.new(token.value).at(token.loc)
+          if peek_token_no_space.try &.kind.operator?
+            parse_infix FloatLiteral.new(token.value).at(token.loc)
+          else
+            FloatLiteral.new(token.value).at(token.loc)
+          end
         else
-          IntLiteral.new(token.value).at(token.loc)
+          if peek_token_no_space.try &.kind.operator?
+            parse_infix IntLiteral.new(token.value).at(token.loc)
+          else
+            IntLiteral.new(token.value).at(token.loc)
+          end
         end
       when Token::Kind::Nil # .nil? doesn't work here
         NilLiteral.new.at(token.loc)
       when .operator?
-        parse_operator token
+        parse_prefix token
       end
     end
 
@@ -117,22 +140,16 @@ module Lucid::Compiler
       Call.new(token.value, args).at(token.loc)
     end
 
-    private def parse_operator(token : Token) : Node
-      # TODO: implement OpAssign
-      # assign = false
+    private def parse_prefix(token : Token) : Node
+      value = next_node || raise "unexpected EOF"
+      Prefix.new(token.value, value).at(token.loc & value.loc)
+    end
 
-      value = token.value
-      if token.value.ends_with? '='
-        value = value.byte_slice 1
-        # assign = true
-      end
+    private def parse_infix(left : Node) : Node
+      op = next_token_no_space || raise "unexpected EOF"
+      right = next_node || raise "unexpected EOF"
 
-      raise "invalid operator #{value.inspect}" unless VALID_OPERATORS.includes? value
-
-      # left = @prev || raise "missing left-hand expression for operator #{value}"
-      # right = next_node || raise "missing right-hand expression for operator #{value}"
-
-      Op.new(value, Nop.new, Nop.new).at(token.loc)
+      Infix.new(op.value, left, right).at(left.loc & right.loc)
     end
   end
 end
