@@ -1,18 +1,17 @@
 name: compiler
-version: 0.1.0
-
 authors:
   - Devonte W <https://github.com/devnote-dev>
+
+version: 0.1.0
+crystal: '>= 1.8.0'
+license: MIT
+repository: https://github.com/lucid-crystal/compiler
 
 development_dependencies:
   ameba:
     github: crystal-ameba/ameba
-    version: ~> 1.4.3
+    version: ~> 1.6.0
 
 targets:
   compiler:
     main: src/compiler.cr
-
-crystal: 1.8.0
-
-license: MIT
