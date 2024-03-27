@@ -3,6 +3,7 @@ module Lucid::Compiler
     enum Kind
       Space
       Newline
+      Comment
 
       Ident
 
@@ -15,15 +16,19 @@ module Lucid::Compiler
       Colon
       DoubleColon
       Comma
+      Period
+
+      IsA
+      RespondsTo
 
       Assign
       Equal
       Operator
 
       Module
-      # Enum
-      # Struct
-      # Class
+      Enum
+      Struct
+      Class
       Def
       End
     end

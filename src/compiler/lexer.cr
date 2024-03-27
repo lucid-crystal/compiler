@@ -106,6 +106,18 @@ module Lucid::Compiler
         else
           lex_ident
         end
+      when 'c'
+        if next_sequence?('l', 'a', 's', 's')
+          lex_keyword_or_ident :class
+        else
+          lex_ident
+        end
+      when 's'
+        if next_sequence?('t', 'r', 'u', 'c', 't')
+          lex_keyword_or_ident :struct
+        else
+          lex_ident
+        end
       when .ascii_number?
         lex_number
       when .ascii_letter?
