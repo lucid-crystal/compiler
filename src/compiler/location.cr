@@ -1,5 +1,6 @@
 module Lucid::Compiler
   class Location
+    # line_start:line_end:column_start:column_end
     @value : StaticArray(Int32, 4)
 
     def self.[](line : Int32, column : Int32)
@@ -27,6 +28,13 @@ module Lucid::Compiler
 
     def column_end_at(value : Int32) : Nil
       @value[3] = value
+    end
+
+    def &(other : Location) : Location
+      _, line_end = other.line
+      _, column_end = other.column
+
+      Location.new StaticArray[@value[0], line_end, @value[2], column_end]
     end
   end
 end
