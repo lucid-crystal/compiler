@@ -1,4 +1,4 @@
-module Compiler
+module Lucid::Compiler
   abstract class Node
     property loc : Location
 

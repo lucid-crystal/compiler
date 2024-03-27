@@ -17,7 +17,7 @@ end
 
 def assert_node_sequence(sequence : Array(Lucid::Compiler::Node.class), for input : String) : Nil
   tokens = Lucid::Compiler::Lexer.run input
-  nodes = Lucid::Compiler::Parser.new(tokens).parse
+  nodes = Lucid::Compiler::Parser.parse tokens
 
   sequence.each_with_index do |cls, index|
     nodes[index].class.should eq cls

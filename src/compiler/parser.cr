@@ -1,12 +1,15 @@
-module Compiler
+module Lucid::Compiler
   class Parser
-    VALID_OPERATORS = {"+", "-", "*", "/"}
+    VALID_OPERATORS = {"+", "-", "*", "**", "/", "//"}
 
     @tokens : Array(Token)
-    @prev : Node?
     @pos : Int32
 
-    def initialize(@tokens : Array(Token))
+    def self.parse(tokens : Array(Token)) : Array(Node)
+      new(tokens).parse
+    end
+
+    private def initialize(@tokens : Array(Token))
       @pos = -1
     end
 
@@ -15,45 +18,41 @@ module Compiler
 
       loop do
         break unless node = next_node
-        break if node.is_a? Nop
         nodes << node
-        @prev = node
       end
 
       nodes
     end
 
     private def next_node : Node?
-      parse_token next_token
+      return unless token = next_token?
+      parse_token token
     end
 
-    private def next_token : Token
-      @tokens[@pos += 1]
+    private def next_token? : Token?
+      @tokens[@pos += 1]?
     end
 
-    private def next_token_skip_space : Token
-      loop do
-        token = next_token
-        case token.kind
-        when .space?, .newline?
-          next
-        else
-          return token
-        end
+    private def next_token_no_space : Token?
+      return unless token = next_token?
+
+      case token.kind
+      when .space?, .newline?
+        next_token_no_space
+      else
+        token
       end
     end
 
     private def parse_token(token : Token) : Node?
       case token.kind
-      when .eof?
-        Nop.new.at(token.loc)
       when .space?, .newline?
         next_node
       when .ident?
         parse_ident_or_call token
       when .string?
         StringLiteral.new(token.value).at(token.loc)
-      when .number?
+      when .number? # TODO: split into integer & float
         if token.value.includes? '.'
           FloatLiteral.new(token.value).at(token.loc)
         else
@@ -66,33 +65,22 @@ module Compiler
       end
     end
 
-    private def expect_next(*kinds : Token::Kind, allow_space : Bool = false, allow_end : Bool = false) : Token
-      loop do
-        token = next_token
-        case token.kind
-        when .eof?
-          raise "unexpected End of File" unless allow_end
-          return token
-        else
-          return token if kinds.includes? token.kind
-          next if token.kind.space? && allow_space
-
-          raise "expected token#{"s" if kinds.size > 1} #{kinds.join " or "}; got #{token.kind}"
-        end
-      end
-    end
-
     private def parse_ident_or_call(token : Token) : Node
-      _next = next_token_skip_space
-      case _next.kind
+      next_token = next_token_no_space
+      raise "unexpected EOF" unless next_token
+
+      case next_token.kind
       when .colon?
-        _next = next_token_skip_space
-        Var.new(token.value, _next.value, nil).at(token.loc)
-      when .equal?
+        next_token = next_token_no_space
+        raise "unexpected EOF" unless next_token
+
+        Var.new(token.value, next_token.value, nil).at(token.loc)
+      when .assign?
         node = next_node || raise "unexpected End of File"
+
         Assign.new(token.value, node).at(token.loc)
       else
-        parse_call token, _next
+        parse_call token, next_token
       end
     end
 
@@ -102,11 +90,12 @@ module Compiler
       @pos -= 1 unless with_paren
 
       loop do
-        _next = next_token
-        case _next.kind
-        when .eof?
+        unless next_token = next_token?
           @pos -= 1
           break
+        end
+
+        case next_token.kind
         when .newline? # TODO: handle newline calls
           break
         when .right_paren?
@@ -115,10 +104,9 @@ module Compiler
         when .comma?
           next
         else
-          node = parse_token _next
+          node = parse_token next_token
           break unless node
           args << node
-          @prev = node
 
           # TODO: workaround this for now
           # expect_next :comma, :right_paren, allow_space: true, allow_end: true
