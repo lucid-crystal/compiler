@@ -28,12 +28,63 @@ module Lucid::Compiler
     end
   end
 
-  class Op < Node
-    property value : String
+  class Prefix < Node
+    enum Kind
+      Plus        # +
+      Minus       # -
+      Splat       # *
+      DoubleSplat # **
+
+      def self.from(value : String)
+        case value
+        when "+"  then Plus
+        when "-"  then Minus
+        when "*"  then Splat
+        when "**" then DoubleSplat
+        else
+          raise "invalid prefix operator '#{value}'"
+        end
+      end
+    end
+
+    property op : Kind
+    property value : Node
+
+    def initialize(op : String, @value : Node)
+      @op = Kind.from op
+      super()
+    end
+  end
+
+  class Infix < Node
+    enum Kind
+      Add      # +
+      Subtract # -
+      Multiply # *
+      Divide   # /
+      DivFloor # //
+      Power    # **
+
+      def self.from(value : String)
+        case value
+        when "+"  then Add
+        when "-"  then Subtract
+        when "*"  then Multiply
+        when "/"  then Divide
+        when "//" then DivFloor
+        when "**" then Power
+        else
+          raise "invalid infix operator '#{value}'"
+        end
+      end
+    end
+
+    property op : Kind
     property left : Node
     property right : Node
 
-    def initialize(@value : String, @left : Node, @right : Node)
+    def initialize(op : String, @left : Node, @right : Node)
+      @op = Kind.from op
       super()
     end
   end
