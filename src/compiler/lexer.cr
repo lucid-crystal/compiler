@@ -154,7 +154,7 @@ module Lucid::Compiler
         next_char
       end
 
-      Token.new :space, location, read_string_from start
+      Token.new :ident, location, read_string_from start
     end
 
     private def lex_keyword_or_ident(keyword : Token::Kind) : Token

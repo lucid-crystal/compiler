@@ -19,16 +19,16 @@ describe Lucid::Compiler::Lexer do
 
   it "parses the equal sign" do
     assert_token_sequence(
-      seq!(:ident, :space, :equal, :space, :number),
+      seq!(:ident, :space, :assign, :space, :number),
       "x = 7"
     )
   end
 
   it "parses an ident that contains a keyword" do
     assert_token_sequence(
-      seq!(:ident, :space, :equal, :space, :number, :newline,
-        :ident, :space, :equal, :space, :number, :newline,
-        :ident, :space, :equal, :space, :number), <<-CR)
+      seq!(:ident, :space, :assign, :space, :number, :newline,
+        :ident, :space, :assign, :space, :number, :newline,
+        :ident, :space, :assign, :space, :number), <<-CR)
     nil_a = 2
     end_me = 2
     module_is_cool = 2
