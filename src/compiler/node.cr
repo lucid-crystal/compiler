@@ -122,11 +122,10 @@ module Lucid::Compiler
   end
 
   class Call < Node
-    # TODO: rename to receiver
-    property name : Node
+    property receiver : Node
     property args : Array(Node)
 
-    def initialize(@name : Node, @args : Array(Node))
+    def initialize(@receiver : Node, @args : Array(Node))
       super()
     end
   end

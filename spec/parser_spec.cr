@@ -50,8 +50,8 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should be_a Lucid::Compiler::Ident
-    node.name.as(Lucid::Compiler::Ident).value.should eq "exit"
+    node.receiver.should be_a Lucid::Compiler::Ident
+    node.receiver.as(Lucid::Compiler::Ident).value.should eq "exit"
     node.args.size.should eq 0
   end
 
@@ -60,8 +60,8 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should be_a Lucid::Compiler::Path
-    names = node.name.as(Lucid::Compiler::Path).names
+    node.receiver.should be_a Lucid::Compiler::Path
+    names = node.receiver.as(Lucid::Compiler::Path).names
 
     names.size.should eq 3
     names[0].should be_a Lucid::Compiler::Ident
@@ -79,8 +79,8 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should be_a Lucid::Compiler::Ident
-    node.name.as(Lucid::Compiler::Ident).value.should eq "puts"
+    node.receiver.should be_a Lucid::Compiler::Ident
+    node.receiver.as(Lucid::Compiler::Ident).value.should eq "puts"
 
     node.args.size.should eq 1
     node.args[0].should be_a Lucid::Compiler::StringLiteral
@@ -92,8 +92,8 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should be_a Lucid::Compiler::Ident
-    node.name.as(Lucid::Compiler::Ident).value.should eq "puts"
+    node.receiver.should be_a Lucid::Compiler::Ident
+    node.receiver.as(Lucid::Compiler::Ident).value.should eq "puts"
 
     node.args.size.should eq 3
     node.args[0].should be_a Lucid::Compiler::StringLiteral
@@ -117,8 +117,8 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should be_a Lucid::Compiler::Ident
-    node.name.as(Lucid::Compiler::Ident).value.should eq "puts"
+    node.receiver.should be_a Lucid::Compiler::Ident
+    node.receiver.as(Lucid::Compiler::Ident).value.should eq "puts"
 
     node.args.size.should eq 2
     node.args[0].should be_a Lucid::Compiler::StringLiteral
