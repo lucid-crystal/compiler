@@ -88,9 +88,38 @@ module Lucid::Compiler
       end
     end
 
+    # TODO: handle global (i.e. '::')
     private def parse_ident_or_call(token : Token) : Node
+      names = [Ident.new token.value]
+      end_loc = token.loc
+
+      while (peek = peek_token?) && peek.kind.period?
+        @pos += 1
+        break unless next_token = next_token_no_space
+
+        case next_token.kind
+        when .ident?
+          names << Ident.new next_token.value
+          end_loc = next_token.loc
+          # when .instance_var?
+          #   names << InstanceVar.new next_token.value
+          #   end_loc = next_token.loc
+          # when .class_var?
+          #   names << ClassVar.new next_token.value
+          #   end_loc = next_token.loc
+        else
+          break
+        end
+      end
+
+      if names.size > 1
+        receiver = Path.new(names, false).at(token.loc & end_loc)
+      else
+        receiver = names[0]
+      end
+
       unless next_token = next_token_no_space
-        return Call.new(token.value, [] of Node).at(token.loc)
+        return Call.new(receiver, [] of Node).at(receiver.loc)
       end
 
       case next_token.kind
@@ -98,17 +127,21 @@ module Lucid::Compiler
         next_token = next_token_no_space
         raise "unexpected EOF" unless next_token
 
-        Var.new(token.value, next_token.value, nil).at(token.loc)
+        Var.new(
+          receiver,
+          parse_ident_or_call(next_token),
+          nil
+        ).at(receiver.loc)
       when .assign?
         node = next_node || raise "unexpected End of File"
 
-        Assign.new(token.value, node).at(token.loc)
+        Assign.new(receiver, node).at(receiver.loc)
       else
-        parse_call token, next_token
+        parse_call receiver, next_token
       end
     end
 
-    private def parse_call(token : Token, from : Token) : Node
+    private def parse_call(receiver : Node, from : Token) : Node
       args = [] of Node
       delimited = true
       with_paren = from.kind.left_paren?
@@ -145,7 +178,7 @@ module Lucid::Compiler
 
       raise "expected closing parenthesis for call" unless closed
 
-      Call.new(token.value, args).at(token.loc)
+      Call.new(receiver, args).at(receiver.loc)
     end
 
     private def parse_prefix(token : Token) : Node
