@@ -15,15 +15,17 @@ def assert_token_sequence(sequence : Array(Lucid::Compiler::Token::Kind), for in
   kinds.should eq sequence
 end
 
+def parse(source : String) : Array(Lucid::Compiler::Node)
+  tokens = Lucid::Compiler::Lexer.run source
+  Lucid::Compiler::Parser.parse tokens
+end
+
 def assert_node(cls : Lucid::Compiler::Node.class, for input : String) : Nil
-  tokens = Lucid::Compiler::Lexer.run input
-  nodes = Lucid::Compiler::Parser.parse(tokens).map &.class
-  nodes.should eq [cls]
+  parse(input).map(&.class).should eq [cls]
 end
 
 def assert_node_sequence(sequence : Array(Lucid::Compiler::Node.class), for input : String) : Nil
-  tokens = Lucid::Compiler::Lexer.run input
-  nodes = Lucid::Compiler::Parser.parse tokens
+  nodes = parse input
 
   sequence.each_with_index do |cls, index|
     nodes[index].class.should eq cls
