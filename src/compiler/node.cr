@@ -14,12 +14,35 @@ module Lucid::Compiler
   class Nop < Node
   end
 
+  class Path < Node
+    property names : Array(Ident)
+    property? global : Bool
+
+    def initialize(@names : Array(Ident), @global : Bool)
+      super()
+    end
+  end
+
+  class Ident < Node
+    property value : String
+
+    def initialize(@value : String)
+      super()
+    end
+  end
+
+  class InstanceVar < Ident
+  end
+
+  class ClassVar < Ident
+  end
+
   class Var < Node
-    property name : String
-    property type : String?
+    property name : Node
+    property type : Node?
     property value : Node?
 
-    def initialize(@name : String, @type : String?, @value : Node?)
+    def initialize(@name : Node, @type : Node?, @value : Node?)
       super() # needs investigating
     end
 
@@ -90,19 +113,20 @@ module Lucid::Compiler
   end
 
   class Assign < Node
-    property name : String
+    property target : Node
     property value : Node
 
-    def initialize(@name : String, @value : Node)
+    def initialize(@target : Node, @value : Node)
       super()
     end
   end
 
   class Call < Node
-    property name : String
+    # TODO: rename to receiver
+    property name : Node
     property args : Array(Node)
 
-    def initialize(@name : String, @args : Array(Node))
+    def initialize(@name : Node, @args : Array(Node))
       super()
     end
   end
