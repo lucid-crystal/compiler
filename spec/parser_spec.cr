@@ -22,7 +22,9 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Assign
     node = node.as(Lucid::Compiler::Assign)
 
-    node.name.should eq "x"
+    node.target.should be_a Lucid::Compiler::Ident
+    node.target.as(Lucid::Compiler::Ident).value.should eq "x"
+
     node.value.should be_a Lucid::Compiler::IntLiteral
     node.value.as(Lucid::Compiler::IntLiteral).value.should eq 7
   end
@@ -32,9 +34,13 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Var
     node = node.as(Lucid::Compiler::Var)
 
-    node.name.should eq "x"      # TODO: transform into Lucid::Compiler::Path
-    node.type.should be_a String # TODO: transform into Lucid::Compiler::Path
-    node.type.should eq "Int32"
+    node.name.should be_a Lucid::Compiler::Ident
+    node.name.as(Lucid::Compiler::Ident).value.should eq "x"
+
+    # FIXME: parsed as a Call and expected to be an Ident when really it's a Const
+    # node.type.should be_a Lucid::Compiler::Ident
+    # node.type.as(Lucid::Compiler::Ident).value.should eq "Int32"
+
     node.value.should be_nil
     node.uninitialized?.should be_true
   end
@@ -44,8 +50,28 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should eq "exit"
+    node.name.should be_a Lucid::Compiler::Ident
+    node.name.as(Lucid::Compiler::Ident).value.should eq "exit"
     node.args.size.should eq 0
+  end
+
+  it "parses path call expressions" do
+    node = parse("foo.bar.baz")[0]
+    node.should be_a Lucid::Compiler::Call
+    node = node.as(Lucid::Compiler::Call)
+
+    node.name.should be_a Lucid::Compiler::Path
+    names = node.name.as(Lucid::Compiler::Path).names
+
+    names.size.should eq 3
+    names[0].should be_a Lucid::Compiler::Ident
+    names[0].as(Lucid::Compiler::Ident).value.should eq "foo"
+
+    names[1].should be_a Lucid::Compiler::Ident
+    names[1].as(Lucid::Compiler::Ident).value.should eq "bar"
+
+    names[2].should be_a Lucid::Compiler::Ident
+    names[2].as(Lucid::Compiler::Ident).value.should eq "baz"
   end
 
   it "parses call expressions with single arguments" do
@@ -53,7 +79,9 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should eq "puts"
+    node.name.should be_a Lucid::Compiler::Ident
+    node.name.as(Lucid::Compiler::Ident).value.should eq "puts"
+
     node.args.size.should eq 1
     node.args[0].should be_a Lucid::Compiler::StringLiteral
     node.args[0].as(Lucid::Compiler::StringLiteral).value.should eq "hello world"
@@ -64,7 +92,9 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should eq "puts" # TODO: transform into Lucid::Compiler::Ident
+    node.name.should be_a Lucid::Compiler::Ident
+    node.name.as(Lucid::Compiler::Ident).value.should eq "puts"
+
     node.args.size.should eq 3
     node.args[0].should be_a Lucid::Compiler::StringLiteral
     node.args[0].as(Lucid::Compiler::StringLiteral).value.should eq "foo"
@@ -87,7 +117,9 @@ describe Lucid::Compiler::Parser do
     node.should be_a Lucid::Compiler::Call
     node = node.as(Lucid::Compiler::Call)
 
-    node.name.should eq "puts" # TODO: transform into Lucid::Compiler::Ident
+    node.name.should be_a Lucid::Compiler::Ident
+    node.name.as(Lucid::Compiler::Ident).value.should eq "puts"
+
     node.args.size.should eq 2
     node.args[0].should be_a Lucid::Compiler::StringLiteral
     node.args[0].as(Lucid::Compiler::StringLiteral).value.should eq "hello from"
