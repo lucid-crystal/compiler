@@ -39,6 +39,15 @@ describe Lucid::Compiler::Parser do
     node.uninitialized?.should be_true
   end
 
+  it "parses call expressions with no arguments" do
+    node = parse("exit")[0]
+    node.should be_a Lucid::Compiler::Call
+    node = node.as(Lucid::Compiler::Call)
+
+    node.name.should eq "exit"
+    node.args.size.should eq 0
+  end
+
   it "parses call expressions with single arguments" do
     node = parse(%(puts "hello world"))[0]
     node.should be_a Lucid::Compiler::Call

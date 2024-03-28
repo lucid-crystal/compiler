@@ -89,8 +89,9 @@ module Lucid::Compiler
     end
 
     private def parse_ident_or_call(token : Token) : Node
-      next_token = next_token_no_space
-      raise "unexpected EOF" unless next_token
+      unless next_token = next_token_no_space
+        return Call.new(token.value, [] of Node).at(token.loc)
+      end
 
       case next_token.kind
       when .colon?
