@@ -2,34 +2,34 @@ require "./spec_helper"
 
 describe Lucid::Compiler::Parser do
   it "parses string expressions" do
-    assert_node_sequence([Lucid::Compiler::StringLiteral], %("hello world"))
+    assert_node Lucid::Compiler::StringLiteral, %("hello world")
   end
 
   it "parses number-integer expressions" do
-    assert_node_sequence([Lucid::Compiler::IntLiteral], %(123_45))
+    assert_node Lucid::Compiler::IntLiteral, "123_45"
   end
 
   it "parses number-float expressions" do
-    assert_node_sequence([Lucid::Compiler::FloatLiteral], %(3.141_592))
+    assert_node Lucid::Compiler::FloatLiteral, "3.141_592"
   end
 
   it "parses nil expressions" do
-    assert_node_sequence([Lucid::Compiler::NilLiteral], %(nil))
+    assert_node Lucid::Compiler::NilLiteral, "nil"
   end
 
   it "parses assignment expressions" do
-    assert_node_sequence([Lucid::Compiler::Assign], %(x = 7))
+    assert_node Lucid::Compiler::Assign, "x = 7"
   end
 
   it "parses variable declaration expresssions" do
-    assert_node_sequence([Lucid::Compiler::Var], %(x : Int32))
+    assert_node Lucid::Compiler::Var, "x : Int32"
   end
 
   it "parses call expressions with single arguments" do
-    assert_node_sequence([Lucid::Compiler::Call], %(puts "hello world"))
+    assert_node Lucid::Compiler::Call, %(puts "hello world")
   end
 
   it "parses call expressions with multiple arguments" do
-    assert_node_sequence([Lucid::Compiler::Call], %(puts "foo", "bar", "baz"))
+    assert_node Lucid::Compiler::Call, %(puts "foo", "bar", "baz")
   end
 end
