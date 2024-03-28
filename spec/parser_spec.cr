@@ -5,11 +5,11 @@ describe Lucid::Compiler::Parser do
     assert_node Lucid::Compiler::StringLiteral, %("hello world")
   end
 
-  it "parses number-integer expressions" do
+  it "parses integer expressions" do
     assert_node Lucid::Compiler::IntLiteral, "123_45"
   end
 
-  it "parses number-float expressions" do
+  it "parses float expressions" do
     assert_node Lucid::Compiler::FloatLiteral, "3.141_592"
   end
 
@@ -65,5 +65,39 @@ describe Lucid::Compiler::Parser do
 
     node.args[2].should be_a Lucid::Compiler::StringLiteral
     node.args[2].as(Lucid::Compiler::StringLiteral).value.should eq "baz"
+  end
+
+  it "parses call expressions on multiple lines" do
+    node = parse(<<-CR)[0]
+      puts(
+        "hello from",
+        "the other side",
+      )
+      CR
+
+    node.should be_a Lucid::Compiler::Call
+    node = node.as(Lucid::Compiler::Call)
+
+    node.name.should eq "puts" # TODO: transform into Lucid::Compiler::Ident
+    node.args.size.should eq 2
+    node.args[0].should be_a Lucid::Compiler::StringLiteral
+    node.args[0].as(Lucid::Compiler::StringLiteral).value.should eq "hello from"
+
+    node.args[1].should be_a Lucid::Compiler::StringLiteral
+    node.args[1].as(Lucid::Compiler::StringLiteral).value.should eq "the other side"
+  end
+
+  # TODO: use refined exceptions for these
+
+  it "raises on undelimited arguments for calls" do
+    expect_raises(Exception, "expected a comma after the last argument") do
+      parse %(puts "foo" "bar")
+    end
+  end
+
+  it "raises on unclosed parentheses for calls" do
+    expect_raises(Exception, "expected closing parenthesis for call") do
+      parse %[puts("foo", "bar"]
+    end
   end
 end

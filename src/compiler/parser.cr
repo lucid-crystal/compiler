@@ -109,8 +109,15 @@ module Lucid::Compiler
 
     private def parse_call(token : Token, from : Token) : Node
       args = [] of Node
+      delimited = true
       with_paren = from.kind.left_paren?
-      @pos -= 1 unless with_paren
+
+      if with_paren
+        closed = false
+      else
+        @pos -= 1
+        closed = true
+      end
 
       loop do
         unless next_token = next_token?
@@ -119,23 +126,23 @@ module Lucid::Compiler
         end
 
         case next_token.kind
-        when .newline? # TODO: handle newline calls
-          break
-        when .right_paren?
-          break if with_paren
-          raise "unexpected closing parenthesis"
-        when .comma?
+        when .space?, .newline?
           next
+        when .comma?
+          delimited = true
+        when .right_paren?
+          closed = true
+          break
         else
-          node = parse_token next_token
-          break unless node
-          args << node
+          raise "expected a comma after the last argument" unless delimited
+          delimited = false
 
-          # TODO: workaround this for now
-          # expect_next :comma, :right_paren, allow_space: true, allow_end: true
-          # @pos -= 1
+          break unless node = parse_token next_token
+          args << node
         end
       end
+
+      raise "expected closing parenthesis for call" unless closed
 
       Call.new(token.value, args).at(token.loc)
     end
