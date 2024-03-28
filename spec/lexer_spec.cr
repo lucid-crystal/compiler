@@ -5,12 +5,12 @@ describe Lucid::Compiler::Lexer do
     assert_token :string, %("hello world")
   end
 
-  it "parses number-integer expressions" do
-    assert_token :number, "123_45"
+  it "parses integer expressions" do
+    assert_token :integer, "123_45"
   end
 
-  it "parses number-float expressions" do
-    assert_token :number, "3.141_592"
+  it "parses float expressions" do
+    assert_token :float, "3.141_592"
   end
 
   it "parses nil expressions" do
@@ -19,7 +19,7 @@ describe Lucid::Compiler::Lexer do
 
   it "parses the equal sign" do
     assert_token_sequence(
-      seq!(:ident, :space, :assign, :space, :number),
+      seq!(:ident, :space, :assign, :space, :integer),
       "x = 7"
     )
   end
@@ -33,7 +33,7 @@ describe Lucid::Compiler::Lexer do
   end
 
   it "parses ident that starts with en" do
-    assert_token_sequence(seq!(:ident, :space, :assign, :space, :number), "encryption = 1")
+    assert_token_sequence(seq!(:ident, :space, :assign, :space, :integer), "encryption = 1")
   end
 
   # TODO: add responds_to? spec when symbols are implemented
@@ -46,9 +46,9 @@ describe Lucid::Compiler::Lexer do
 
   it "parses an ident that contains a keyword" do
     assert_token_sequence(
-      seq!(:ident, :space, :assign, :space, :number, :newline,
-        :ident, :space, :assign, :space, :number, :newline,
-        :ident, :space, :assign, :space, :number), <<-CR)
+      seq!(:ident, :space, :assign, :space, :integer, :newline,
+        :ident, :space, :assign, :space, :integer, :newline,
+        :ident, :space, :assign, :space, :integer), <<-CR)
     nil_a = 2
     end_me = 2
     module_is_cool = 2
@@ -78,7 +78,7 @@ describe Lucid::Compiler::Lexer do
   it "parses def expressions with types and values" do
     assert_token_sequence(
       seq!(:def, :space, :ident, :space, :colon, :space, :ident,
-        :newline, :space, :number, :newline, :end), <<-CR)
+        :newline, :space, :integer, :newline, :end), <<-CR)
       def foo : Int32
         123
       end

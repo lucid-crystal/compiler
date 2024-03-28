@@ -246,7 +246,7 @@ module Lucid::Compiler
 
     private def lex_raw_number : Token
       start = current_pos
-      float = false
+      kind = Token::Kind::Integer
 
       loop do
         case next_char
@@ -285,8 +285,8 @@ module Lucid::Compiler
         when '_'
           next
         when '.'
-          raise "invalid float literal" if float
-          float = true
+          raise "invalid float literal" if kind.float?
+          kind = Token::Kind::Float
         when .ascii_number?
           next
         else
@@ -294,7 +294,7 @@ module Lucid::Compiler
         end
       end
 
-      Token.new :number, location, read_string_from start
+      Token.new kind, location, read_string_from start
     end
 
     private def read_string_from(start : Int32) : String

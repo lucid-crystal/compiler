@@ -8,7 +8,8 @@ module Lucid::Compiler
       Ident
 
       String
-      Number
+      Integer
+      Float
       Nil
 
       LeftParen

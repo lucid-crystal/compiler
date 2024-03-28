@@ -67,19 +67,19 @@ module Lucid::Compiler
         parse_ident_or_call token
       when .string?
         StringLiteral.new(token.value).at(token.loc)
-      when .number? # TODO: split into integer & float
-        if token.value.includes? '.'
-          if peek_token_no_space.try &.kind.operator?
-            parse_infix FloatLiteral.new(token.value).at(token.loc)
-          else
-            FloatLiteral.new(token.value).at(token.loc)
-          end
+      when .integer?
+        node = IntLiteral.new(token.value).at(token.loc)
+        if peek_token_no_space.try &.kind.operator?
+          parse_infix node
         else
-          if peek_token_no_space.try &.kind.operator?
-            parse_infix IntLiteral.new(token.value).at(token.loc)
-          else
-            IntLiteral.new(token.value).at(token.loc)
-          end
+          node
+        end
+      when .float?
+        node = FloatLiteral.new(token.value).at(token.loc)
+        if peek_token_no_space.try &.kind.operator?
+          parse_infix node
+        else
+          node
         end
       when Token::Kind::Nil # .nil? doesn't work here
         NilLiteral.new.at(token.loc)
