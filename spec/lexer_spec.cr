@@ -26,20 +26,20 @@ describe Lucid::Compiler::Lexer do
 
   it "parses comments" do
     assert_token_sequence(
-      seq!(:comment, :newline, :ident, :space, :comment, :eof), <<-CR)
+      seq!(:comment, :newline, :ident, :space, :comment), <<-CR)
       # This is a comment
       an_ident # This is an ident
       CR
   end
 
   it "parses ident that starts with en" do
-    assert_token_sequence(seq!(:ident, :space, :equal, :space, :number, :eof), "encryption = 1")
+    assert_token_sequence(seq!(:ident, :space, :assign, :space, :number), "encryption = 1")
   end
 
   # TODO: add responds_to? spec when symbols are implemented
   it "parses pseudo methods" do
     assert_token_sequence(
-      seq!(:ident, :period, :is_a, :left_paren, :ident, :right_paren, :eof), <<-CR)
+      seq!(:ident, :period, :is_a, :left_paren, :ident, :right_paren), <<-CR)
       a.is_a?(String)
       CR
   end
@@ -95,7 +95,7 @@ describe Lucid::Compiler::Lexer do
 
   it "parses class expressions" do
     assert_token_sequence(
-      seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
+      seq!(:class, :space, :ident, :newline, :end), <<-CR)
       class Kot
       end
       CR
@@ -103,7 +103,7 @@ describe Lucid::Compiler::Lexer do
 
   it "parses class expressions" do
     assert_token_sequence(
-      seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
+      seq!(:class, :space, :ident, :newline, :end), <<-CR)
       class Kot
       end
       CR
@@ -111,7 +111,7 @@ describe Lucid::Compiler::Lexer do
 
   it "parses class expressions" do
     assert_token_sequence(
-      seq!(:class, :space, :ident, :newline, :end, :eof), <<-CR)
+      seq!(:class, :space, :ident, :newline, :end), <<-CR)
       class Klass
       end
       CR
@@ -119,7 +119,7 @@ describe Lucid::Compiler::Lexer do
 
   it "parses struct expressions" do
     assert_token_sequence(
-      seq!(:struct, :space, :ident, :newline, :end, :eof), <<-CR)
+      seq!(:struct, :space, :ident, :newline, :end), <<-CR)
       struct Strukt
       end
       CR
@@ -127,7 +127,7 @@ describe Lucid::Compiler::Lexer do
 
   it "parses enum expressions" do
     assert_token_sequence(
-      seq!(:enum, :space, :ident, :newline, :end, :eof), <<-CR)
+      seq!(:enum, :space, :ident, :newline, :end), <<-CR)
       enum Enumn
       end
       CR

@@ -51,6 +51,8 @@ module Lucid::Compiler
         @line += 1
         @column = 0
         Token.new :newline, loc
+      when '#'
+        lex_comment
       when '('
         next_char
         Token.new :left_paren, location
@@ -67,6 +69,9 @@ module Lucid::Compiler
       when ','
         next_char
         Token.new :comma, location
+      when '.'
+        next_char
+        Token.new :period, location
       when '='
         if next_char == '='
           next_char
@@ -89,8 +94,25 @@ module Lucid::Compiler
           lex_ident
         end
       when 'e'
-        if next_sequence?('n', 'd')
-          lex_keyword_or_ident :end
+        if next_char == 'n'
+          case next_char
+          when 'd'
+            lex_keyword_or_ident :end
+          when 'u'
+            if next_char == 'm'
+              lex_keyword_or_ident :enum
+            else
+              lex_ident
+            end
+          else
+            lex_ident
+          end
+        else
+          lex_ident
+        end
+      when 'i'
+        if next_sequence?('s', '_', 'a', '?')
+          lex_keyword_or_ident :is_a
         else
           lex_ident
         end
@@ -157,6 +179,16 @@ module Lucid::Compiler
       end
 
       Token.new :space, location, read_string_from start
+    end
+
+    private def lex_comment : Token
+      start = current_pos
+
+      until current_char.in?('\0', '\r', '\n')
+        next_char
+      end
+
+      Token.new :comment, location, read_string_from start
     end
 
     private def lex_ident : Token

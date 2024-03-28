@@ -18,12 +18,12 @@ module Lucid::Compiler
       Comma
       Period
 
-      IsA
-      RespondsTo
-
       Assign
       Equal
       Operator
+
+      IsA
+      RespondsTo
 
       Module
       Enum
