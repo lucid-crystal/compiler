@@ -88,57 +88,64 @@ module Lucid::Compiler
         next_char
         Token.new :string, location, value
       when 'd'
+        start = current_pos
         if next_sequence?('e', 'f')
-          lex_keyword_or_ident :def
+          lex_keyword_or_ident :def, start
         else
-          lex_ident
+          lex_ident start
         end
       when 'e'
+        start = current_pos
         if next_char == 'n'
           case next_char
           when 'd'
-            lex_keyword_or_ident :end
+            lex_keyword_or_ident :end, start
           when 'u'
             if next_char == 'm'
-              lex_keyword_or_ident :enum
+              lex_keyword_or_ident :enum, start
             else
-              lex_ident
+              lex_ident start
             end
           else
-            lex_ident
+            lex_ident start
           end
         else
-          lex_ident
+          lex_ident start
         end
       when 'i'
+        start = current_pos
         if next_sequence?('s', '_', 'a', '?')
-          lex_keyword_or_ident :is_a
+          lex_keyword_or_ident :is_a, start
         else
-          lex_ident
+          lex_ident start
         end
       when 'n'
+        start = current_pos
         if next_sequence?('i', 'l')
-          lex_keyword_or_ident :nil
+          lex_keyword_or_ident :nil, start
         else
-          lex_ident
+          lex_ident start
         end
       when 'm'
+        start = current_pos
         if next_sequence?('o', 'd', 'u', 'l', 'e')
-          lex_keyword_or_ident :module
+          lex_keyword_or_ident :module, start
         else
-          lex_ident
+          lex_ident start
         end
       when 'c'
+        start = current_pos
         if next_sequence?('l', 'a', 's', 's')
-          lex_keyword_or_ident :class
+          lex_keyword_or_ident :class, start
         else
-          lex_ident
+          lex_ident start
         end
       when 's'
+        start = current_pos
         if next_sequence?('t', 'r', 'u', 'c', 't')
-          lex_keyword_or_ident :struct
+          lex_keyword_or_ident :struct, start
         else
-          lex_ident
+          lex_ident start
         end
       when .ascii_number?
         lex_number
@@ -191,9 +198,7 @@ module Lucid::Compiler
       Token.new :comment, location, read_string_from start
     end
 
-    private def lex_ident : Token
-      start = current_pos
-
+    private def lex_ident(start : Int32 = current_pos) : Token
       while current_char.ascii_alphanumeric? || current_char.in?('_', '[', ']', '!', '?', '=')
         next_char
       end
@@ -201,11 +206,11 @@ module Lucid::Compiler
       Token.new :ident, location, read_string_from start
     end
 
-    private def lex_keyword_or_ident(keyword : Token::Kind) : Token
+    private def lex_keyword_or_ident(keyword : Token::Kind, start : Int32 = current_pos) : Token
       char = @reader.peek_next_char
 
       if char.ascii_alphanumeric? || char.in?('_', '!', '?', '=')
-        lex_ident
+        lex_ident start
       else
         next_char
         Token.new keyword, location
