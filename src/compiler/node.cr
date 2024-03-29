@@ -38,7 +38,7 @@ module Lucid::Compiler
     end
 
     def uninitialized? : Bool
-      !@type.nil? && @value.nil?
+      @value.nil?
     end
   end
 
