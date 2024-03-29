@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-describe Lucid::Compiler::Lexer do
+describe LC::Lexer do
   it "parses string expressions" do
     assert_token :string, %("hello world")
   end
