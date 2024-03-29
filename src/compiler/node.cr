@@ -9,6 +9,9 @@ module Lucid::Compiler
     def at(@loc : Location) : self
       self
     end
+
+    abstract def to_s(io : IO) : Nil
+    abstract def inspect(io : IO) : Nil
   end
 
   class Path < Node
@@ -18,6 +21,16 @@ module Lucid::Compiler
     def initialize(@names : Array(Ident), @global : Bool)
       super()
     end
+
+    def to_s(io : IO) : Nil
+      @names.join(io, '.') # TODO: handle global
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Path(names: "
+      io << @names << ", global: "
+      io << @global << ')'
+    end
   end
 
   class Ident < Node
@@ -25,6 +38,16 @@ module Lucid::Compiler
 
     def initialize(@value : String)
       super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << @value
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Ident("
+      @value.inspect io
+      io << ')'
     end
   end
 
@@ -39,6 +62,27 @@ module Lucid::Compiler
 
     def uninitialized? : Bool
       @value.nil?
+    end
+
+    def to_s(io : IO) : Nil
+      io << @name
+      if @type
+        io << " : " << @type
+      end
+
+      if @value
+        io << " = " << @value
+      end
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Var(name: "
+      @name.inspect io
+      io << ", type: "
+      @type.inspect io
+      io << ", value: "
+      @value.inspect io
+      io << ')'
     end
   end
 
@@ -65,6 +109,15 @@ module Lucid::Compiler
           raise "invalid prefix operator '#{value}'"
         end
       end
+
+      def to_s : String
+        case self
+        in Plus        then "+"
+        in Minus       then "-"
+        in Splat       then "*"
+        in DoubleSplat then "**"
+        end
+      end
     end
 
     property op : Kind
@@ -73,6 +126,17 @@ module Lucid::Compiler
     def initialize(op : String, @value : Node)
       @op = Kind.from op
       super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << @op << @value
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Prefix(op: '" << @op
+      io << "', value: "
+      @value.inspect io
+      io << ')'
     end
   end
 
@@ -97,6 +161,17 @@ module Lucid::Compiler
           raise "invalid infix operator '#{value}'"
         end
       end
+
+      def to_s : String
+        case self
+        in Add      then "+"
+        in Subtract then "-"
+        in Multiply then "*"
+        in Divide   then "/"
+        in DivFloor then "//"
+        in Power    then "**"
+        end
+      end
     end
 
     property op : Kind
@@ -107,6 +182,20 @@ module Lucid::Compiler
       @op = Kind.from op
       super()
     end
+
+    def to_s(io : IO) : Nil
+      io << @left << ' ' << @op << ' ' << @right
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Infix(left: "
+      @left.inspect io
+      io << ", op: "
+      @op.inspect io
+      io << ", right: "
+      @right.inspect io
+      io << ')'
+    end
   end
 
   class Assign < Node
@@ -115,6 +204,18 @@ module Lucid::Compiler
 
     def initialize(@target : Node, @value : Node)
       super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << @target << " = " << @value
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Assign(target: "
+      @target.inspect io
+      io << ", value: "
+      @value.inspect io
+      io << ')'
     end
   end
 
@@ -125,6 +226,20 @@ module Lucid::Compiler
     def initialize(@receiver : Node, @args : Array(Node))
       super()
     end
+
+    def to_s(io : IO) : Nil
+      io << @receiver << '('
+      @args.join(io, ", ") unless @args.empty?
+      io << ')'
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Call(receiver: "
+      @receiver.inspect io
+      io << ", args: "
+      @args.inspect io
+      io << ')'
+    end
   end
 
   class StringLiteral < Node
@@ -132,6 +247,16 @@ module Lucid::Compiler
 
     def initialize(@value : String)
       super()
+    end
+
+    def to_s(io : IO) : Nil
+      @value.inspect io
+    end
+
+    def inspect(io : IO) : Nil
+      io << "StringLiteral("
+      @value.inspect io
+      io << ')'
     end
   end
 
@@ -143,6 +268,16 @@ module Lucid::Compiler
       super()
       @value = @raw.to_i64 strict: false
     end
+
+    def to_s(io : IO) : Nil
+      io << @value
+    end
+
+    def inspect(io : IO) : Nil
+      io << "IntLiteral("
+      @value.inspect io
+      io << ')'
+    end
   end
 
   class FloatLiteral < Node
@@ -153,8 +288,25 @@ module Lucid::Compiler
       super()
       @value = @raw.to_f64 strict: false
     end
+
+    def to_s(io : IO) : Nil
+      io << @value
+    end
+
+    def inspect(io : IO) : Nil
+      io << "FloatLiteral("
+      @value.inspect io
+      io << ')'
+    end
   end
 
   class NilLiteral < Node
+    def to_s(io : IO) : Nil
+      io << "nil"
+    end
+
+    def inspect(io : IO) : Nil
+      io << "NilLiteral"
+    end
   end
 end
