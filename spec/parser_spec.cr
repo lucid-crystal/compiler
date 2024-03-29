@@ -89,6 +89,35 @@ describe LC::Parser do
     names[2].as(LC::Ident).value.should eq "baz"
   end
 
+  it "parses constant path expressions" do
+    node = parse("Foo::Bar")[0]
+    node.should be_a LC::Path
+    node = node.as(LC::Path)
+
+    node.names.size.should eq 2
+    node.names[0].should be_a LC::Const
+    node.names[0].as(LC::Const).value.should eq "Foo"
+
+    node.names[1].should be_a LC::Const
+    node.names[1].as(LC::Const).value.should eq "Bar"
+  end
+
+  it "parses constant call expresions" do
+    node = parse("::Foo.baz")[0]
+    node.should be_a LC::Call
+    node = node.as(LC::Call)
+
+    node.receiver.should be_a LC::Path
+    names = node.receiver.as(LC::Path).names
+
+    names.size.should eq 2
+    names[0].should be_a LC::Const
+    names[0].as(LC::Const).value.should eq "Foo"
+
+    names[1].should be_a LC::Const
+    names[1].as(LC::Const).value.should eq "Bar"
+  end
+
   it "parses call expressions with single arguments" do
     node = parse(%(puts "hello world"))[0]
     node.should be_a LC::Call

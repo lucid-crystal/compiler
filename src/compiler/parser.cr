@@ -64,7 +64,14 @@ module Lucid::Compiler
       when .space?, .newline?
         next_node
       when .ident?, .const?
-        parse_ident_or_call token
+        parse_ident_or_call token, false
+      when .double_colon?
+        raise "unexpected EOF" unless next_token = next_token_no_space
+        if next_token.kind.ident? || next_token.kind.const?
+          parse_ident_or_call next_token, true
+        else
+          raise "unexpected token #{next_token}"
+        end
       when .string?
         StringLiteral.new(token.value).at(token.loc)
       when .integer?
@@ -88,26 +95,26 @@ module Lucid::Compiler
       end
     end
 
-    # TODO: handle global (i.e. '::')
-    private def parse_ident_or_call(token : Token) : Node
+    private def parse_ident_or_call(token : Token, global : Bool) : Node
       names = [] of Ident
       if token.kind.ident?
-        names << Ident.new token.value
+        names << Ident.new(token.value, global).at(token.loc)
       else
-        names << Const.new token.value
+        names << Const.new(token.value, global).at(token.loc)
       end
       end_loc = token.loc
 
-      while (peek = peek_token?) && peek.kind.period?
+      while (peek = peek_token?) && (peek.kind.period? || peek.kind.double_colon?)
         @pos += 1
         break unless next_token = next_token_no_space
+        next_global = peek.kind.double_colon?
 
         case next_token.kind
         when .ident?
-          names << Ident.new next_token.value
+          names << Ident.new(next_token.value, next_global).at(next_token.loc)
           end_loc = next_token.loc
         when .const?
-          names << Const.new next_token.value
+          names << Const.new(next_token.value, next_global).at(next_token.loc)
           end_loc = next_token.loc
           # when .instance_var?
           #   names << InstanceVar.new next_token.value
@@ -121,7 +128,7 @@ module Lucid::Compiler
       end
 
       if names.size > 1
-        receiver = Path.new(names, false).at(token.loc & end_loc)
+        receiver = Path.new(names, global).at(token.loc & end_loc)
       else
         receiver = names[0]
       end
@@ -136,7 +143,7 @@ module Lucid::Compiler
         next_token = next_token_no_space
         raise "unexpected EOF" unless next_token
 
-        case node = parse_ident_or_call next_token
+        case node = parse_ident_or_call next_token, false
         when Assign
           Var.new(receiver, node.target, node.value).at(receiver.loc)
         when Ident

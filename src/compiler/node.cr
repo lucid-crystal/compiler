@@ -23,7 +23,16 @@ module Lucid::Compiler
     end
 
     def to_s(io : IO) : Nil
-      @names.join(io, '.') # TODO: handle global
+      @names.each do |name|
+        case name
+        in Const
+          io << "::" if name.global?
+          io << name
+        in Ident
+          io << "::" if name.global?
+          io << '.' << name
+        end
+      end
     end
 
     def inspect(io : IO) : Nil
@@ -35,8 +44,9 @@ module Lucid::Compiler
 
   class Ident < Node
     property value : String
+    property? global : Bool
 
-    def initialize(@value : String)
+    def initialize(@value : String, @global : Bool)
       super()
     end
 
@@ -45,17 +55,19 @@ module Lucid::Compiler
     end
 
     def inspect(io : IO) : Nil
-      io << "Ident("
+      io << "Ident(value: "
       @value.inspect io
-      io << ')'
+      io << ", global: "
+      io << @global << ')'
     end
   end
 
   class Const < Ident
     def inspect(io : IO) : Nil
-      io << "Const("
+      io << "Const(value: "
       @value.inspect io
-      io << ')'
+      io << ", global: "
+      io << @global << ')'
     end
   end
 
