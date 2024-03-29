@@ -31,12 +31,6 @@ module Lucid::Compiler
     end
   end
 
-  class InstanceVar < Ident
-  end
-
-  class ClassVar < Ident
-  end
-
   class Var < Node
     property name : Node
     property type : Node?
@@ -49,6 +43,12 @@ module Lucid::Compiler
     def uninitialized? : Bool
       !@type.nil? && @value.nil?
     end
+  end
+
+  class InstanceVar < Var
+  end
+
+  class ClassVar < Var
   end
 
   class Prefix < Node
