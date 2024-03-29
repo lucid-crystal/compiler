@@ -97,9 +97,11 @@ describe LC::Parser do
     node.names.size.should eq 2
     node.names[0].should be_a LC::Const
     node.names[0].as(LC::Const).value.should eq "Foo"
+    node.names[0].as(LC::Const).global?.should be_false
 
     node.names[1].should be_a LC::Const
     node.names[1].as(LC::Const).value.should eq "Bar"
+    node.names[1].as(LC::Const).global?.should be_true
   end
 
   it "parses constant call expresions" do
@@ -113,9 +115,11 @@ describe LC::Parser do
     names.size.should eq 2
     names[0].should be_a LC::Const
     names[0].as(LC::Const).value.should eq "Foo"
+    names[0].as(LC::Const).global?.should be_true
 
-    names[1].should be_a LC::Const
-    names[1].as(LC::Const).value.should eq "Bar"
+    names[1].should be_a LC::Ident
+    names[1].as(LC::Ident).value.should eq "baz"
+    names[1].as(LC::Ident).global?.should be_false
   end
 
   it "parses call expressions with single arguments" do

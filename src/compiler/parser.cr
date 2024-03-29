@@ -135,6 +135,10 @@ module Lucid::Compiler
 
       unless next_token = next_token_no_space
         return receiver if receiver.is_a?(Const)
+        if receiver.is_a?(Path)
+          return receiver if receiver.names.last.is_a?(Const)
+        end
+
         return Call.new(receiver, [] of Node).at(receiver.loc)
       end
 
