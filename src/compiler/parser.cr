@@ -160,11 +160,14 @@ module Lucid::Compiler
         end
 
         case next_token.kind
-        when .space?, .newline?
+        when .space?
           next
+        when .newline?
+          break unless with_paren
         when .comma?
           delimited = true
         when .right_paren?
+          @pos -= 1 unless with_paren
           closed = true
           break
         else

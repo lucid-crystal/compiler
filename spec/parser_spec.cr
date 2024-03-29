@@ -128,6 +128,31 @@ describe Lucid::Compiler::Parser do
     node.args[1].as(Lucid::Compiler::StringLiteral).value.should eq "the other side"
   end
 
+  it "parses nested call expressions" do
+    node = parse(<<-CR)[0]
+      puts(
+        "hello, ",
+        your_name,
+      )
+      CR
+
+    node.should be_a Lucid::Compiler::Call
+    node = node.as(Lucid::Compiler::Call)
+
+    node.receiver.should be_a Lucid::Compiler::Ident
+    node.receiver.as(Lucid::Compiler::Ident).value.should eq "puts"
+
+    node.args.size.should eq 2
+    node.args[0].should be_a Lucid::Compiler::StringLiteral
+    node.args[0].as(Lucid::Compiler::StringLiteral).value.should eq "hello, "
+
+    node.args[1].should be_a Lucid::Compiler::Call
+    inner = node.args[1].as(Lucid::Compiler::Call)
+
+    inner.receiver.should be_a Lucid::Compiler::Ident
+    inner.receiver.as(Lucid::Compiler::Ident).value.should eq "your_name"
+  end
+
   # TODO: use refined exceptions for these
 
   it "raises on undelimited arguments for calls" do
