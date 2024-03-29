@@ -1,7 +1,5 @@
 module Lucid::Compiler
   class Parser
-    VALID_OPERATORS = {"+", "-", "*", "**", "/", "//"}
-
     @tokens : Array(Token)
     @pos : Int32
 
@@ -17,14 +15,14 @@ module Lucid::Compiler
       nodes = [] of Node
 
       loop do
-        break unless node = next_node
+        break unless node = next_node?
         nodes << node
       end
 
       nodes
     end
 
-    private def next_node : Node?
+    private def next_node? : Node?
       return unless token = next_token?
       parse_token token
     end
@@ -37,23 +35,23 @@ module Lucid::Compiler
       @tokens[@pos + 1]?
     end
 
-    private def peek_token_no_space(offset : Int32 = 1) : Token?
-      return unless token = @tokens[@pos + offset]?
+    private def next_token_no_space? : Token?
+      return unless token = next_token?
 
       case token.kind
       when .space?, .newline?
-        peek_token_no_space offset + 1
+        next_token_no_space?
       else
         token
       end
     end
 
-    private def next_token_no_space : Token?
-      return unless token = next_token?
+    private def peek_token_no_space?(offset : Int32 = 1) : Token?
+      return unless token = @tokens[@pos + offset]?
 
       case token.kind
       when .space?, .newline?
-        next_token_no_space
+        peek_token_no_space? offset + 1
       else
         token
       end
@@ -62,11 +60,11 @@ module Lucid::Compiler
     private def parse_token(token : Token) : Node?
       case token.kind
       when .space?, .newline?
-        next_node
+        next_node?
       when .ident?, .const?
         parse_ident_or_call token, false
       when .double_colon?
-        raise "unexpected EOF" unless next_token = next_token_no_space
+        raise "unexpected EOF" unless next_token = next_token_no_space?
         if next_token.kind.ident? || next_token.kind.const?
           parse_ident_or_call next_token, true
         else
@@ -76,14 +74,14 @@ module Lucid::Compiler
         StringLiteral.new(token.value).at(token.loc)
       when .integer?
         node = IntLiteral.new(token.value).at(token.loc)
-        if peek_token_no_space.try &.operator?
+        if peek_token_no_space?.try &.operator?
           parse_infix node
         else
           node
         end
       when .float?
         node = FloatLiteral.new(token.value).at(token.loc)
-        if peek_token_no_space.try &.operator?
+        if peek_token_no_space?.try &.operator?
           parse_infix node
         else
           node
@@ -106,7 +104,7 @@ module Lucid::Compiler
 
       while (peek = peek_token?) && (peek.kind.period? || peek.kind.double_colon?)
         @pos += 1
-        break unless next_token = next_token_no_space
+        break unless next_token = next_token_no_space?
         next_global = peek.kind.double_colon?
 
         case next_token.kind
@@ -133,7 +131,7 @@ module Lucid::Compiler
         receiver = names[0]
       end
 
-      unless next_token = next_token_no_space
+      unless next_token = next_token_no_space?
         return receiver if receiver.is_a?(Const)
         if receiver.is_a?(Path)
           return receiver if receiver.names.last.is_a?(Const)
@@ -144,7 +142,7 @@ module Lucid::Compiler
 
       case next_token.kind
       when .colon?
-        next_token = next_token_no_space
+        next_token = next_token_no_space?
         raise "unexpected EOF" unless next_token
 
         case node = parse_ident_or_call next_token, false
@@ -156,7 +154,7 @@ module Lucid::Compiler
           raise "BUG: expected Assign or Ident; got #{node.class}"
         end
       when .assign?
-        node = next_node || raise "unexpected End of File"
+        node = next_node? || raise "unexpected End of File"
 
         Assign.new(receiver, node).at(receiver.loc)
       else
@@ -208,13 +206,13 @@ module Lucid::Compiler
     end
 
     private def parse_prefix(token : Token) : Node
-      value = next_node || raise "unexpected EOF"
+      value = next_node? || raise "unexpected EOF"
       Prefix.new(token.kind, value).at(token.loc & value.loc)
     end
 
     private def parse_infix(left : Node) : Node
-      op = next_token_no_space || raise "unexpected EOF"
-      right = next_node || raise "unexpected EOF"
+      op = next_token_no_space? || raise "unexpected EOF"
+      right = next_node? || raise "unexpected EOF"
 
       Infix.new(op.kind, left, right).at(left.loc & right.loc)
     end
