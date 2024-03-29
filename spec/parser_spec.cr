@@ -29,20 +29,36 @@ describe LC::Parser do
     node.value.as(LC::IntLiteral).value.should eq 7
   end
 
-  it "parses variable declaration expresssions" do
+  it "parses uninitialized variable declaration expresssions" do
     node = parse("x : Int32")[0]
     node.should be_a LC::Var
     node = node.as(LC::Var)
 
     node.name.should be_a LC::Ident
     node.name.as(LC::Ident).value.should eq "x"
+    node.uninitialized?.should be_true
 
     # FIXME: parsed as a Call and expected to be an Ident when really it's a Const
     # node.type.should be_a LC::Ident
     # node.type.as(LC::Ident).value.should eq "Int32"
 
     node.value.should be_nil
-    node.uninitialized?.should be_true
+  end
+
+  it "parses initialized variable declaration expresssions" do
+    node = parse("y : Int32 = 123")[0]
+    node.should be_a LC::Var
+    node = node.as(LC::Var)
+
+    node.name.should be_a LC::Ident
+    node.name.as(LC::Ident).value.should eq "y"
+    node.uninitialized?.should be_false
+
+    # node.type.should be_a LC::Ident
+    # node.type.as(LC::Ident).value.should eq "Int32"
+
+    node.value.should be_a LC::IntLiteral
+    node.value.as(LC::IntLiteral).value.should eq 123
   end
 
   it "parses call expressions with no arguments" do

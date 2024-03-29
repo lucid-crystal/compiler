@@ -127,11 +127,16 @@ module Lucid::Compiler
         next_token = next_token_no_space
         raise "unexpected EOF" unless next_token
 
-        Var.new(
-          receiver,
-          parse_ident_or_call(next_token),
-          nil
-        ).at(receiver.loc)
+        case node = parse_ident_or_call next_token
+        when Assign
+          Var.new(receiver, node.target, node.value).at(receiver.loc)
+        when Ident
+          Var.new(receiver, node, nil).at(receiver.loc)
+        when Call # TODO: temporary until Const is implemented
+          Var.new(receiver, node.receiver, nil).at(receiver.loc)
+        else
+          raise "BUG: expected Assign or Ident; got #{node.class}"
+        end
       when .assign?
         node = next_node || raise "unexpected End of File"
 
