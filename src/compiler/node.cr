@@ -11,9 +11,6 @@ module Lucid::Compiler
     end
   end
 
-  class Nop < Node
-  end
-
   class Path < Node
     property names : Array(Ident)
     property? global : Bool
