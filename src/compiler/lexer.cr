@@ -199,11 +199,13 @@ module Lucid::Compiler
     end
 
     private def lex_ident(start : Int32 = current_pos) : Token
+      kind = current_char.uppercase? ? Token::Kind::Const : Token::Kind::Ident
+
       while current_char.ascii_alphanumeric? || current_char.in?('_', '[', ']', '!', '?', '=')
         next_char
       end
 
-      Token.new :ident, location, read_string_from start
+      Token.new kind, location, read_string_from start
     end
 
     private def lex_keyword_or_ident(keyword : Token::Kind, start : Int32 = current_pos) : Token

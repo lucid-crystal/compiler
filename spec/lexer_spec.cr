@@ -32,6 +32,10 @@ describe LC::Lexer do
       CR
   end
 
+  it "parses idents and constants separately" do
+    assert_token_sequence(seq!(:ident, :space, :const), "int32 Int32")
+  end
+
   it "parses ident that starts with en" do
     assert_token_sequence(seq!(:ident, :space, :assign, :space, :integer), "encryption = 1")
   end
@@ -39,7 +43,7 @@ describe LC::Lexer do
   # TODO: add responds_to? spec when symbols are implemented
   it "parses pseudo methods" do
     assert_token_sequence(
-      seq!(:ident, :period, :is_a, :left_paren, :ident, :right_paren), <<-CR)
+      seq!(:ident, :period, :is_a, :left_paren, :const, :right_paren), <<-CR)
       a.is_a?(String)
       CR
   end
@@ -69,7 +73,7 @@ describe LC::Lexer do
   it "parses def expressions with types" do
     assert_token_sequence(
       seq!(:def, :space, :ident, :space, :colon,
-        :space, :ident, :newline, :end), <<-CR)
+        :space, :const, :newline, :end), <<-CR)
       def foo : Nil
       end
       CR
@@ -77,7 +81,7 @@ describe LC::Lexer do
 
   it "parses def expressions with types and values" do
     assert_token_sequence(
-      seq!(:def, :space, :ident, :space, :colon, :space, :ident,
+      seq!(:def, :space, :ident, :space, :colon, :space, :const,
         :newline, :space, :integer, :newline, :end), <<-CR)
       def foo : Int32
         123
@@ -87,7 +91,7 @@ describe LC::Lexer do
 
   it "parses module expressions" do
     assert_token_sequence(
-      seq!(:module, :space, :ident, :newline, :end), <<-CR)
+      seq!(:module, :space, :const, :newline, :end), <<-CR)
       module Yay
       end
       CR
@@ -95,7 +99,7 @@ describe LC::Lexer do
 
   it "parses class expressions" do
     assert_token_sequence(
-      seq!(:class, :space, :ident, :newline, :end), <<-CR)
+      seq!(:class, :space, :const, :newline, :end), <<-CR)
       class Kot
       end
       CR
@@ -103,7 +107,7 @@ describe LC::Lexer do
 
   it "parses class expressions" do
     assert_token_sequence(
-      seq!(:class, :space, :ident, :newline, :end), <<-CR)
+      seq!(:class, :space, :const, :newline, :end), <<-CR)
       class Kot
       end
       CR
@@ -111,7 +115,7 @@ describe LC::Lexer do
 
   it "parses class expressions" do
     assert_token_sequence(
-      seq!(:class, :space, :ident, :newline, :end), <<-CR)
+      seq!(:class, :space, :const, :newline, :end), <<-CR)
       class Klass
       end
       CR
@@ -119,7 +123,7 @@ describe LC::Lexer do
 
   it "parses struct expressions" do
     assert_token_sequence(
-      seq!(:struct, :space, :ident, :newline, :end), <<-CR)
+      seq!(:struct, :space, :const, :newline, :end), <<-CR)
       struct Strukt
       end
       CR
@@ -127,7 +131,7 @@ describe LC::Lexer do
 
   it "parses enum expressions" do
     assert_token_sequence(
-      seq!(:enum, :space, :ident, :newline, :end), <<-CR)
+      seq!(:enum, :space, :const, :newline, :end), <<-CR)
       enum Enumn
       end
       CR

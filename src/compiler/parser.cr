@@ -65,6 +65,8 @@ module Lucid::Compiler
         next_node
       when .ident?
         parse_ident_or_call token
+      when .const?
+        Const.new(token.value).at(token.loc)
       when .string?
         StringLiteral.new(token.value).at(token.loc)
       when .integer?
@@ -90,7 +92,12 @@ module Lucid::Compiler
 
     # TODO: handle global (i.e. '::')
     private def parse_ident_or_call(token : Token) : Node
-      names = [Ident.new token.value]
+      names = [] of Ident
+      if token.kind.ident?
+        names << Ident.new token.value
+      else
+        names << Const.new token.value
+      end
       end_loc = token.loc
 
       while (peek = peek_token?) && peek.kind.period?
@@ -119,6 +126,7 @@ module Lucid::Compiler
       end
 
       unless next_token = next_token_no_space
+        return receiver if receiver.is_a?(Const)
         return Call.new(receiver, [] of Node).at(receiver.loc)
       end
 
@@ -132,8 +140,6 @@ module Lucid::Compiler
           Var.new(receiver, node.target, node.value).at(receiver.loc)
         when Ident
           Var.new(receiver, node, nil).at(receiver.loc)
-        when Call # TODO: temporary until Const is implemented
-          Var.new(receiver, node.receiver, nil).at(receiver.loc)
         else
           raise "BUG: expected Assign or Ident; got #{node.class}"
         end

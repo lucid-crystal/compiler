@@ -51,6 +51,14 @@ module Lucid::Compiler
     end
   end
 
+  class Const < Ident
+    def inspect(io : IO) : Nil
+      io << "Const("
+      @value.inspect io
+      io << ')'
+    end
+  end
+
   class Var < Node
     property name : Node
     property type : Node?

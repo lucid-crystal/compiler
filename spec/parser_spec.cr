@@ -38,9 +38,8 @@ describe LC::Parser do
     node.name.as(LC::Ident).value.should eq "x"
     node.uninitialized?.should be_true
 
-    # FIXME: parsed as a Call and expected to be an Ident when really it's a Const
-    # node.type.should be_a LC::Ident
-    # node.type.as(LC::Ident).value.should eq "Int32"
+    node.type.should be_a LC::Const
+    node.type.as(LC::Const).value.should eq "Int32"
 
     node.value.should be_nil
   end
@@ -54,8 +53,8 @@ describe LC::Parser do
     node.name.as(LC::Ident).value.should eq "y"
     node.uninitialized?.should be_false
 
-    # node.type.should be_a LC::Ident
-    # node.type.as(LC::Ident).value.should eq "Int32"
+    node.type.should be_a LC::Const
+    node.type.as(LC::Const).value.should eq "Int32"
 
     node.value.should be_a LC::IntLiteral
     node.value.as(LC::IntLiteral).value.should eq 123

@@ -6,6 +6,7 @@ module Lucid::Compiler
       Comment
 
       Ident
+      Const
 
       String
       Integer
