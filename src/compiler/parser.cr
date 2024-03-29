@@ -76,22 +76,22 @@ module Lucid::Compiler
         StringLiteral.new(token.value).at(token.loc)
       when .integer?
         node = IntLiteral.new(token.value).at(token.loc)
-        if peek_token_no_space.try &.kind.operator?
+        if peek_token_no_space.try &.operator?
           parse_infix node
         else
           node
         end
       when .float?
         node = FloatLiteral.new(token.value).at(token.loc)
-        if peek_token_no_space.try &.kind.operator?
+        if peek_token_no_space.try &.operator?
           parse_infix node
         else
           node
         end
       when Token::Kind::Nil # .nil? doesn't work here
         NilLiteral.new.at(token.loc)
-      when .operator?
-        parse_prefix token
+      else
+        parse_prefix token if token.operator?
       end
     end
 
@@ -209,14 +209,14 @@ module Lucid::Compiler
 
     private def parse_prefix(token : Token) : Node
       value = next_node || raise "unexpected EOF"
-      Prefix.new(token.value, value).at(token.loc & value.loc)
+      Prefix.new(token.kind, value).at(token.loc & value.loc)
     end
 
     private def parse_infix(left : Node) : Node
       op = next_token_no_space || raise "unexpected EOF"
       right = next_node || raise "unexpected EOF"
 
-      Infix.new(op.value, left, right).at(left.loc & right.loc)
+      Infix.new(op.kind, left, right).at(left.loc & right.loc)
     end
   end
 end

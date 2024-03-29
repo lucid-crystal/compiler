@@ -17,10 +17,23 @@ describe LC::Lexer do
     assert_token :nil, "nil"
   end
 
-  it "parses the equal sign" do
+  it "parses the assignment operator" do
     assert_token_sequence(
       seq!(:ident, :space, :assign, :space, :integer),
       "x = 7"
+    )
+  end
+
+  it "parses compound operators" do
+    assert_token_sequence(
+      seq!(:ident, :space, :double_slash_assign, :space, :integer,
+        :space, :double_star, :space, :integer),
+      "a //= 2 ** 16"
+    )
+
+    assert_token_sequence(
+      seq!(:ident, :space, :case_equal, :space, :ident),
+      "x === y"
     )
   end
 

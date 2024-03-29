@@ -119,14 +119,14 @@ module Lucid::Compiler
       Splat       # *
       DoubleSplat # **
 
-      def self.from(value : String)
-        case value
-        when "+"  then Plus
-        when "-"  then Minus
-        when "*"  then Splat
-        when "**" then DoubleSplat
+      def self.from(kind : Token::Kind)
+        case kind
+        when .plus?        then Plus
+        when .minus?       then Minus
+        when .star?        then Splat
+        when .double_star? then DoubleSplat
         else
-          raise "invalid prefix operator '#{value}'"
+          raise "invalid prefix operator '#{kind}'"
         end
       end
 
@@ -143,7 +143,7 @@ module Lucid::Compiler
     property op : Kind
     property value : Node
 
-    def initialize(op : String, @value : Node)
+    def initialize(op : Token::Kind, @value : Node)
       @op = Kind.from op
       super()
     end
@@ -169,16 +169,16 @@ module Lucid::Compiler
       DivFloor # //
       Power    # **
 
-      def self.from(value : String)
-        case value
-        when "+"  then Add
-        when "-"  then Subtract
-        when "*"  then Multiply
-        when "/"  then Divide
-        when "//" then DivFloor
-        when "**" then Power
+      def self.from(kind : Token::Kind)
+        case kind
+        when .plus?         then Add
+        when .minus?        then Subtract
+        when .star?         then Multiply
+        when .slash?        then Divide
+        when .double_slash? then DivFloor
+        when .double_star?  then Power
         else
-          raise "invalid infix operator '#{value}'"
+          raise "invalid infix operator '#{kind}'"
         end
       end
 
@@ -198,7 +198,7 @@ module Lucid::Compiler
     property left : Node
     property right : Node
 
-    def initialize(op : String, @left : Node, @right : Node)
+    def initialize(op : Token::Kind, @left : Node, @right : Node)
       @op = Kind.from op
       super()
     end

@@ -1,7 +1,5 @@
 module Lucid::Compiler
   class Lexer
-    OPERATOR_SYMBOLS = {'+', '-', '*', '/'}
-
     @reader : Char::Reader
     @pool : StringPool
     @line : Int32
@@ -74,13 +72,59 @@ module Lucid::Compiler
         Token.new :period, location
       when '='
         if next_char == '='
-          next_char
-          Token.new :equal, location
+          if next_char == '='
+            next_char
+            Token.new :case_equal, location
+          else
+            Token.new :equal, location
+          end
         else
           Token.new :assign, location
         end
-      when .in?(OPERATOR_SYMBOLS)
-        lex_operator
+      when '+'
+        if next_char == '='
+          next_char
+          Token.new :plus_assign, location
+        else
+          Token.new :plus, location
+        end
+      when '-'
+        if next_char == '='
+          next_char
+          Token.new :minus_assign, location
+        else
+          Token.new :minus, location
+        end
+      when '*'
+        case next_char
+        when '*'
+          if next_char == '='
+            next_char
+            Token.new :double_star_assign, location
+          else
+            Token.new :double_star, location
+          end
+        when '='
+          next_char
+          Token.new :star_assign, location
+        else
+          Token.new :star, location
+        end
+      when '/'
+        case next_char
+        when '/'
+          if next_char == '='
+            next_char
+            Token.new :double_slash_assign, location
+          else
+            Token.new :double_slash, location
+          end
+        when '='
+          next_char
+          Token.new :slash_assign, location
+        else
+          Token.new :slash, location
+        end
       when '"'
         next_char
         @loc.increment_column_start
@@ -217,15 +261,6 @@ module Lucid::Compiler
         next_char
         Token.new keyword, location
       end
-    end
-
-    private def lex_operator : Token
-      start = current_pos
-      while current_char.in?(OPERATOR_SYMBOLS)
-        next_char
-      end
-
-      Token.new :operator, location, read_string_from start
     end
 
     private def lex_number : Token

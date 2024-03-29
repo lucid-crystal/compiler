@@ -20,9 +20,22 @@ module Lucid::Compiler
       Comma
       Period
 
-      Assign
-      Equal
-      Operator
+      Plus        # +
+      Minus       # -
+      Star        # *
+      DoubleStar  # **
+      Slash       # /
+      DoubleSlash # //
+
+      Assign            # =
+      Equal             # ==
+      CaseEqual         # ===
+      PlusAssign        # +=
+      MinusAssign       # -=
+      StarAssign        # *=
+      DoubleStarAssign  # **=
+      SlashAssign       # /=
+      DoubleSlashAssign # //=
 
       IsA
       RespondsTo
@@ -47,6 +60,14 @@ module Lucid::Compiler
     end
 
     def value=(@value : String?)
+    end
+
+    def operator? : Bool
+      @kind.in?(Kind::Plus..Kind::DoubleSlashAssign)
+    end
+
+    def assign? : Bool
+      @kind.in?(Kind::Assign..Kind::DoubleSlashAssign)
     end
   end
 end
