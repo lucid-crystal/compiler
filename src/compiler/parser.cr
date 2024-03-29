@@ -63,10 +63,8 @@ module Lucid::Compiler
       case token.kind
       when .space?, .newline?
         next_node
-      when .ident?
+      when .ident?, .const?
         parse_ident_or_call token
-      when .const?
-        Const.new(token.value).at(token.loc)
       when .string?
         StringLiteral.new(token.value).at(token.loc)
       when .integer?
@@ -107,6 +105,9 @@ module Lucid::Compiler
         case next_token.kind
         when .ident?
           names << Ident.new next_token.value
+          end_loc = next_token.loc
+        when .const?
+          names << Const.new next_token.value
           end_loc = next_token.loc
           # when .instance_var?
           #   names << InstanceVar.new next_token.value
