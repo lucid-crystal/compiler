@@ -14,6 +14,26 @@ module Lucid::Compiler
     abstract def inspect(io : IO) : Nil
   end
 
+  class Expressions < Node
+    property expressions : Array(Node)
+
+    def initialize(@expressions : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '('
+      @expressions.each { |expr| expr.to_s io }
+      io << ')'
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Expressions("
+      @expressions.each { |expr| expr.inspect io }
+      io << ')'
+    end
+  end
+
   class Path < Node
     property names : Array(Ident)
     property? global : Bool
@@ -325,6 +345,14 @@ module Lucid::Compiler
 
     def initialize(@value : Bool)
       super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << @value
+    end
+
+    def inspect(io : IO) : Nil
+      io << "BoolLiteral(" << @value << ')'
     end
   end
 

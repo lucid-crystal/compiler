@@ -92,6 +92,8 @@ module Lucid::Compiler
         BoolLiteral.new(false).at(token.loc)
       when Token::Kind::Nil # .nil? doesn't work here
         NilLiteral.new.at(token.loc)
+      when .left_paren?
+        parse_expressions token
       else
         parse_prefix token if token.operator?
       end
@@ -207,6 +209,30 @@ module Lucid::Compiler
       raise "expected closing parenthesis for call" unless closed
 
       Call.new(receiver, args).at(receiver.loc)
+    end
+
+    private def parse_expressions(token : Token) : Node
+      peek = peek_token_no_space? || raise "unexpected EOF"
+      if peek.kind.right_paren?
+        next_token_no_space?
+        return NilLiteral.new.at(token.loc)
+      end
+
+      exprs = [] of Node
+      end_loc = token.loc
+
+      loop do
+        unless next_token = next_token?
+          raise "unexpected EOF"
+        end
+        break if next_token.kind.right_paren?
+
+        node = parse_token(next_token) || raise "unexpected EOF"
+        end_loc = node.loc
+        exprs << node
+      end
+
+      Expressions.new(exprs).at(token.loc & end_loc)
     end
 
     private def parse_prefix(token : Token) : Node
