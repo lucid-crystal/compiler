@@ -23,13 +23,13 @@ module Lucid::Compiler
 
     def to_s(io : IO) : Nil
       io << '('
-      @expressions.each { |expr| expr.to_s io }
+      @expressions.each &.to_s(io)
       io << ')'
     end
 
     def inspect(io : IO) : Nil
       io << "Expressions("
-      @expressions.each { |expr| expr.inspect io }
+      @expressions.each &.inspect(io)
       io << ')'
     end
   end
@@ -341,6 +341,7 @@ module Lucid::Compiler
   end
 
   class BoolLiteral < Node
+    # ameba:disable Naming/QueryBoolMethods
     property value : Bool
 
     def initialize(@value : Bool)
