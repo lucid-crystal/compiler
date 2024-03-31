@@ -320,6 +320,14 @@ module Lucid::Compiler
     end
   end
 
+  class BoolLiteral < Node
+    property value : Bool
+
+    def initialize(@value : Bool)
+      super()
+    end
+  end
+
   class NilLiteral < Node
     def to_s(io : IO) : Nil
       io << "nil"

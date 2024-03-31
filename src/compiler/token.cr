@@ -11,6 +11,8 @@ module Lucid::Compiler
       String
       Integer
       Float
+      True
+      False
       Nil
 
       LeftParen
@@ -23,8 +25,8 @@ module Lucid::Compiler
       Plus        # +
       Minus       # -
       Star        # *
-      DoubleStar  # **
       Slash       # /
+      DoubleStar  # **
       DoubleSlash # //
 
       Assign            # =
@@ -33,8 +35,8 @@ module Lucid::Compiler
       PlusAssign        # +=
       MinusAssign       # -=
       StarAssign        # *=
-      DoubleStarAssign  # **=
       SlashAssign       # /=
+      DoubleStarAssign  # **=
       DoubleSlashAssign # //=
 
       IsA

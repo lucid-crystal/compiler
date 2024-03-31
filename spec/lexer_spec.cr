@@ -13,6 +13,11 @@ describe LC::Lexer do
     assert_token :float, "3.141_592"
   end
 
+  it "parses boolean expressions" do
+    assert_token :true, "true"
+    assert_token :false, "false"
+  end
+
   it "parses nil expressions" do
     assert_token :nil, "nil"
   end

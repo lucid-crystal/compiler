@@ -13,6 +13,11 @@ describe LC::Parser do
     assert_node LC::FloatLiteral, "3.141_592"
   end
 
+  it "parses boolean expressions" do
+    assert_node LC::BoolLiteral, "true"
+    assert_node LC::BoolLiteral, "false"
+  end
+
   it "parses nil expressions" do
     assert_node LC::NilLiteral, "nil"
   end
@@ -29,7 +34,7 @@ describe LC::Parser do
     node.value.as(LC::IntLiteral).value.should eq 7
   end
 
-  it "parses uninitialized variable declaration expresssions" do
+  it "parses uninitialized variable declaration expressions" do
     node = parse("x : Int32")[0]
     node.should be_a LC::Var
     node = node.as(LC::Var)
@@ -44,7 +49,7 @@ describe LC::Parser do
     node.value.should be_nil
   end
 
-  it "parses initialized variable declaration expresssions" do
+  it "parses initialized variable declaration expressions" do
     node = parse("y : Int32 = 123")[0]
     node.should be_a LC::Var
     node = node.as(LC::Var)

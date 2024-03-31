@@ -86,6 +86,10 @@ module Lucid::Compiler
         else
           node
         end
+      when .true?
+        BoolLiteral.new(true).at(token.loc)
+      when .false?
+        BoolLiteral.new(false).at(token.loc)
       when Token::Kind::Nil # .nil? doesn't work here
         NilLiteral.new.at(token.loc)
       else
