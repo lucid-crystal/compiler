@@ -49,6 +49,7 @@ module Lucid::Compiler
       Def
       End
 
+      # ameba:disable Naming/PredicateName
       def is_nil? : Bool
         self == Kind::Nil
       end
