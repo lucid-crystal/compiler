@@ -75,5 +75,32 @@ module Lucid::Compiler
     def assign? : Bool
       @kind.in?(Kind::Assign..Kind::DoubleSlashAssign)
     end
+
+    def to_s(io : IO) : Nil
+      if @value
+        @value.inspect io
+      else
+        io << @kind.to_s.underscore
+      end
+    end
+
+    def inspect(io : IO) : Nil
+      io << "Token(kind: "
+      @kind.inspect io
+
+      io << ", loc: "
+      line_start, line_end = @loc.line
+      io << line_start << ':' << line_end
+
+      col_start, col_end = @loc.column
+      io << '-' << col_start << ':' << col_end
+
+      if @value
+        io << ", value: "
+        @value.inspect io
+      end
+
+      io << ')'
+    end
   end
 end
