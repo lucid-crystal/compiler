@@ -1,105 +1,150 @@
 module Lucid::Compiler
   class Parser
+    private enum Precedence
+      Lowest
+      Equals
+      Compare
+      Sum
+      Product
+      Prefix
+      Call
+      Index
+
+      def self.from(kind : Token::Kind)
+        case kind
+        when .plus?, .minus?
+          Sum
+        when .star?, .double_star?, .slash?, .double_slash?
+          Product
+        when .equal?, .case_equal?
+          Equals
+        when .left_paren?
+          Call
+          # TODO: handle Index when [] is implemented
+        else
+          Lowest
+        end
+      end
+    end
+
     @tokens : Array(Token)
     @pos : Int32
 
-    def self.parse(tokens : Array(Token)) : Array(Node)
+    def self.parse(tokens : Array(Token)) : Array(Statement)
       new(tokens).parse
     end
 
-    private def initialize(@tokens : Array(Token))
+    def initialize(@tokens : Array(Token))
       @pos = -1
     end
 
-    def parse : Array(Node)
-      nodes = [] of Node
+    def parse : Array(Statement)
+      statements = [] of Statement
 
       loop do
-        break unless node = next_node?
-        nodes << node
+        break unless token = next_token?
+        break unless statement = parse_statement token
+        statements << statement
       end
 
-      nodes
+      statements
     end
 
-    private def next_node? : Node?
-      return unless token = next_token?
-      parse_token token
+    # TODO: remove this
+    private def current_token : Token
+      @tokens[@pos]
     end
 
     private def next_token? : Token?
       @tokens[@pos += 1]?
     end
 
+    private def next_token_skip_space? : Token?
+      return unless token = next_token?
+
+      if token.kind.space? || token.kind.newline?
+        next_token_skip_space?
+      else
+        token
+      end
+    end
+
     private def peek_token? : Token?
       @tokens[@pos + 1]?
     end
 
-    private def next_token_no_space? : Token?
-      return unless token = next_token?
+    private def peek_token_skip_space?(offset : Int32 = 1) : Token?
+      return unless token = @tokens[offset]?
 
-      case token.kind
-      when .space?, .newline?
-        next_token_no_space?
+      if token.kind.space? || token.kind.newline?
+        peek_token_skip_space? offset + 1
       else
         token
       end
     end
 
-    private def peek_token_no_space?(offset : Int32 = 1) : Token?
-      return unless token = @tokens[@pos + offset]?
-
+    private def parse_statement(token : Token) : Statement?
       case token.kind
-      when .space?, .newline?
-        peek_token_no_space? offset + 1
+      # when .class?, .struct? then parse_class token
       else
-        token
+        parse_expression_statement
       end
     end
 
-    private def parse_token(token : Token) : Node?
+    private def parse_expression_statement : Statement
+      ExpressionStatement.new parse_expression :lowest
+    end
+
+    private def parse_expression(prec : Precedence) : Expression
+      left = parse_prefix_expression current_token
+      raise "cannot parse expression #{current_token}" if left.nil?
+
+      loop do
+        break unless token = next_token?
+        break if prec >= Precedence.from(token.kind)
+        break unless infix = parse_infix_expression token, left
+
+        left = infix
+      end
+
+      left
+    end
+
+    private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
-      when .space?, .newline?
-        next_node?
-      when .ident?, .const?
-        parse_ident_or_call token, false
       when .double_colon?
-        raise "unexpected EOF" unless next_token = next_token_no_space?
-        if next_token.kind.ident? || next_token.kind.const?
-          parse_ident_or_call next_token, true
-        else
-          raise "unexpected token #{next_token}"
-        end
-      when .string?
-        StringLiteral.new(token.value).at(token.loc)
-      when .integer?
-        node = IntLiteral.new(token.value).at(token.loc)
-        if peek_token_no_space?.try &.operator?
-          parse_infix node
-        else
-          node
-        end
-      when .float?
-        node = FloatLiteral.new(token.value).at(token.loc)
-        if peek_token_no_space?.try &.operator?
-          parse_infix node
-        else
-          node
-        end
-      when .true?
-        BoolLiteral.new(true).at(token.loc)
-      when .false?
-        BoolLiteral.new(false).at(token.loc)
-      when Token::Kind::Nil # .nil? doesn't work here
-        NilLiteral.new.at(token.loc)
-      when .left_paren?
-        parse_expressions token
-      else
-        parse_prefix token if token.operator?
+        token = next_token_skip_space? || raise "unexpected EOF"
+        parse_ident_or_call token, true
+      when .ident?, .const? then parse_ident_or_call token, false
+      when .integer?        then parse_integer token
+      when .float?          then parse_float token
+      when .string?         then parse_string token
+      when .true?, .false?  then parse_bool token
+      when .is_nil?         then parse_nil token
+      when .left_paren?     then parse_grouped_expression
       end
     end
 
-    private def parse_ident_or_call(token : Token, global : Bool) : Node
+    private def parse_infix_expression(token : Token, expr : Expression) : Expression?
+      if token.operator?
+        return parse_infix_expression expr
+      end
+
+      if token.kind.left_paren?
+        return parse_call expr, true
+      end
+    end
+
+    private def parse_infix_expression(left : Expression) : Expression
+      op = Infix::Operator.from current_token.kind
+      @pos += 1
+
+      right = parse_expression Precedence.from(current_token.kind)
+
+      Infix.new(op, left, right).at(left.loc & right.loc)
+    end
+
+    private def parse_ident_or_call(token : Token, global : Bool) : Expression
       names = [] of Ident
       if token.kind.ident?
         names << Ident.new(token.value, global).at(token.loc)
@@ -109,8 +154,8 @@ module Lucid::Compiler
       end_loc = token.loc
 
       while (peek = peek_token?) && (peek.kind.period? || peek.kind.double_colon?)
-        @pos += 1
-        break unless next_token = next_token_no_space?
+        @pos += 1 # TODO: replace all these with skip_token
+        break unless next_token = next_token_skip_space?
         next_global = peek.kind.double_colon?
 
         case next_token.kind
@@ -137,7 +182,7 @@ module Lucid::Compiler
         receiver = names[0]
       end
 
-      unless next_token = next_token_no_space?
+      unless next_token = next_token_skip_space?
         return receiver if receiver.is_a?(Const)
         if receiver.is_a?(Path)
           return receiver if receiver.names.last.is_a?(Const)
@@ -148,7 +193,7 @@ module Lucid::Compiler
 
       case next_token.kind
       when .colon?
-        next_token = next_token_no_space?
+        next_token = next_token_skip_space?
         raise "unexpected EOF" unless next_token
 
         case node = parse_ident_or_call next_token, false
@@ -160,18 +205,18 @@ module Lucid::Compiler
           raise "BUG: expected Assign or Ident; got #{node.class}"
         end
       when .assign?
-        node = next_node? || raise "unexpected End of File"
+        next_token_skip_space? || raise "unexpected End of File"
+        node = parse_expression :lowest
 
         Assign.new(receiver, node).at(receiver.loc)
       else
-        parse_call receiver, next_token
+        parse_call receiver, next_token.kind.left_paren?
       end
     end
 
-    private def parse_call(receiver : Node, from : Token) : Node
+    private def parse_call(receiver : Node, with_paren : Bool) : Node
       args = [] of Node
       delimited = true
-      with_paren = from.kind.left_paren?
 
       if with_paren
         closed = false
@@ -201,8 +246,9 @@ module Lucid::Compiler
           raise "expected a comma after the last argument" unless delimited
           delimited = false
 
-          break unless node = parse_token next_token
+          break unless node = parse_expression :lowest
           args << node
+          @pos -= 1 # FIXME: cannot have this here
         end
       end
 
@@ -211,40 +257,36 @@ module Lucid::Compiler
       Call.new(receiver, args).at(receiver.loc)
     end
 
-    private def parse_expressions(token : Token) : Node
-      peek = peek_token_no_space? || raise "unexpected EOF"
-      if peek.kind.right_paren?
-        next_token_no_space?
-        return NilLiteral.new.at(token.loc)
-      end
-
-      exprs = [] of Node
-      end_loc = token.loc
-
-      loop do
-        unless next_token = next_token?
-          raise "unexpected EOF"
-        end
-        break if next_token.kind.right_paren?
-
-        node = parse_token(next_token) || raise "unexpected EOF"
-        end_loc = node.loc
-        exprs << node
-      end
-
-      Expressions.new(exprs).at(token.loc & end_loc)
+    private def parse_integer(token : Token) : Expression
+      IntLiteral.new(token.value).at(token.loc)
     end
 
-    private def parse_prefix(token : Token) : Node
-      value = next_node? || raise "unexpected EOF"
-      Prefix.new(token.kind, value).at(token.loc & value.loc)
+    private def parse_float(token : Token) : Expression
+      FloatLiteral.new(token.value).at(token.loc)
     end
 
-    private def parse_infix(left : Node) : Node
-      op = next_token_no_space? || raise "unexpected EOF"
-      right = next_node? || raise "unexpected EOF"
+    private def parse_string(token : Token) : Expression
+      StringLiteral.new(token.value).at(token.loc)
+    end
 
-      Infix.new(op.kind, left, right).at(left.loc & right.loc)
+    private def parse_bool(token : Token) : Expression
+      BoolLiteral.new(token.kind.true?).at(token.loc)
+    end
+
+    private def parse_nil(token : Token) : Expression
+      NilLiteral.new.at(token.loc)
+    end
+
+    private def parse_grouped_expression : Expression
+      @pos += 1
+      expr = parse_expression :lowest
+      token = next_token?
+
+      if token.nil? || !token.kind.right_paren?
+        raise "expected closing parenthesis after expression"
+      end
+
+      expr
     end
   end
 end
