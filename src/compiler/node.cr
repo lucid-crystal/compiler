@@ -11,7 +11,7 @@ module Lucid::Compiler
     end
 
     abstract def to_s(io : IO) : Nil
-    abstract def inspect(io : IO) : Nil
+    abstract def pretty_print(pp : PrettyPrint) : Nil
   end
 
   abstract class Statement < Node
@@ -33,10 +33,11 @@ module Lucid::Compiler
       io << ')'
     end
 
-    def inspect(io : IO) : Nil
-      io << "ExpressionStatement("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ExpressionStatement("
+      pp.breakable ""
+      pp.nest { @value.pretty_print pp }
+      pp.text ")"
     end
   end
 
@@ -61,10 +62,30 @@ module Lucid::Compiler
       end
     end
 
-    def inspect(io : IO) : Nil
-      io << "Path(names: "
-      io << @names << ", global: "
-      io << @global << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Path("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "names: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @names.empty?
+
+          @names[0].pretty_print pp
+          if @names.size > 1
+            @names.skip(1).each do |name|
+              pp.comma
+              name.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+
+        pp.comma
+        pp.text "global: "
+        pp.text @global
+      end
+      pp.text ")"
     end
   end
 
@@ -80,20 +101,34 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "Ident(value: "
-      @value.inspect io
-      io << ", global: "
-      io << @global << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Ident("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "value: "
+        pp.text @value.inspect
+        pp.comma
+
+        pp.text "global: "
+        pp.text @global
+      end
+      pp.text ")"
     end
   end
 
   class Const < Ident
-    def inspect(io : IO) : Nil
-      io << "Const(value: "
-      @value.inspect io
-      io << ", global: "
-      io << @global << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Const("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "value: "
+        pp.text @value.inspect
+        pp.comma
+
+        pp.text "global: "
+        pp.text @global
+      end
+      pp.text ")"
     end
   end
 
@@ -121,14 +156,22 @@ module Lucid::Compiler
       end
     end
 
-    def inspect(io : IO) : Nil
-      io << "Var(name: "
-      @name.inspect io
-      io << ", type: "
-      @type.inspect io
-      io << ", value: "
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Var("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "name: "
+        pp.text @name
+        pp.comma
+
+        pp.text "type: "
+        pp.text @type
+        pp.comma
+
+        pp.text "value: "
+        pp.text @value
+      end
+      pp.text ")"
     end
   end
 
@@ -177,11 +220,18 @@ module Lucid::Compiler
       io << @op << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "Prefix(op: '" << @op
-      io << "', value: "
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Prefix("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "op: "
+        pp.text @op
+        pp.comma
+
+        pp.text "value: "
+        @value.pretty_print pp
+      end
+      pp.text ")"
     end
   end
 
@@ -231,14 +281,22 @@ module Lucid::Compiler
       io << @left << ' ' << @op << ' ' << @right
     end
 
-    def inspect(io : IO) : Nil
-      io << "Infix(left: "
-      @left.inspect io
-      io << ", op: "
-      @op.inspect io
-      io << ", right: "
-      @right.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Infix("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "left: "
+        @left.pretty_print pp
+        pp.comma
+
+        pp.text "op: "
+        pp.text @op
+        pp.comma
+
+        pp.text "right: "
+        @right.pretty_print pp
+      end
+      pp.text ")"
     end
   end
 
@@ -254,12 +312,18 @@ module Lucid::Compiler
       io << @target << " = " << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "Assign(target: "
-      @target.inspect io
-      io << ", value: "
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Assign("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "target: "
+        @target.pretty_print pp
+        pp.comma
+
+        pp.text "value: "
+        @value.pretty_print pp
+      end
+      pp.text ")"
     end
   end
 
@@ -277,12 +341,30 @@ module Lucid::Compiler
       io << ')'
     end
 
-    def inspect(io : IO) : Nil
-      io << "Call(receiver: "
-      @receiver.inspect io
-      io << ", args: "
-      @args.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Call("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "receiver: "
+        @receiver.pretty_print pp
+
+        pp.comma
+        pp.text "args: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @args.empty?
+
+          @args[0].pretty_print pp
+          if @args.size > 1
+            @args.skip(1).each do |arg|
+              pp.comma
+              arg.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
     end
   end
 
@@ -297,10 +379,10 @@ module Lucid::Compiler
       @value.inspect io
     end
 
-    def inspect(io : IO) : Nil
-      io << "StringLiteral("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "StringLiteral("
+      pp.text @value.inspect
+      pp.text ")"
     end
   end
 
@@ -317,10 +399,10 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "IntLiteral("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "IntLiteral("
+      pp.text @value.inspect
+      pp.text ")"
     end
   end
 
@@ -337,10 +419,10 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "FloatLiteral("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "FloatLiteral("
+      pp.text @value.inspect
+      pp.text ")"
     end
   end
 
@@ -356,8 +438,10 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "BoolLiteral(" << @value << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "BoolLiteral("
+      pp.text @value
+      pp.text ")"
     end
   end
 
@@ -366,8 +450,8 @@ module Lucid::Compiler
       io << "nil"
     end
 
-    def inspect(io : IO) : Nil
-      io << "NilLiteral"
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "NilLiteral"
     end
   end
 end
