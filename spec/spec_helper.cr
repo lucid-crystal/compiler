@@ -17,9 +17,9 @@ def assert_token_sequence(sequence : Array(LC::Token::Kind), for input : String)
   kinds.should eq sequence
 end
 
-def parse(source : String) : Array(LC::Node)
+def parse(source : String) : Array(LC::Expression)
   tokens = LC::Lexer.run source
-  LC::Parser.parse tokens
+  LC::Parser.parse(tokens).map &.value
 end
 
 def assert_node(cls : LC::Node.class, for input : String) : Nil
