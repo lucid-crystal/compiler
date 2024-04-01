@@ -14,27 +14,33 @@ module Lucid::Compiler
     abstract def inspect(io : IO) : Nil
   end
 
-  class Expressions < Node
-    property expressions : Array(Node)
+  abstract class Statement < Node
+  end
 
-    def initialize(@expressions : Array(Node))
+  abstract class Expression < Node
+  end
+
+  class ExpressionStatement < Statement
+    property value : Expression
+
+    def initialize(@value : Expression)
       super()
     end
 
     def to_s(io : IO) : Nil
       io << '('
-      @expressions.each &.to_s(io)
+      @value.to_s io
       io << ')'
     end
 
     def inspect(io : IO) : Nil
-      io << "Expressions("
-      @expressions.each &.inspect(io)
+      io << "ExpressionStatement("
+      @value.inspect io
       io << ')'
     end
   end
 
-  class Path < Node
+  class Path < Expression
     property names : Array(Ident)
     property? global : Bool
 
@@ -62,7 +68,7 @@ module Lucid::Compiler
     end
   end
 
-  class Ident < Node
+  class Ident < Expression
     property value : String
     property? global : Bool
 
@@ -91,13 +97,13 @@ module Lucid::Compiler
     end
   end
 
-  class Var < Node
+  class Var < Expression
     property name : Node
     property type : Node?
     property value : Node?
 
     def initialize(@name : Node, @type : Node?, @value : Node?)
-      super() # needs investigating
+      super()
     end
 
     def uninitialized? : Bool
@@ -132,8 +138,8 @@ module Lucid::Compiler
   class ClassVar < Var
   end
 
-  class Prefix < Node
-    enum Kind
+  class Prefix < Expression
+    enum Operator
       Plus        # +
       Minus       # -
       Splat       # *
@@ -160,11 +166,10 @@ module Lucid::Compiler
       end
     end
 
-    property op : Kind
+    property op : Operator
     property value : Node
 
-    def initialize(op : Token::Kind, @value : Node)
-      @op = Kind.from op
+    def initialize(@op : Operator, @value : Node)
       super()
     end
 
@@ -180,8 +185,8 @@ module Lucid::Compiler
     end
   end
 
-  class Infix < Node
-    enum Kind
+  class Infix < Expression
+    enum Operator
       Add      # +
       Subtract # -
       Multiply # *
@@ -214,12 +219,11 @@ module Lucid::Compiler
       end
     end
 
-    property op : Kind
+    property op : Operator
     property left : Node
     property right : Node
 
-    def initialize(op : Token::Kind, @left : Node, @right : Node)
-      @op = Kind.from op
+    def initialize(@op : Operator, @left : Node, @right : Node)
       super()
     end
 
@@ -238,7 +242,7 @@ module Lucid::Compiler
     end
   end
 
-  class Assign < Node
+  class Assign < Expression
     property target : Node
     property value : Node
 
@@ -259,7 +263,7 @@ module Lucid::Compiler
     end
   end
 
-  class Call < Node
+  class Call < Expression
     property receiver : Node
     property args : Array(Node)
 
@@ -282,7 +286,7 @@ module Lucid::Compiler
     end
   end
 
-  class StringLiteral < Node
+  class StringLiteral < Expression
     property value : String
 
     def initialize(@value : String)
@@ -300,7 +304,7 @@ module Lucid::Compiler
     end
   end
 
-  class IntLiteral < Node
+  class IntLiteral < Expression
     property raw : String
     property value : Int64
 
@@ -320,7 +324,7 @@ module Lucid::Compiler
     end
   end
 
-  class FloatLiteral < Node
+  class FloatLiteral < Expression
     property raw : String
     property value : Float64
 
@@ -340,7 +344,7 @@ module Lucid::Compiler
     end
   end
 
-  class BoolLiteral < Node
+  class BoolLiteral < Expression
     # ameba:disable Naming/QueryBoolMethods
     property value : Bool
 
@@ -357,7 +361,7 @@ module Lucid::Compiler
     end
   end
 
-  class NilLiteral < Node
+  class NilLiteral < Expression
     def to_s(io : IO) : Nil
       io << "nil"
     end
