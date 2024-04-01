@@ -50,11 +50,6 @@ module Lucid::Compiler
       statements
     end
 
-    # TODO: remove this
-    private def current_token : Token
-      @tokens[@pos]
-    end
-
     private def next_token? : Token?
       @tokens[@pos += 1]?
     end
@@ -73,8 +68,8 @@ module Lucid::Compiler
       @tokens[@pos + 1]?
     end
 
-    private def peek_token_skip_space?(offset : Int32 = 1) : Token?
-      return unless token = @tokens[offset]?
+    private def peek_token_skip_space?(offset : Int32 = @pos) : Token?
+      return unless token = @tokens[offset + 1]?
 
       if token.kind.space? || token.kind.newline?
         peek_token_skip_space? offset + 1
@@ -87,20 +82,22 @@ module Lucid::Compiler
       case token.kind
       # when .class?, .struct? then parse_class token
       else
-        parse_expression_statement
+        parse_expression_statement token
       end
     end
 
-    private def parse_expression_statement : Statement
-      ExpressionStatement.new parse_expression :lowest
+    private def parse_expression_statement(token : Token) : Statement
+      ExpressionStatement.new parse_expression(token, :lowest)
     end
 
-    private def parse_expression(prec : Precedence) : Expression
-      left = parse_prefix_expression current_token
-      raise "cannot parse expression #{current_token}" if left.nil?
+    private def parse_expression(token : Token, prec : Precedence) : Expression
+      left = parse_prefix_expression token
+      raise "cannot parse expression #{token}" if left.nil?
 
       loop do
-        break unless token = next_token?
+        break unless peek_token_skip_space?
+
+        token = next_token_skip_space?.not_nil!
         break if prec >= Precedence.from(token.kind)
         break unless infix = parse_infix_expression token, left
 
@@ -127,7 +124,7 @@ module Lucid::Compiler
 
     private def parse_infix_expression(token : Token, expr : Expression) : Expression?
       if token.operator?
-        return parse_infix_expression expr
+        return parse_infix_expression token, expr
       end
 
       if token.kind.left_paren?
@@ -135,11 +132,10 @@ module Lucid::Compiler
       end
     end
 
-    private def parse_infix_expression(left : Expression) : Expression
-      op = Infix::Operator.from current_token.kind
-      @pos += 1
-
-      right = parse_expression Precedence.from(current_token.kind)
+    private def parse_infix_expression(token : Token, left : Expression) : Expression
+      op = Infix::Operator.from token.kind
+      token = next_token_skip_space? || raise "unexpected EOF"
+      right = parse_expression token, Precedence.from(token.kind)
 
       Infix.new(op, left, right).at(left.loc & right.loc)
     end
@@ -205,8 +201,8 @@ module Lucid::Compiler
           raise "BUG: expected Assign or Ident; got #{node.class}"
         end
       when .assign?
-        next_token_skip_space? || raise "unexpected End of File"
-        node = parse_expression :lowest
+        token = next_token_skip_space? || raise "unexpected End of File"
+        node = parse_expression token, :lowest
 
         Assign.new(receiver, node).at(receiver.loc)
       else
@@ -246,7 +242,7 @@ module Lucid::Compiler
           raise "expected a comma after the last argument" unless delimited
           delimited = false
 
-          break unless node = parse_expression :lowest
+          break unless node = parse_expression next_token, :lowest
           args << node
           @pos -= 1 # FIXME: cannot have this here
         end
@@ -278,11 +274,13 @@ module Lucid::Compiler
     end
 
     private def parse_grouped_expression : Expression
-      @pos += 1
-      expr = parse_expression :lowest
-      token = next_token?
+      token = next_token_skip_space? || raise "unexpected EOF"
+      expr = parse_expression token, :lowest
+      # FIXME: figure out why parse_expression is still skipping ahead
+      # token = next_token_skip_space? || raise "unexpected EOF"
+      token = @tokens[@pos]? || raise "unexpected EOF"
 
-      if token.nil? || !token.kind.right_paren?
+      unless token.kind.right_paren?
         raise "expected closing parenthesis after expression"
       end
 
