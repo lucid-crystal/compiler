@@ -64,6 +64,10 @@ module Lucid::Compiler
       end
     end
 
+    private def next_token_skip_space! : Token
+      next_token_skip_space? || raise "unexpected EOF"
+    end
+
     private def peek_token? : Token?
       @tokens[@pos + 1]?
     end
@@ -97,7 +101,7 @@ module Lucid::Compiler
       loop do
         break unless peek_token_skip_space?
 
-        token = next_token_skip_space?.not_nil!
+        token = next_token_skip_space!
         break if prec >= Precedence.from(token.kind)
         break unless infix = parse_infix_expression token, left
 
@@ -109,10 +113,8 @@ module Lucid::Compiler
 
     private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
-      when .double_colon?
-        token = next_token_skip_space? || raise "unexpected EOF"
-        parse_ident_or_call token, true
-      when .ident?, .const? then parse_ident_or_call token, false
+      when .double_colon?   then parse_var_or_call next_token_skip_space!, true
+      when .ident?, .const? then parse_var_or_call token, false
       when .integer?        then parse_integer token
       when .float?          then parse_float token
       when .string?         then parse_string token
@@ -134,13 +136,13 @@ module Lucid::Compiler
 
     private def parse_infix_expression(token : Token, left : Expression) : Expression
       op = Infix::Operator.from token.kind
-      token = next_token_skip_space? || raise "unexpected EOF"
+      token = next_token_skip_space!
       right = parse_expression token, Precedence.from(token.kind)
 
       Infix.new(op, left, right).at(left.loc & right.loc)
     end
 
-    private def parse_ident_or_call(token : Token, global : Bool) : Expression
+    private def parse_var_or_call(token : Token, global : Bool) : Expression
       names = [] of Ident
       if token.kind.ident?
         names << Ident.new(token.value, global).at(token.loc)
@@ -189,10 +191,8 @@ module Lucid::Compiler
 
       case next_token.kind
       when .colon?
-        next_token = next_token_skip_space?
-        raise "unexpected EOF" unless next_token
-
-        case node = parse_ident_or_call next_token, false
+        next_token = next_token_skip_space!
+        case node = parse_var_or_call next_token, false
         when Assign
           Var.new(receiver, node.target, node.value).at(receiver.loc)
         when Ident
@@ -201,9 +201,7 @@ module Lucid::Compiler
           raise "BUG: expected Assign or Ident; got #{node.class}"
         end
       when .assign?
-        token = next_token_skip_space? || raise "unexpected End of File"
-        node = parse_expression token, :lowest
-
+        node = parse_expression next_token_skip_space!, :lowest
         Assign.new(receiver, node).at(receiver.loc)
       else
         parse_call receiver, next_token.kind.left_paren?
@@ -244,7 +242,7 @@ module Lucid::Compiler
 
           break unless node = parse_expression next_token, :lowest
           args << node
-          @pos -= 1 # FIXME: cannot have this here
+          @pos -= 1 if with_paren # FIXME: cannot have this here
         end
       end
 
@@ -274,10 +272,8 @@ module Lucid::Compiler
     end
 
     private def parse_grouped_expression : Expression
-      token = next_token_skip_space? || raise "unexpected EOF"
-      expr = parse_expression token, :lowest
+      expr = parse_expression next_token_skip_space!, :lowest
       # FIXME: figure out why parse_expression is still skipping ahead
-      # token = next_token_skip_space? || raise "unexpected EOF"
       token = @tokens[@pos]? || raise "unexpected EOF"
 
       unless token.kind.right_paren?
