@@ -15,18 +15,18 @@ module Lucid::Compiler
       False
       Nil
 
-      LeftParen
-      RightParen
-      Colon
-      DoubleColon
-      Comma
-      Period
+      LeftParen   # (
+      RightParen  # )
+      Colon       # :
+      DoubleColon # ::
+      Comma       # ,
+      Period      # .
 
       Plus        # +
       Minus       # -
       Star        # *
-      Slash       # /
       DoubleStar  # **
+      Slash       # /
       DoubleSlash # //
 
       Assign            # =
@@ -35,12 +35,12 @@ module Lucid::Compiler
       PlusAssign        # +=
       MinusAssign       # -=
       StarAssign        # *=
-      SlashAssign       # /=
       DoubleStarAssign  # **=
+      SlashAssign       # /=
       DoubleSlashAssign # //=
 
-      IsA
-      RespondsTo
+      IsA        # is_a?
+      RespondsTo # responds_to?
 
       Module
       Enum
@@ -48,6 +48,10 @@ module Lucid::Compiler
       Class
       Def
       End
+
+      def is_nil? : Bool
+        self == Kind::Nil
+      end
     end
 
     getter kind : Kind
@@ -65,7 +69,7 @@ module Lucid::Compiler
     end
 
     def operator? : Bool
-      @kind.in?(Kind::Plus..Kind::DoubleSlashAssign)
+      @kind.in?(Kind::Plus..Kind::DoubleSlash)
     end
 
     def assign? : Bool
