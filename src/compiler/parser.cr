@@ -132,10 +132,6 @@ module Lucid::Compiler
       if token.operator?
         return parse_infix_expression token, expr
       end
-
-      if token.kind.left_paren?
-        return parse_call expr, true
-      end
     end
 
     private def parse_infix_expression(token : Token, left : Expression) : Expression
@@ -312,10 +308,9 @@ module Lucid::Compiler
 
     private def parse_grouped_expression : Expression
       expr = parse_expression next_token_skip_space!, :lowest
-      # FIXME: figure out why parse_expression is still skipping ahead
-      token = @tokens[@pos]? || raise "unexpected EOF"
+      token = next_token?
 
-      unless token.kind.right_paren?
+      if token.nil? || !token.kind.right_paren?
         raise "expected closing parenthesis after expression"
       end
 
