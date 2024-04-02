@@ -68,6 +68,10 @@ module Lucid::Compiler
       next_token_skip_space? || raise "unexpected EOF"
     end
 
+    private def skip_token : Nil
+      @pos += 1
+    end
+
     private def peek_token? : Token?
       @tokens[@pos + 1]?
     end
@@ -99,10 +103,10 @@ module Lucid::Compiler
       raise "cannot parse expression #{token}" if left.nil?
 
       loop do
-        break unless peek_token_skip_space?
-
-        token = next_token_skip_space!
+        break unless token = peek_token_skip_space?
         break if prec >= Precedence.from(token.kind)
+
+        skip_token
         break unless infix = parse_infix_expression token, left
 
         left = infix
@@ -143,44 +147,13 @@ module Lucid::Compiler
     end
 
     private def parse_var_or_call(token : Token, global : Bool) : Expression
-      names = [] of Ident
       if token.kind.ident?
-        names << Ident.new(token.value, global).at(token.loc)
+        receiver = parse_ident_or_path token, global
       else
-        names << Const.new(token.value, global).at(token.loc)
-      end
-      end_loc = token.loc
-
-      while (peek = peek_token?) && (peek.kind.period? || peek.kind.double_colon?)
-        @pos += 1 # TODO: replace all these with skip_token
-        break unless next_token = next_token_skip_space?
-        next_global = peek.kind.double_colon?
-
-        case next_token.kind
-        when .ident?
-          names << Ident.new(next_token.value, next_global).at(next_token.loc)
-          end_loc = next_token.loc
-        when .const?
-          names << Const.new(next_token.value, next_global).at(next_token.loc)
-          end_loc = next_token.loc
-          # when .instance_var?
-          #   names << InstanceVar.new next_token.value
-          #   end_loc = next_token.loc
-          # when .class_var?
-          #   names << ClassVar.new next_token.value
-          #   end_loc = next_token.loc
-        else
-          break
-        end
+        receiver = parse_const_or_path token, global
       end
 
-      if names.size > 1
-        receiver = Path.new(names, global).at(token.loc & end_loc)
-      else
-        receiver = names[0]
-      end
-
-      unless next_token = next_token_skip_space?
+      unless peek_token_skip_space?
         return receiver if receiver.is_a?(Const)
         if receiver.is_a?(Path)
           return receiver if receiver.names.last.is_a?(Const)
@@ -189,10 +162,10 @@ module Lucid::Compiler
         return Call.new(receiver, [] of Node).at(receiver.loc)
       end
 
-      case next_token.kind
+      token = next_token_skip_space!
+      case token.kind
       when .colon?
-        next_token = next_token_skip_space!
-        case node = parse_var_or_call next_token, false
+        case node = parse_var_or_call next_token_skip_space!, false
         when Assign
           Var.new(receiver, node.target, node.value).at(receiver.loc)
         when Ident
@@ -203,46 +176,112 @@ module Lucid::Compiler
       when .assign?
         node = parse_expression next_token_skip_space!, :lowest
         Assign.new(receiver, node).at(receiver.loc)
+      when .left_paren?
+        parse_closed_call receiver
+      when .comma?
+        Call.new(receiver, [] of Node).at(receiver.loc)
       else
-        parse_call receiver, next_token.kind.left_paren?
+        parse_open_call receiver, token
       end
     end
 
-    private def parse_call(receiver : Node, with_paren : Bool) : Node
-      args = [] of Node
-      delimited = true
+    private def parse_ident_or_path(token : Token, global : Bool) : Expression
+      names = [Ident.new(token.value, global).at(token.loc)]
 
-      if with_paren
-        closed = false
-      else
-        @pos -= 1
-        closed = true
+      while (peek = peek_token?) && peek.kind.period?
+        skip_token
+        break unless token = next_token_skip_space?
+
+        if token.kind.ident?
+          names << Ident.new(token.value, false).at(token.loc)
+        else
+          raise "unexpected token #{token}"
+        end
       end
 
-      loop do
-        unless next_token = next_token?
-          @pos -= 1
-          break
-        end
+      if names.size > 1
+        Path.new(names, names[0].global?)
+      else
+        names[0]
+      end
+    end
 
-        case next_token.kind
+    private def parse_const_or_path(token : Token, global : Bool) : Expression
+      names = [Const.new(token.value, global).at(token.loc)] of Ident
+      in_method = false
+
+      while (peek = peek_token?) && (peek.kind.period? || peek.kind.double_colon?)
+        global = peek.kind.double_colon?
+        raise "unexpected token #{peek}" if global && in_method
+        skip_token
+        break unless token = next_token_skip_space?
+
+        case token.kind
+        when .ident?
+          in_method = true
+          names << Ident.new(token.value, global).at(token.loc)
+        when .const?
+          raise "unexpected token #{token}" if in_method
+          names << Const.new(token.value, global).at(token.loc)
+        else
+          raise "unexpected token #{token}"
+        end
+      end
+
+      if names.size > 1
+        Path.new(names, names[0].global?)
+      else
+        names[0]
+      end
+    end
+
+    private def parse_open_call(receiver : Node, first : Token) : Node
+      args = [parse_expression(first, :lowest)] of Node
+      delimited = false
+
+      loop do
+        break unless token = next_token_skip_space?
+
+        case token.kind
         when .space?
           next
         when .newline?
-          break unless with_paren
+          break unless delimited
         when .comma?
+          raise "unexpected token ','" if delimited
           delimited = true
-        when .right_paren?
-          @pos -= 1 unless with_paren
-          closed = true
-          break
         else
           raise "expected a comma after the last argument" unless delimited
           delimited = false
+          args << parse_expression token, :lowest
+        end
+      end
 
-          break unless node = parse_expression next_token, :lowest
-          args << node
-          @pos -= 1 if with_paren # FIXME: cannot have this here
+      raise "invalid trailing comma in call" if delimited
+
+      Call.new(receiver, args).at(receiver.loc)
+    end
+
+    private def parse_closed_call(receiver : Node) : Node
+      args = [] of Node
+      delimited = true
+      closed = false
+
+      loop do
+        break unless token = next_token_skip_space?
+
+        case token.kind
+        when .right_paren?
+          closed = true
+          skip_token
+          break
+        when .comma?
+          raise "unexpected token ','" if delimited
+          delimited = true
+        else
+          raise "expected a comma after the last argument" unless delimited
+          delimited = false
+          args << parse_expression token, :lowest
         end
       end
 
