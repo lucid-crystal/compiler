@@ -11,30 +11,37 @@ module Lucid::Compiler
     end
 
     abstract def to_s(io : IO) : Nil
-    abstract def inspect(io : IO) : Nil
+    abstract def pretty_print(pp : PrettyPrint) : Nil
   end
 
-  class Expressions < Node
-    property expressions : Array(Node)
+  abstract class Statement < Node
+  end
 
-    def initialize(@expressions : Array(Node))
+  abstract class Expression < Node
+  end
+
+  class ExpressionStatement < Statement
+    property value : Expression
+
+    def initialize(@value : Expression)
       super()
     end
 
     def to_s(io : IO) : Nil
       io << '('
-      @expressions.each &.to_s(io)
+      @value.to_s io
       io << ')'
     end
 
-    def inspect(io : IO) : Nil
-      io << "Expressions("
-      @expressions.each &.inspect(io)
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ExpressionStatement("
+      pp.breakable ""
+      pp.nest { @value.pretty_print pp }
+      pp.text ")"
     end
   end
 
-  class Path < Node
+  class Path < Expression
     property names : Array(Ident)
     property? global : Bool
 
@@ -55,14 +62,34 @@ module Lucid::Compiler
       end
     end
 
-    def inspect(io : IO) : Nil
-      io << "Path(names: "
-      io << @names << ", global: "
-      io << @global << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Path("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "names: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @names.empty?
+
+          @names[0].pretty_print pp
+          if @names.size > 1
+            @names.skip(1).each do |name|
+              pp.comma
+              name.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+
+        pp.comma
+        pp.text "global: "
+        pp.text @global
+      end
+      pp.text ")"
     end
   end
 
-  class Ident < Node
+  class Ident < Expression
     property value : String
     property? global : Bool
 
@@ -74,30 +101,44 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "Ident(value: "
-      @value.inspect io
-      io << ", global: "
-      io << @global << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Ident("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "value: "
+        pp.text @value.inspect
+        pp.comma
+
+        pp.text "global: "
+        pp.text @global
+      end
+      pp.text ")"
     end
   end
 
   class Const < Ident
-    def inspect(io : IO) : Nil
-      io << "Const(value: "
-      @value.inspect io
-      io << ", global: "
-      io << @global << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Const("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "value: "
+        pp.text @value.inspect
+        pp.comma
+
+        pp.text "global: "
+        pp.text @global
+      end
+      pp.text ")"
     end
   end
 
-  class Var < Node
+  class Var < Expression
     property name : Node
     property type : Node?
     property value : Node?
 
     def initialize(@name : Node, @type : Node?, @value : Node?)
-      super() # needs investigating
+      super()
     end
 
     def uninitialized? : Bool
@@ -115,14 +156,22 @@ module Lucid::Compiler
       end
     end
 
-    def inspect(io : IO) : Nil
-      io << "Var(name: "
-      @name.inspect io
-      io << ", type: "
-      @type.inspect io
-      io << ", value: "
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Var("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "name: "
+        pp.text @name
+        pp.comma
+
+        pp.text "type: "
+        pp.text @type
+        pp.comma
+
+        pp.text "value: "
+        pp.text @value
+      end
+      pp.text ")"
     end
   end
 
@@ -132,8 +181,8 @@ module Lucid::Compiler
   class ClassVar < Var
   end
 
-  class Prefix < Node
-    enum Kind
+  class Prefix < Expression
+    enum Operator
       Plus        # +
       Minus       # -
       Splat       # *
@@ -160,11 +209,10 @@ module Lucid::Compiler
       end
     end
 
-    property op : Kind
+    property op : Operator
     property value : Node
 
-    def initialize(op : Token::Kind, @value : Node)
-      @op = Kind.from op
+    def initialize(@op : Operator, @value : Node)
       super()
     end
 
@@ -172,16 +220,23 @@ module Lucid::Compiler
       io << @op << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "Prefix(op: '" << @op
-      io << "', value: "
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Prefix("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "op: "
+        pp.text @op
+        pp.comma
+
+        pp.text "value: "
+        @value.pretty_print pp
+      end
+      pp.text ")"
     end
   end
 
-  class Infix < Node
-    enum Kind
+  class Infix < Expression
+    enum Operator
       Add      # +
       Subtract # -
       Multiply # *
@@ -214,12 +269,11 @@ module Lucid::Compiler
       end
     end
 
-    property op : Kind
+    property op : Operator
     property left : Node
     property right : Node
 
-    def initialize(op : Token::Kind, @left : Node, @right : Node)
-      @op = Kind.from op
+    def initialize(@op : Operator, @left : Node, @right : Node)
       super()
     end
 
@@ -227,18 +281,26 @@ module Lucid::Compiler
       io << @left << ' ' << @op << ' ' << @right
     end
 
-    def inspect(io : IO) : Nil
-      io << "Infix(left: "
-      @left.inspect io
-      io << ", op: "
-      @op.inspect io
-      io << ", right: "
-      @right.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Infix("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "left: "
+        @left.pretty_print pp
+        pp.comma
+
+        pp.text "op: "
+        pp.text @op
+        pp.comma
+
+        pp.text "right: "
+        @right.pretty_print pp
+      end
+      pp.text ")"
     end
   end
 
-  class Assign < Node
+  class Assign < Expression
     property target : Node
     property value : Node
 
@@ -250,16 +312,22 @@ module Lucid::Compiler
       io << @target << " = " << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "Assign(target: "
-      @target.inspect io
-      io << ", value: "
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Assign("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "target: "
+        @target.pretty_print pp
+        pp.comma
+
+        pp.text "value: "
+        @value.pretty_print pp
+      end
+      pp.text ")"
     end
   end
 
-  class Call < Node
+  class Call < Expression
     property receiver : Node
     property args : Array(Node)
 
@@ -273,16 +341,34 @@ module Lucid::Compiler
       io << ')'
     end
 
-    def inspect(io : IO) : Nil
-      io << "Call(receiver: "
-      @receiver.inspect io
-      io << ", args: "
-      @args.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Call("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "receiver: "
+        @receiver.pretty_print pp
+
+        pp.comma
+        pp.text "args: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @args.empty?
+
+          @args[0].pretty_print pp
+          if @args.size > 1
+            @args.skip(1).each do |arg|
+              pp.comma
+              arg.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
     end
   end
 
-  class StringLiteral < Node
+  class StringLiteral < Expression
     property value : String
 
     def initialize(@value : String)
@@ -293,14 +379,14 @@ module Lucid::Compiler
       @value.inspect io
     end
 
-    def inspect(io : IO) : Nil
-      io << "StringLiteral("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "StringLiteral("
+      pp.text @value.inspect
+      pp.text ")"
     end
   end
 
-  class IntLiteral < Node
+  class IntLiteral < Expression
     property raw : String
     property value : Int64
 
@@ -313,14 +399,14 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "IntLiteral("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "IntLiteral("
+      pp.text @value.inspect
+      pp.text ")"
     end
   end
 
-  class FloatLiteral < Node
+  class FloatLiteral < Expression
     property raw : String
     property value : Float64
 
@@ -333,14 +419,14 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "FloatLiteral("
-      @value.inspect io
-      io << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "FloatLiteral("
+      pp.text @value.inspect
+      pp.text ")"
     end
   end
 
-  class BoolLiteral < Node
+  class BoolLiteral < Expression
     # ameba:disable Naming/QueryBoolMethods
     property value : Bool
 
@@ -352,18 +438,20 @@ module Lucid::Compiler
       io << @value
     end
 
-    def inspect(io : IO) : Nil
-      io << "BoolLiteral(" << @value << ')'
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "BoolLiteral("
+      pp.text @value
+      pp.text ")"
     end
   end
 
-  class NilLiteral < Node
+  class NilLiteral < Expression
     def to_s(io : IO) : Nil
       io << "nil"
     end
 
-    def inspect(io : IO) : Nil
-      io << "NilLiteral"
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "NilLiteral"
     end
   end
 end
