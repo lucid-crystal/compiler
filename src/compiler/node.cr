@@ -161,15 +161,15 @@ module Lucid::Compiler
       pp.group 1 do
         pp.breakable ""
         pp.text "name: "
-        pp.text @name
+        @name.pretty_print pp
         pp.comma
 
         pp.text "type: "
-        pp.text @type
+        @type.pretty_print pp
         pp.comma
 
         pp.text "value: "
-        pp.text @value
+        @value.pretty_print pp
       end
       pp.text ")"
     end
