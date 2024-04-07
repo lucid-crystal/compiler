@@ -20,6 +20,129 @@ module Lucid::Compiler
   abstract class Expression < Node
   end
 
+  class Def < Statement
+    property name : Node
+    property params : Array(Parameter)
+    property return_type : Node?
+    property body : Array(ExpressionStatement)
+
+    def initialize(@name : Node, @params : Array(Parameter),
+                   @return_type : Node?, @body : Array(ExpressionStatement))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "def " << @name
+      unless @params.empty?
+        io << '(' << @params[0]
+
+        if @params.size > 1
+          @params.each do |param|
+            io << ", " << param
+          end
+        end
+
+        io << ')'
+      end
+
+      if @return_type
+        io << " : " << @return_type
+      end
+
+      io << '\n'
+      @body.each do |expr|
+        io << ' '
+        expr.to_s io
+      end
+      io << "end"
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Def("
+      pp.breakable ""
+      pp.text "name: "
+      @name.pretty_print pp
+      pp.comma
+
+      pp.text "params: ["
+      pp.group 1 do
+        pp.breakable ""
+        next if @params.empty?
+
+        @params[0].pretty_print pp
+        if @params.size > 1
+          @params.skip(1).each do |param|
+            pp.comma
+            param.pretty_print pp
+          end
+        end
+      end
+      pp.text "]"
+      pp.comma
+
+      pp.text "return_type: "
+      @return_type.pretty_print pp
+
+      pp.text "body: ["
+      pp.group 1 do
+        pp.breakable ""
+        next if @body.empty?
+
+        @body[0].pretty_print pp
+        if @body.size > 1
+          @body.skip(1).each do |expr|
+            pp.comma
+            expr.pretty_print pp
+          end
+        end
+      end
+      pp.text "]"
+      pp.text ")"
+    end
+  end
+
+  class Parameter < Node
+    property name : Node
+    property type : Node?
+    property default_value : Node?
+    property? block : Bool
+
+    def initialize(@name : Node, @type : Node?, @default_value : Node?, @block : Bool)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '&' if @block
+      io << @name
+      if @type
+        io << " : " << @type
+      end
+      if @default_value
+        io << " = " << @default_value
+      end
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Parameter("
+      pp.breakable ""
+      pp.text "name: "
+      @name.pretty_print pp
+      pp.comma
+
+      pp.text "type: "
+      @type.pretty_print pp
+      pp.comma
+
+      pp.text "default_value: "
+      @default_value.pretty_print pp
+      pp.comma
+
+      pp.text "block: "
+      pp.text @block
+      pp.text ")"
+    end
+  end
+
   class ExpressionStatement < Statement
     property value : Expression
 

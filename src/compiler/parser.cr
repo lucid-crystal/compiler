@@ -92,10 +92,76 @@ module Lucid::Compiler
 
     private def parse_statement(token : Token) : Statement?
       case token.kind
-      # when .class?, .struct? then parse_class token
+      when .def?
+        parse_def token
+        # when .class?, .struct? then parse_class token
       else
         parse_expression_statement token
       end
+    end
+
+    # Def ::=
+    #       'def' (IDENT | OP) [
+    #         '('
+    #         [IDENT [IDENT] [':' CONST] ['=' EXPRESSION] ',']*
+    #         ['&' IDENT [':' CONST]]
+    #         ')'
+    #       ]
+    #       [':' CONST] (';' | '\n' | '\r\n')
+    #       [EXPRESSION*]
+    #       'end'
+    private def parse_def(token : Token) : Statement
+      start = token.loc
+      name = parse_expression next_token_skip_space!, :lowest
+      token = next_token_skip_space!
+      params = [] of Parameter
+
+      if token.kind.end?
+        return Def.new(name, params, nil, [] of ExpressionStatement).at(start & token.loc)
+      end
+
+      if token.kind.left_paren?
+        loop do
+          pname = parse_expression next_token_skip_space!, :lowest
+          # TODO: don't allow newline here, only spaces
+          token = next_token_skip_space!
+          if token.kind.colon?
+            type = parse_expression next_token_skip_space!, :lowest
+            token = next_token_skip_space!
+          end
+
+          if token.kind.assign?
+            value = parse_expression next_token_skip_space!, :lowest
+            token = next_token_skip_space!
+          end
+
+          if token.kind.comma?
+            params << Parameter.new(pname, type, value, false)
+          elsif token.kind.right_paren?
+            break
+          else
+            raise "expected a comma after last parameter"
+          end
+        end
+
+        token = next_token_skip_space!
+      end
+
+      if token.kind.colon?
+        return_type = parse_expression next_token_skip_space!, :lowest
+        token = next_token_skip_space!
+      end
+
+      # if token.kind.forall?
+      #   # idk how to handle this yet
+      # end
+
+      body = [] of ExpressionStatement
+      until token.kind.end?
+        body << parse_expression_statement token
+      end
+
+      Def.new(name, params, return_type, body).at(start & token.loc)
     end
 
     private def parse_expression_statement(token : Token) : Statement
