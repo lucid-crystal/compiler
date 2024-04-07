@@ -50,6 +50,10 @@ module Lucid::Compiler
       statements
     end
 
+    private def current_token : Token
+      @tokens[@pos]
+    end
+
     private def next_token? : Token?
       @tokens[@pos += 1]?
     end
@@ -150,34 +154,77 @@ module Lucid::Compiler
       end
 
       unless peek_token_skip_space?
+        case receiver
+        when Const then return receiver
+        when Path
+          if receiver.names.last.is_a?(Const)
+            return receiver
+          else
+            return Call.new(receiver, [] of Node).at(receiver.loc)
+          end
+        else
+          Call.new(receiver, [] of Node).at(receiver.loc)
+        end
+      end
+
+      skip_token
+      case current_token.kind
+      when .space?
+        token = next_token_skip_space!
+        case token.kind
+        when .colon?
+          node = parse_var_or_call next_token_skip_space!, false
+          case node
+          when Assign
+            return Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
+          when Ident
+            return Var.new(receiver, node, nil).at(receiver.loc & node.loc)
+          else
+            raise "BUG: expected Assign or Ident; got #{node.class}"
+          end
+        when .assign?
+          node = parse_expression next_token_skip_space!, :lowest
+          return Assign.new(receiver, node).at(receiver.loc)
+          # when .left_paren?
+        end
+      end
+
+      if token = next_token?
+        if token.kind.space?
+          token = next_token_skip_space!
+          if token.kind.colon?
+            node = parse_var_or_call next_token_skip_space!, false
+            case node
+            when Assign
+              return Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
+            when Ident
+              return Var.new(receiver, node, nil).at(receiver.loc & node.loc)
+            else
+              raise "BUG: expected Assign or Ident; got #{node.class}"
+            end
+          end
+        else
+          token = next_token_skip_space!
+        end
+
+        if token.kind.assign?
+          node = parse_expression next_token_skip_space!, :lowest
+          return Assign.new(receiver, node).at(receiver.loc)
+        end
+
+        if token.kind.left_paren?
+          return parse_closed_call receiver
+        end
+
+        parse_open_call receiver
+      else
         return receiver if receiver.is_a?(Const)
+
         if receiver.is_a?(Path)
           return receiver if receiver.names.last.is_a?(Const)
         end
 
-        return Call.new(receiver, [] of Node).at(receiver.loc)
-      end
-
-      token = next_token_skip_space!
-      case token.kind
-      when .colon?
-        case node = parse_var_or_call next_token_skip_space!, false
-        when Assign
-          Var.new(receiver, node.target, node.value).at(receiver.loc)
-        when Ident
-          Var.new(receiver, node, nil).at(receiver.loc)
-        else
-          raise "BUG: expected Assign or Ident; got #{node.class}"
-        end
-      when .assign?
-        node = parse_expression next_token_skip_space!, :lowest
-        Assign.new(receiver, node).at(receiver.loc)
-      when .left_paren?
-        parse_closed_call receiver
-      when .comma?
         Call.new(receiver, [] of Node).at(receiver.loc)
-      else
-        parse_open_call receiver, token
       end
     end
 
@@ -231,25 +278,26 @@ module Lucid::Compiler
       end
     end
 
-    private def parse_open_call(receiver : Node, first : Token) : Node
-      args = [parse_expression(first, :lowest)] of Node
+    private def parse_open_call(receiver : Node) : Node
+      args = [] of Node
       delimited = false
 
       loop do
-        break unless token = next_token_skip_space?
-
-        case token.kind
+        case current_token.kind
         when .space?
-          next
+          skip_token
         when .newline?
           break unless delimited
+          skip_token
         when .comma?
           raise "unexpected token ','" if delimited
           delimited = true
+          skip_token
         else
           raise "expected a comma after the last argument" unless delimited
           delimited = false
-          args << parse_expression token, :lowest
+          args << parse_expression current_token, :lowest
+          break unless peek_token_skip_space?
         end
       end
 
