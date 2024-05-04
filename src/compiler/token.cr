@@ -1,6 +1,7 @@
 module Lucid::Compiler
   class Token
     enum Kind
+      EOF
       Space
       Newline
       Comment

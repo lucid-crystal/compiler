@@ -21,19 +21,19 @@ module Lucid::Compiler
       tokens = [] of Token
 
       loop do
-        break unless token = next_token
-        tokens << token
+        tokens << (token = next_token)
+        break if token.kind.eof?
       end
 
       tokens
     end
 
-    private def next_token : Token?
+    private def next_token : Token
       @loc = Location[@line, @column]
 
       case current_char
       when '\0'
-        return
+        Token.new :eof, @loc
       when ' '
         lex_space
       when '\r'
