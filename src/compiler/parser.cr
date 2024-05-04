@@ -28,23 +28,21 @@ module Lucid::Compiler
     end
 
     @tokens : Array(Token)
-    @pos : Int32
+    @pos : Int32 = 0
 
     def self.parse(tokens : Array(Token)) : Array(Statement)
       new(tokens).parse
     end
 
-    def initialize(@tokens : Array(Token))
-      @pos = -1
+    private def initialize(@tokens : Array(Token))
     end
 
     def parse : Array(Statement)
       statements = [] of Statement
 
       loop do
-        break unless token = next_token?
-        break unless statement = parse_statement token
-        statements << statement
+        break if current_token.kind.eof?
+        statements << parse_statement current_token
       end
 
       statements
@@ -54,6 +52,10 @@ module Lucid::Compiler
       @tokens[@pos]
     end
 
+    private def next_token : Token
+      @tokens[@pos += 1]
+    end
+
     private def next_token? : Token?
       @tokens[@pos += 1]?
     end
@@ -61,7 +63,7 @@ module Lucid::Compiler
     private def next_token_skip_space? : Token?
       return unless token = next_token?
 
-      if token.kind.space? || token.kind.newline?
+      if token.kind.space?
         next_token_skip_space?
       else
         token
@@ -72,18 +74,32 @@ module Lucid::Compiler
       next_token_skip_space? || raise "unexpected EOF"
     end
 
+    private def next_token_skip_newline? : Token?
+      return unless token = next_token?
+
+      if token.kind.newline?
+        next_token_skip_newline?
+      else
+        token
+      end
+    end
+
+    private def next_token_skip_newline! : Token
+      next_token_skip_newline? || raise "unexpected EOF"
+    end
+
     private def skip_token : Nil
       @pos += 1
     end
 
-    private def peek_token? : Token?
-      @tokens[@pos + 1]?
+    private def peek_token : Token
+      @tokens[@pos + 1]
     end
 
     private def peek_token_skip_space?(offset : Int32 = @pos) : Token?
       return unless token = @tokens[offset + 1]?
 
-      if token.kind.space? || token.kind.newline?
+      if token.kind.space?
         peek_token_skip_space? offset + 1
       else
         token
@@ -165,7 +181,11 @@ module Lucid::Compiler
     end
 
     private def parse_expression_statement(token : Token) : Statement
-      ExpressionStatement.new parse_expression(token, :lowest)
+      expr = ExpressionStatement.new parse_expression(token, :lowest)
+      next_token
+      pp expr
+
+      expr
     end
 
     private def parse_expression(token : Token, prec : Precedence) : Expression
@@ -219,6 +239,7 @@ module Lucid::Compiler
         receiver = parse_const_or_path token, global
       end
 
+      # TODO: not nilable anymore, check for EOF to fix
       unless peek_token_skip_space?
         case receiver
         when Const then return receiver
@@ -297,7 +318,7 @@ module Lucid::Compiler
     private def parse_ident_or_path(token : Token, global : Bool) : Expression
       names = [Ident.new(token.value, global).at(token.loc)]
 
-      while (peek = peek_token?) && peek.kind.period?
+      while peek_token.kind.period?
         skip_token
         break unless token = next_token_skip_space?
 
@@ -319,9 +340,9 @@ module Lucid::Compiler
       names = [Const.new(token.value, global).at(token.loc)] of Ident
       in_method = false
 
-      while (peek = peek_token?) && (peek.kind.period? || peek.kind.double_colon?)
-        global = peek.kind.double_colon?
-        raise "unexpected token #{peek}" if global && in_method
+      while peek_token.kind.period? || peek_token.kind.double_colon?
+        global = peek_token.kind.double_colon?
+        raise "unexpected token #{peek_token}" if global && in_method
         skip_token
         break unless token = next_token_skip_space?
 
