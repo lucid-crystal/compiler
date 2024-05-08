@@ -23,7 +23,7 @@ describe LC::Parser do
   end
 
   it "parses assignment expressions" do
-    node = parse("x = 7")[0]
+    node = parse_expr "x = 7"
     node.should be_a LC::Assign
     node = node.as(LC::Assign)
 
@@ -35,7 +35,7 @@ describe LC::Parser do
   end
 
   it "parses uninitialized variable declaration expressions" do
-    node = parse("x : Int32")[0]
+    node = parse_expr "x : Int32"
     node.should be_a LC::Var
     node = node.as(LC::Var)
 
@@ -50,7 +50,7 @@ describe LC::Parser do
   end
 
   it "parses initialized variable declaration expressions" do
-    node = parse("y : Int32 = 123")[0]
+    node = parse_expr "y : Int32 = 123"
     node.should be_a LC::Var
     node = node.as(LC::Var)
 
@@ -66,7 +66,7 @@ describe LC::Parser do
   end
 
   pending "parses call expressions with no arguments" do
-    node = parse("exit")[0]
+    node = parse_expr "exit"
     node.should be_a LC::Call
     node = node.as(LC::Call)
 
@@ -76,7 +76,7 @@ describe LC::Parser do
   end
 
   it "parses path call expressions" do
-    node = parse("foo.bar.baz")[0]
+    node = parse_expr "foo.bar.baz"
     node.should be_a LC::Call
     node = node.as(LC::Call)
 
@@ -95,7 +95,7 @@ describe LC::Parser do
   end
 
   it "parses constant path expressions" do
-    node = parse("Foo::Bar")[0]
+    node = parse_expr "Foo::Bar"
     node.should be_a LC::Path
     node = node.as(LC::Path)
 
@@ -110,7 +110,7 @@ describe LC::Parser do
   end
 
   it "parses constant call expresions" do
-    node = parse("::Foo.baz")[0]
+    node = parse_expr "::Foo.baz"
     node.should be_a LC::Call
     node = node.as(LC::Call)
 
@@ -128,7 +128,7 @@ describe LC::Parser do
   end
 
   pending "parses call expressions with single arguments" do
-    node = parse(%(puts "hello world"))[0]
+    node = parse_expr %(puts "hello world")
     node.should be_a LC::Call
     node = node.as(LC::Call)
 
@@ -141,7 +141,7 @@ describe LC::Parser do
   end
 
   pending "parses call expressions with multiple arguments" do
-    node = parse(%(puts "foo", "bar", "baz"))[0]
+    node = parse_expr %(puts "foo", "bar", "baz")
     node.should be_a LC::Call
     node = node.as(LC::Call)
 
@@ -160,7 +160,7 @@ describe LC::Parser do
   end
 
   pending "parses call expressions on multiple lines" do
-    node = parse(<<-CR)[0]
+    node = parse_expr <<-CR
       puts(
         "hello from",
         "the other side",
@@ -182,7 +182,7 @@ describe LC::Parser do
   end
 
   pending "parses nested call expressions" do
-    node = parse(<<-CR)[0]
+    node = parse_expr <<-CR
       puts(
         "hello, ",
         your_name,
@@ -210,13 +210,13 @@ describe LC::Parser do
 
   pending "raises on undelimited arguments for calls" do
     expect_raises(Exception, "expected a comma after the last argument") do
-      parse %(puts "foo" "bar")
+      parse_expr %(puts "foo" "bar")
     end
   end
 
   pending "raises on unclosed parentheses for calls" do
     expect_raises(Exception, "expected closing parenthesis for call") do
-      parse %[puts("foo", "bar"]
+      parse_expr %[puts("foo", "bar"]
     end
   end
 end

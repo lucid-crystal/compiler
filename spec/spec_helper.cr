@@ -3,33 +3,29 @@ require "../src/compiler"
 
 alias LC = Lucid::Compiler
 
-macro seq!(*kinds)
-  [{{ kinds.splat }}] of LC::Token::Kind
-end
-
-def assert_token(token : LC::Token::Kind, for input : String) : Nil
-  kind = LC::Lexer.run(input).map &.kind
-  kind.should eq [token]
-end
-
-def assert_token_sequence(sequence : Array(LC::Token::Kind), for input : String) : Nil
-  kinds = LC::Lexer.run(input).map &.kind
-  kinds.should eq sequence
-end
-
-def parse(source : String) : Array(LC::Expression)
+def parse_expr(source : String) : LC::Expression
   tokens = LC::Lexer.run source
-  LC::Parser.parse(tokens).map &.value
+  nodes = LC::Parser.parse tokens
+
+  nodes.size.should eq 1
+  nodes[0].should be_a LC::ExpressionStatement
+
+  nodes[0].as(LC::ExpressionStatement).value
 end
 
 def assert_node(cls : LC::Node.class, for input : String) : Nil
-  parse(input).map(&.class).should eq [cls]
+  parse_expr(input).class.should eq cls
 end
 
 def assert_node_sequence(sequence : Array(LC::Node.class), for input : String) : Nil
-  nodes = parse input
+  tokens = LC::Lexer.run source
+  nodes = LC::Parser.parse tokens
 
   sequence.each_with_index do |cls, index|
     nodes[index].class.should eq cls
   end
+end
+
+def assert_tokens(source : String, *kinds : LC::Token::Kind) : Nil
+  LC::Lexer.run(source).map(&.kind).should eq kinds.to_a
 end
