@@ -260,7 +260,7 @@ module Lucid::Compiler
             return Call.new(receiver, [] of Node).at(receiver.loc)
           end
         else
-          Call.new(receiver, [] of Node).at(receiver.loc)
+          return Call.new(receiver, [] of Node).at(receiver.loc)
         end
       end
 
