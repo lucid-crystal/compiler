@@ -108,6 +108,21 @@ module Lucid::Compiler
       end
     end
 
+    private def peek_token_skip(space : Bool = false, newline : Bool = false,
+                                offset : Int32 = @pos) : Token
+      if token = @tokens[offset + 1]?
+        if space && token.kind.space?
+          peek_token_skip space, newline, offset + 1
+        elsif newline && token.kind.newline?
+          peek_token_skip space, newline, offset + 1
+        else
+          token
+        end
+      else
+        @tokens[offset]
+      end
+    end
+
     private def peek_token_skip_space?(offset : Int32 = @pos) : Token?
       return unless token = @tokens[offset + 1]?
 
@@ -385,25 +400,39 @@ module Lucid::Compiler
     end
 
     private def parse_closed_call(receiver : Node) : Node
+      skip_token
       args = [] of Node
       delimited = true
       closed = false
 
       loop do
-        break unless token = next_token_skip_space?
-
-        case token.kind
+        case current_token.kind
+        when .eof?
+          break
+        when .space?, .newline?
+          skip_token
         when .right_paren?
           closed = true
-          skip_token
           break
         when .comma?
-          raise "unexpected token ','" if delimited
-          delimited = true
-        else
-          raise "expected a comma after the last argument" unless delimited
+          raise "unexpected token ','" unless delimited
           delimited = false
-          args << parse_expression token, :lowest
+          skip_token
+        else
+          args << parse_expression current_token, :lowest
+          token = peek_token_skip space: true, newline: true
+          case token.kind
+          when .eof?
+            break
+          when .comma?
+            delimited = true
+            skip_token
+          when .right_paren?
+            closed = true
+            skip_token
+          else
+            raise "Unexpected token #{token}"
+          end
         end
       end
 
