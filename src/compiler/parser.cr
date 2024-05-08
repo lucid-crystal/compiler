@@ -265,7 +265,8 @@ module Lucid::Compiler
         receiver = parse_const_or_path token, global
       end
 
-      if peek_token_skip_space.kind.eof?
+      peek = peek_token_skip_space
+      if peek.kind.eof? || peek.kind.newline? || peek.kind.comma?
         case receiver
         when Const then return receiver
         when Path
@@ -380,8 +381,7 @@ module Lucid::Compiler
         else
           args << parse_expression current_token, :lowest
           received = true
-          token = peek_token_skip_space
-          case token.kind
+          case peek_token_skip_space.kind
           when .eof?, .newline?
             break
           when .comma?
@@ -389,7 +389,7 @@ module Lucid::Compiler
             received = false
             skip_token
           else
-            raise "Unexpected token #{token}"
+            raise "expected a comma after the last argument"
           end
         end
       end
