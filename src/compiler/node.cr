@@ -158,8 +158,10 @@ module Lucid::Compiler
 
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "ExpressionStatement("
-      pp.breakable ""
-      pp.nest { @value.pretty_print pp }
+      pp.group 1 do
+        pp.breakable ""
+        pp.nest { @value.pretty_print pp }
+      end
       pp.text ")"
     end
   end
