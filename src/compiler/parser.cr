@@ -143,14 +143,14 @@ module Lucid::Compiler
       end
     end
 
-    # Def ::=
-    #       'def' (IDENT | OP) [
+    # DEF ::=
+    #       'def' (IDENT | PATH | OP) [
     #         '('
     #         [IDENT [IDENT] [':' CONST] ['=' EXPRESSION] ',']*
     #         ['&' IDENT [':' CONST]]
     #         ')'
     #       ]
-    #       [':' CONST] (';' | '\n' | '\r\n')
+    #       [':' (CONST | PATH)] (';' | '\n' | '\r\n')
     #       [EXPRESSION*]
     #       'end'
     private def parse_def(token : Token) : Statement
@@ -214,6 +214,7 @@ module Lucid::Compiler
       expr
     end
 
+    # EXPRESSION ::= PREFIX_EXPR | INFIX_EXPR
     private def parse_expression(token : Token, prec : Precedence) : Expression
       left = parse_prefix_expression token
       raise "cannot parse expression #{token}" if left.nil?
@@ -231,6 +232,7 @@ module Lucid::Compiler
       left
     end
 
+    # PREFIX_EXPR ::= ('!' | '~' | '-' | '*' | '**') EXPRESSION
     private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
       when .double_colon?   then parse_var_or_call next_token_skip_space!, true
@@ -250,6 +252,7 @@ module Lucid::Compiler
       end
     end
 
+    # INFIX_EXPR ::= (['('] EXPRESSION OP EXPRESSION [')'])+
     private def parse_infix_expression(token : Token, left : Expression) : Expression
       op = Infix::Operator.from token.kind
       token = next_token_skip_space!
@@ -258,6 +261,11 @@ module Lucid::Compiler
       Infix.new(op, left, right).at(left.loc & right.loc)
     end
 
+    # VAR ::= (IDENT | PATH) [':' (CONST | PATH)] ['=' EXPRESSION]
+    #
+    # CALL ::= OPEN_CALL | CLOSED_CALL
+    #
+    # PATH ::= [(['::'] CONST)+ '.'] IDENT ('.' IDENT)*
     private def parse_var_or_call(token : Token, global : Bool) : Expression
       if token.kind.ident?
         receiver = parse_ident_or_path token, global
@@ -310,6 +318,7 @@ module Lucid::Compiler
       end
     end
 
+    # IDENT ::= ('a'..'z' | '_') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_ident_or_path(token : Token, global : Bool) : Expression
       names = [Ident.new(token.value, global).at(token.loc)]
 
@@ -331,6 +340,7 @@ module Lucid::Compiler
       end
     end
 
+    # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Expression
       names = [Const.new(token.value, global).at(token.loc)] of Ident
       in_method = false
@@ -360,6 +370,7 @@ module Lucid::Compiler
       end
     end
 
+    # OPEN_CALL ::= (IDENT | PATH) [EXPRESSION (',' [NEWLINE] EXPRESSION)*]
     private def parse_open_call(receiver : Node) : Node
       args = [] of Node
       delimited = true
@@ -399,6 +410,7 @@ module Lucid::Compiler
       Call.new(receiver, args).at(receiver.loc)
     end
 
+    # CLOSED_CALL ::= (IDENT | PATH) '(' [EXPRESSION (',' [NEWLINE] EXPRESSION)*] ')'
     private def parse_closed_call(receiver : Node) : Node
       skip_token
       args = [] of Node
