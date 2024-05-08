@@ -297,19 +297,19 @@ module Lucid::Compiler
           node = parse_var_or_call next_token_skip_space!, false
           case node
           when Assign
-            return Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
+            Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
           when Ident
-            return Var.new(receiver, node, nil).at(receiver.loc & node.loc)
+            Var.new(receiver, node, nil).at(receiver.loc & node.loc)
           else
             raise "BUG: expected Assign or Ident; got #{node.class}"
           end
         when .assign?
           node = parse_expression next_token_skip_space!, :lowest
-          return Assign.new(receiver, node).at(receiver.loc)
+          Assign.new(receiver, node).at(receiver.loc)
         when .left_paren?
-          return parse_closed_call receiver
+          parse_closed_call receiver
         else
-          return parse_open_call receiver
+          parse_open_call receiver
         end
       when .left_paren?
         parse_closed_call receiver
