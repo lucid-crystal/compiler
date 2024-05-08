@@ -282,46 +282,15 @@ module Lucid::Compiler
         when .assign?
           node = parse_expression next_token_skip_space!, :lowest
           return Assign.new(receiver, node).at(receiver.loc)
-          # when .left_paren?
-        end
-      end
-
-      if token = next_token?
-        if token.kind.space?
-          token = next_token_skip_space!
-          if token.kind.colon?
-            node = parse_var_or_call next_token_skip_space!, false
-            case node
-            when Assign
-              return Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
-            when Ident
-              return Var.new(receiver, node, nil).at(receiver.loc & node.loc)
-            else
-              raise "BUG: expected Assign or Ident; got #{node.class}"
-            end
-          end
-        else
-          token = next_token_skip_space!
-        end
-
-        if token.kind.assign?
-          node = parse_expression next_token_skip_space!, :lowest
-          return Assign.new(receiver, node).at(receiver.loc)
-        end
-
-        if token.kind.left_paren?
+        when .left_paren?
           return parse_closed_call receiver
+        else
+          return parse_open_call receiver
         end
-
-        parse_open_call receiver
+      when .left_paren?
+        parse_closed_call receiver
       else
-        return receiver if receiver.is_a?(Const)
-
-        if receiver.is_a?(Path)
-          return receiver if receiver.names.last.is_a?(Const)
-        end
-
-        Call.new(receiver, [] of Node).at(receiver.loc)
+        raise "unexpected token #{current_token}"
       end
     end
 
@@ -377,28 +346,40 @@ module Lucid::Compiler
 
     private def parse_open_call(receiver : Node) : Node
       args = [] of Node
-      delimited = false
+      delimited = true
+      received = false
 
       loop do
         case current_token.kind
+        when .eof?
+          break
+        when .newline?
+          break if !delimited && received
+          skip_token
         when .space?
           skip_token
-        when .newline?
-          break unless delimited
-          skip_token
         when .comma?
-          raise "unexpected token ','" if delimited
-          delimited = true
+          raise "unexpected token ','" unless delimited
+          delimited = false
           skip_token
         else
-          raise "expected a comma after the last argument" unless delimited
-          delimited = false
           args << parse_expression current_token, :lowest
-          break unless peek_token_skip_space?
+          received = true
+          token = peek_token_skip_space
+          case token.kind
+          when .eof?, .newline?
+            break
+          when .comma?
+            delimited = true
+            received = false
+            skip_token
+          else
+            raise "Unexpected token #{token}"
+          end
         end
       end
 
-      raise "invalid trailing comma in call" if delimited
+      raise "invalid trailing comma in call" unless received
 
       Call.new(receiver, args).at(receiver.loc)
     end
