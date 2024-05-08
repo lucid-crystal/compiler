@@ -96,6 +96,18 @@ module Lucid::Compiler
       @tokens[@pos + 1]
     end
 
+    private def peek_token_skip_space(offset : Int32 = @pos) : Token
+      if token = @tokens[offset + 1]?
+        if token.kind.space?
+          peek_token_skip_space offset + 1
+        else
+          token
+        end
+      else
+        @tokens[offset]
+      end
+    end
+
     private def peek_token_skip_space?(offset : Int32 = @pos) : Token?
       return unless token = @tokens[offset + 1]?
 
@@ -183,7 +195,6 @@ module Lucid::Compiler
     private def parse_expression_statement(token : Token) : Statement
       expr = ExpressionStatement.new parse_expression(token, :lowest)
       next_token
-      pp expr
 
       expr
     end
@@ -239,8 +250,7 @@ module Lucid::Compiler
         receiver = parse_const_or_path token, global
       end
 
-      # TODO: not nilable anymore, check for EOF to fix
-      unless peek_token_skip_space?
+      if peek_token_skip_space.kind.eof?
         case receiver
         when Const then return receiver
         when Path
