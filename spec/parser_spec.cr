@@ -65,7 +65,7 @@ describe LC::Parser do
     node.value.as(LC::IntLiteral).value.should eq 123
   end
 
-  pending "parses call expressions with no arguments" do
+  it "parses call expressions with no arguments" do
     node = parse_expr "exit"
     node.should be_a LC::Call
     node = node.as(LC::Call)
@@ -127,7 +127,7 @@ describe LC::Parser do
     names[1].as(LC::Ident).global?.should be_false
   end
 
-  pending "parses call expressions with single arguments" do
+  it "parses call expressions with single arguments" do
     node = parse_expr %(puts "hello world")
     node.should be_a LC::Call
     node = node.as(LC::Call)
@@ -140,7 +140,7 @@ describe LC::Parser do
     node.args[0].as(LC::StringLiteral).value.should eq "hello world"
   end
 
-  pending "parses call expressions with multiple arguments" do
+  it "parses call expressions with multiple arguments" do
     node = parse_expr %(puts "foo", "bar", "baz")
     node.should be_a LC::Call
     node = node.as(LC::Call)
@@ -159,7 +159,7 @@ describe LC::Parser do
     node.args[2].as(LC::StringLiteral).value.should eq "baz"
   end
 
-  pending "parses call expressions on multiple lines" do
+  it "parses call expressions on multiple lines" do
     node = parse_expr <<-CR
       puts(
         "hello from",
@@ -181,7 +181,7 @@ describe LC::Parser do
     node.args[1].as(LC::StringLiteral).value.should eq "the other side"
   end
 
-  pending "parses nested call expressions" do
+  it "parses nested call expressions" do
     node = parse_expr <<-CR
       puts(
         "hello, ",
@@ -208,13 +208,13 @@ describe LC::Parser do
 
   # TODO: use refined exceptions for these
 
-  pending "raises on undelimited arguments for calls" do
+  it "raises on undelimited arguments for calls" do
     expect_raises(Exception, "expected a comma after the last argument") do
       parse_expr %(puts "foo" "bar")
     end
   end
 
-  pending "raises on unclosed parentheses for calls" do
+  it "raises on unclosed parentheses for calls" do
     expect_raises(Exception, "expected closing parenthesis for call") do
       parse_expr %[puts("foo", "bar"]
     end
