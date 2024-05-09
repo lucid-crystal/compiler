@@ -60,6 +60,8 @@ module Lucid::Compiler
       @tokens[@pos += 1]?
     end
 
+    # These methods are getting out of hand...
+
     private def next_token_skip_space? : Token?
       return unless token = next_token?
 
@@ -105,6 +107,15 @@ module Lucid::Compiler
         end
       else
         @tokens[offset]
+      end
+    end
+
+    private def next_token_skip(space : Bool = false, newline : Bool = false) : Token
+      token = next_token
+      if (space && token.kind.space?) || (newline && token.kind.newline?)
+        next_token_skip space, newline
+      else
+        token
       end
     end
 
@@ -156,54 +167,52 @@ module Lucid::Compiler
     private def parse_def(token : Token) : Statement
       start = token.loc
       name = parse_expression next_token_skip_space!, :lowest
-      token = next_token_skip_space!
       params = [] of Parameter
 
-      if token.kind.end?
-        return Def.new(name, params, nil, [] of ExpressionStatement).at(start & token.loc)
-      end
-
-      if token.kind.left_paren?
-        loop do
-          pname = parse_expression next_token_skip_space!, :lowest
-          # TODO: don't allow newline here, only spaces
-          token = next_token_skip_space!
-          if token.kind.colon?
-            type = parse_expression next_token_skip_space!, :lowest
-            token = next_token_skip_space!
-          end
-
-          if token.kind.assign?
-            value = parse_expression next_token_skip_space!, :lowest
-            token = next_token_skip_space!
-          end
-
-          if token.kind.comma?
-            params << Parameter.new(pname, type, value, false)
-          elsif token.kind.right_paren?
-            break
-          else
-            raise "expected a comma after last parameter"
+      if name.is_a?(Call)
+        unless name.args.empty?
+          name.args.each do |arg|
+            case arg
+            when Call
+              params << Parameter.new(arg.receiver, nil, nil, false)
+            when Assign
+              params << Parameter.new(arg.target, nil, arg.value, false)
+            when Var
+              params << Parameter.new(arg.name, arg.type, arg.value, false)
+            end
           end
         end
 
+        # TODO: might need to make Call aware of parentheses
+        # so that return type isn't a hard restriction
         token = next_token_skip_space!
+        raise "expected a return type for def" unless token.kind.colon?
+
+        return_type = parse_const_or_path next_token_skip_space!, false
+        name = name.receiver
+      elsif name.is_a?(Var)
+        name = name.as(Var)
+        raise "unexpected assignment at end of def" if name.value
+        return_type = name.type
+        name = name.name
+      else
+        raise "expected an ident, const or operator; got #{name}"
       end
 
-      if token.kind.colon?
-        return_type = parse_expression next_token_skip_space!, :lowest
-        token = next_token_skip_space!
+      token = next_token_skip_space!
+      unless token.kind.newline? # TODO: add semicolon
+        raise "expected a newline after def signature"
       end
 
-      # if token.kind.forall?
-      #   # idk how to handle this yet
-      # end
-
+      token = next_token_skip space: true, newline: true
       body = [] of ExpressionStatement
+
       until token.kind.end?
         body << parse_expression_statement token
+        token = next_token_skip_space!
       end
 
+      skip_token
       Def.new(name, params, return_type, body).at(start & token.loc)
     end
 
