@@ -220,7 +220,74 @@ describe LC::Parser do
     end
   end
 
-  it "parses call expressions with variable declarations" do
+  it "parses call expressions with a single variable declaration" do
+    node = parse_expr "::property(name : String)"
+
+    node.should be_a LC::Call
+    node = node.as(LC::Call)
+
+    node.receiver.should be_a LC::Ident
+    node.receiver.as(LC::Ident).value.should eq "property"
+    node.receiver.as(LC::Ident).global?.should be_true
+
+    node.args.size.should eq 1
+    node.args[0].should be_a LC::Var
+    var = node.args[0].as(LC::Var)
+
+    var.name.should be_a LC::Ident
+    var.name.as(LC::Ident).value.should eq "name"
+
+    var.type.should be_a LC::Const
+    var.type.as(LC::Const).value.should eq "String"
+    var.value.should be_nil
+  end
+
+  it "parses call expressions with a single variable assignment" do
+    node = parse_expr %(::property(name = "dev"))
+
+    node.should be_a LC::Call
+    node = node.as(LC::Call)
+
+    node.receiver.should be_a LC::Ident
+    node.receiver.as(LC::Ident).value.should eq "property"
+    node.receiver.as(LC::Ident).global?.should be_true
+
+    node.args.size.should eq 1
+    node.args[0].should be_a LC::Assign
+    var = node.args[0].as(LC::Assign)
+
+    var.target.should be_a LC::Ident
+    var.target.as(LC::Ident).value.should eq "name"
+
+    var.value.should be_a LC::StringLiteral
+    var.value.as(LC::StringLiteral).value.should eq "dev"
+  end
+
+  it "parses call expressions with a single variable declaration and assignment" do
+    node = parse_expr %(::property(name : String = "dev"))
+
+    node.should be_a LC::Call
+    node = node.as(LC::Call)
+
+    node.receiver.should be_a LC::Ident
+    node.receiver.as(LC::Ident).value.should eq "property"
+    node.receiver.as(LC::Ident).global?.should be_true
+
+    node.args.size.should eq 1
+    node.args[0].should be_a LC::Var
+    var = node.args[0].as(LC::Var)
+
+    var.name.should be_a LC::Ident
+    var.name.as(LC::Ident).value.should eq "name"
+
+    var.type.should be_a LC::Const
+    var.type.as(LC::Const).value.should eq "String"
+
+    var.value.should be_a LC::StringLiteral
+    var.value.as(LC::StringLiteral).value.should eq "dev"
+  end
+
+  it "parses call expressions with multiple variable declarations" do
     node = parse_expr "record Foo, bar : Int32, baz : String"
 
     node.should be_a LC::Call
@@ -252,7 +319,7 @@ describe LC::Parser do
     var.value.should be_nil
   end
 
-  it "parses call expressions with variable assignments" do
+  it "parses call expressions with multiple variable assignments" do
     node = parse_expr %(record Foo, bar = 123, baz = "true")
 
     node.should be_a LC::Call
@@ -282,7 +349,7 @@ describe LC::Parser do
     var.value.as(LC::StringLiteral).value.should eq "true"
   end
 
-  it "parses call expressions with variable declarations" do
+  it "parses call expressions with multiple variable declarations and assignments" do
     node = parse_expr %(record Foo, bar : Int32 = 123, baz : String = "true")
 
     node.should be_a LC::Call

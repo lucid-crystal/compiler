@@ -274,7 +274,7 @@ module Lucid::Compiler
       end
 
       peek = peek_token_skip_space
-      if peek.kind.eof? || peek.kind.newline? || peek.kind.comma?
+      if peek.kind.eof? || peek.kind.newline? || peek.kind.comma? || peek.kind.right_paren?
         case receiver
         when Const then return receiver
         when Path
