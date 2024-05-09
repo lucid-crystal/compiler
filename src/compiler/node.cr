@@ -59,44 +59,47 @@ module Lucid::Compiler
 
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "Def("
-      pp.breakable ""
-      pp.text "name: "
-      @name.pretty_print pp
-      pp.comma
-
-      pp.text "params: ["
       pp.group 1 do
         pp.breakable ""
-        next if @params.empty?
+        pp.text "name: "
+        @name.pretty_print pp
+        pp.comma
 
-        @params[0].pretty_print pp
-        if @params.size > 1
-          @params.skip(1).each do |param|
-            pp.comma
-            param.pretty_print pp
+        pp.text "params: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @params.empty?
+
+          @params[0].pretty_print pp
+          if @params.size > 1
+            @params.skip(1).each do |param|
+              pp.comma
+              param.pretty_print pp
+            end
           end
         end
-      end
-      pp.text "]"
-      pp.comma
+        pp.text "]"
+        pp.comma
 
-      pp.text "return_type: "
-      @return_type.pretty_print pp
+        pp.text "return_type: "
+        @return_type.pretty_print pp
+        pp.comma
 
-      pp.text "body: ["
-      pp.group 1 do
-        pp.breakable ""
-        next if @body.empty?
+        pp.text "body: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @body.empty?
 
-        @body[0].pretty_print pp
-        if @body.size > 1
-          @body.skip(1).each do |expr|
-            pp.comma
-            expr.pretty_print pp
+          @body[0].pretty_print pp
+          if @body.size > 1
+            @body.skip(1).each do |expr|
+              pp.comma
+              expr.pretty_print pp
+            end
           end
         end
+        pp.text "]"
       end
-      pp.text "]"
       pp.text ")"
     end
   end
