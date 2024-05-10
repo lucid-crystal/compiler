@@ -414,7 +414,7 @@ module Lucid::Compiler
           args << parse_expression current_token, :lowest
           received = true
           case peek_token_skip_space.kind
-          when .eof?, .newline?
+          when .eof?, .newline?, .end?
             break
           when .comma?
             delimited = true
