@@ -166,47 +166,59 @@ module Lucid::Compiler
     #       'end'
     private def parse_def(token : Token) : Statement
       start = token.loc
-      name = parse_expression next_token_skip_space!, :lowest
+      name = parse_ident_or_path next_token_skip_space!, false
+      token = next_token_skip_space!
       params = [] of Parameter
+      parens = false
 
-      if name.is_a?(Call)
-        unless name.args.empty?
-          name.args.each do |arg|
-            case arg
-            when Call
-              params << Parameter.new(arg.receiver, nil, nil, false)
-            when Assign
-              params << Parameter.new(arg.target, nil, arg.value, false)
-            when Var
-              params << Parameter.new(arg.name, arg.type, arg.value, false)
+      if token.kind.left_paren?
+        parens = true
+        token = next_token_skip_space!
+
+        if token.kind.right_paren?
+          token = next_token_skip_space!
+        else
+          loop do
+            pname = parse_ident_or_path token, false
+            token = next_token_skip_space!
+
+            if token.kind.colon?
+              type = parse_const_or_path next_token_skip_space!, false
+              token = next_token_skip_space!
+            end
+
+            if token.kind.assign?
+              value = parse_expression next_token_skip_space!, :lowest
+              token = next_token_skip_space!
+            end
+
+            params << Parameter.new(pname, type, value, false)
+
+            if token.kind.right_paren?
+              token = next_token_skip_space!
+              break
+            elsif token.kind.comma?
+              token = next_token_skip_space!
+            else
+              raise "expected a comma after the last parameter"
             end
           end
         end
+      end
 
-        # TODO: might need to make Call aware of parentheses
-        # so that return type isn't a hard restriction
-        token = next_token_skip_space!
-        raise "expected a return type for def" unless token.kind.colon?
-
+      if token.kind.colon?
         return_type = parse_const_or_path next_token_skip_space!, false
-        name = name.receiver
-      elsif name.is_a?(Var)
-        name = name.as(Var)
-        raise "unexpected assignment at end of def" if name.value
-        return_type = name.type
-        name = name.name
-      else
-        raise "expected an ident, const or operator; got #{name}"
+        token = next_token_skip_space!
       end
 
-      token = next_token_skip_space!
-      unless token.kind.newline? # TODO: add semicolon
-        raise "expected a newline after def signature"
+      unless parens && return_type.nil?
+        unless token.kind.newline? # TODO: add semicolon
+          raise "expected a newline after def signature"
+        end
+        token = next_token_skip space: true, newline: true
       end
 
-      token = next_token_skip space: true, newline: true
       body = [] of ExpressionStatement
-
       until token.kind.end?
         body << parse_expression_statement token
         token = next_token_skip_space!
