@@ -13,6 +13,14 @@ def parse_expr(source : String) : LC::Expression
   nodes[0].as(LC::ExpressionStatement).value
 end
 
+def parse_stmt(source : String) : LC::Statement
+  tokens = LC::Lexer.run source
+  nodes = LC::Parser.parse tokens
+
+  nodes.size.should eq 1
+  nodes[0]
+end
+
 def assert_node(cls : LC::Node.class, for input : String) : Nil
   parse_expr(input).class.should eq cls
 end
