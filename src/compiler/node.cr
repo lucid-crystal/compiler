@@ -127,21 +127,23 @@ module Lucid::Compiler
 
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "Parameter("
-      pp.breakable ""
-      pp.text "name: "
-      @name.pretty_print pp
-      pp.comma
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "name: "
+        @name.pretty_print pp
+        pp.comma
 
-      pp.text "type: "
-      @type.pretty_print pp
-      pp.comma
+        pp.text "type: "
+        @type.pretty_print pp
+        pp.comma
 
-      pp.text "default_value: "
-      @default_value.pretty_print pp
-      pp.comma
+        pp.text "default_value: "
+        @default_value.pretty_print pp
+        pp.comma
 
-      pp.text "block: "
-      pp.text @block
+        pp.text "block: "
+        pp.text @block
+      end
       pp.text ")"
     end
   end
