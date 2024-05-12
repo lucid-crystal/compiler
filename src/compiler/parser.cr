@@ -56,58 +56,12 @@ module Lucid::Compiler
       @tokens[@pos += 1]
     end
 
-    private def next_token? : Token?
-      @tokens[@pos += 1]?
-    end
-
-    # These methods are getting out of hand...
-
-    private def next_token_skip_space? : Token?
-      return unless token = next_token?
-
-      if token.kind.space?
-        next_token_skip_space?
-      else
-        token
-      end
-    end
-
-    private def next_token_skip_space! : Token
-      next_token_skip_space? || raise "unexpected EOF"
-    end
-
-    private def next_token_skip_newline? : Token?
-      return unless token = next_token?
-
-      if token.kind.newline?
-        next_token_skip_newline?
-      else
-        token
-      end
-    end
-
-    private def next_token_skip_newline! : Token
-      next_token_skip_newline? || raise "unexpected EOF"
-    end
-
     private def skip_token : Nil
       @pos += 1
     end
 
     private def peek_token : Token
       @tokens[@pos + 1]
-    end
-
-    private def peek_token_skip_space(offset : Int32 = @pos) : Token
-      if token = @tokens[offset + 1]?
-        if token.kind.space?
-          peek_token_skip_space offset + 1
-        else
-          token
-        end
-      else
-        @tokens[offset]
-      end
     end
 
     private def next_token_skip(space : Bool = false, newline : Bool = false) : Token
@@ -134,16 +88,6 @@ module Lucid::Compiler
       end
     end
 
-    private def peek_token_skip_space?(offset : Int32 = @pos) : Token?
-      return unless token = @tokens[offset + 1]?
-
-      if token.kind.space?
-        peek_token_skip_space? offset + 1
-      else
-        token
-      end
-    end
-
     private def parse_statement(token : Token) : Statement?
       case token.kind
       when .def?
@@ -166,39 +110,39 @@ module Lucid::Compiler
     #       'end'
     private def parse_def(token : Token) : Statement
       start = token.loc
-      name = parse_ident_or_path next_token_skip_space!, false
-      token = next_token_skip_space!
+      name = parse_ident_or_path next_token_skip(space: true), false
+      token = next_token_skip space: true
       params = [] of Parameter
       parens = false
 
       if token.kind.left_paren?
         parens = true
-        token = next_token_skip_space!
+        token = next_token_skip space: true
 
         if token.kind.right_paren?
-          token = next_token_skip_space!
+          token = next_token_skip space: true
         else
           loop do
             pname = parse_ident_or_path token, false
-            token = next_token_skip_space!
+            token = next_token_skip space: true
 
             if token.kind.colon?
-              type = parse_const_or_path next_token_skip_space!, false
-              token = next_token_skip_space!
+              type = parse_const_or_path next_token_skip(space: true), false
+              token = next_token_skip space: true
             end
 
             if token.kind.assign?
-              value = parse_expression next_token_skip_space!, :lowest
-              token = next_token_skip_space!
+              value = parse_expression next_token_skip(space: true), :lowest
+              token = next_token_skip space: true
             end
 
             params << Parameter.new(pname, type, value, false)
 
             if token.kind.right_paren?
-              token = next_token_skip_space!
+              token = next_token_skip space: true
               break
             elsif token.kind.comma?
-              token = next_token_skip_space!
+              token = next_token_skip space: true
             else
               raise "expected a comma after the last parameter"
             end
@@ -207,8 +151,8 @@ module Lucid::Compiler
       end
 
       if token.kind.colon?
-        return_type = parse_const_or_path next_token_skip_space!, false
-        token = next_token_skip_space!
+        return_type = parse_const_or_path next_token_skip(space: true), false
+        token = next_token_skip space: true
       end
 
       unless parens && return_type.nil?
@@ -221,7 +165,7 @@ module Lucid::Compiler
       body = [] of ExpressionStatement
       until token.kind.end?
         body << parse_expression_statement token
-        token = next_token_skip_space!
+        token = next_token_skip space: true
       end
 
       skip_token
@@ -241,10 +185,10 @@ module Lucid::Compiler
       raise "cannot parse expression #{token}" if left.nil?
 
       loop do
-        break unless token = peek_token_skip_space?
+        token = peek_token_skip space: true, newline: true
         break if prec >= Precedence.from(token.kind)
 
-        skip_token
+        next_token_skip space: true, newline: true
         break unless infix = parse_infix_expression token, left
 
         left = infix
@@ -256,7 +200,7 @@ module Lucid::Compiler
     # PREFIX_EXPR ::= ('!' | '~' | '-' | '*' | '**') EXPRESSION
     private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
-      when .double_colon?   then parse_var_or_call next_token_skip_space!, true
+      when .double_colon?   then parse_var_or_call next_token_skip(space: true), true
       when .ident?, .const? then parse_var_or_call token, false
       when .integer?        then parse_integer token
       when .float?          then parse_float token
@@ -276,7 +220,7 @@ module Lucid::Compiler
     # INFIX_EXPR ::= (['('] EXPRESSION OP EXPRESSION [')'])+
     private def parse_infix_expression(token : Token, left : Expression) : Expression
       op = Infix::Operator.from token.kind
-      token = next_token_skip_space!
+      token = next_token_skip space: true
       right = parse_expression token, Precedence.from(token.kind)
 
       Infix.new(op, left, right).at(left.loc & right.loc)
@@ -294,7 +238,7 @@ module Lucid::Compiler
         receiver = parse_const_or_path token, global
       end
 
-      peek = peek_token_skip_space
+      peek = peek_token_skip space: true
       if peek.kind.eof? || peek.kind.newline? || peek.kind.comma? || peek.kind.right_paren?
         case receiver
         when Const then return receiver
@@ -312,10 +256,10 @@ module Lucid::Compiler
       skip_token
       case current_token.kind
       when .space?
-        token = next_token_skip_space!
+        token = next_token_skip space: true
         case token.kind
         when .colon?
-          node = parse_var_or_call next_token_skip_space!, false
+          node = parse_var_or_call next_token_skip(space: true), false
           case node
           when Assign
             Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
@@ -325,7 +269,7 @@ module Lucid::Compiler
             raise "BUG: expected Assign or Ident; got #{node.class}"
           end
         when .assign?
-          node = parse_expression next_token_skip_space!, :lowest
+          node = parse_expression next_token_skip(space: true), :lowest
           Assign.new(receiver, node).at(receiver.loc)
         when .left_paren?
           parse_closed_call receiver
@@ -345,7 +289,7 @@ module Lucid::Compiler
 
       while peek_token.kind.period?
         skip_token
-        break unless token = next_token_skip_space?
+        break unless token = next_token_skip space: true
 
         if token.kind.ident?
           names << Ident.new(token.value, false).at(token.loc)
@@ -370,7 +314,7 @@ module Lucid::Compiler
         global = peek_token.kind.double_colon?
         raise "unexpected token #{peek_token}" if global && in_method
         skip_token
-        break unless token = next_token_skip_space?
+        break unless token = next_token_skip space: true
 
         case token.kind
         when .ident?
@@ -413,7 +357,7 @@ module Lucid::Compiler
         else
           args << parse_expression current_token, :lowest
           received = true
-          case peek_token_skip_space.kind
+          case peek_token_skip(space: true).kind
           when .eof?, .newline?, .end?
             break
           when .comma?
@@ -495,7 +439,7 @@ module Lucid::Compiler
     end
 
     private def parse_grouped_expression : Expression
-      expr = parse_expression next_token_skip_space!, :lowest
+      expr = parse_expression next_token_skip(space: true), :lowest
       token = next_token?
 
       if token.nil? || !token.kind.right_paren?
