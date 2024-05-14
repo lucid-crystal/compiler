@@ -208,6 +208,15 @@ module Lucid::Compiler
       when .true?, .false?  then parse_bool token
       when .is_nil?         then parse_nil token
       when .left_paren?     then parse_grouped_expression
+      else
+        return unless token.operator?
+
+        op = Prefix::Operator.from token.kind
+        start = token.loc
+        token = next_token_skip space: true
+        value = parse_expression token, Precedence.from(token.kind)
+
+        Prefix.new(op, value).at(start & value.loc)
       end
     end
 
