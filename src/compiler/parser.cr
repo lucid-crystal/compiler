@@ -189,9 +189,7 @@ module Lucid::Compiler
         break if prec >= Precedence.from(token.kind)
 
         next_token_skip space: true, newline: true
-        break unless infix = parse_infix_expression token, left
-
-        left = infix
+        left = parse_infix_expression token, left
       end
 
       left
@@ -217,12 +215,6 @@ module Lucid::Compiler
         value = parse_expression token, Precedence.from(token.kind)
 
         Prefix.new(op, value).at(start & value.loc)
-      end
-    end
-
-    private def parse_infix_expression(token : Token, expr : Expression) : Expression?
-      if token.operator?
-        return parse_infix_expression token, expr
       end
     end
 
