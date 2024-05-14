@@ -337,7 +337,7 @@ module Lucid::Compiler
     end
 
     # OPEN_CALL ::= (IDENT | PATH) [EXPRESSION (',' [NEWLINE] EXPRESSION)*]
-    private def parse_open_call(receiver : Node) : Node
+    private def parse_open_call(receiver : Node) : Expression
       args = [] of Node
       delimited = true
       received = false
@@ -377,7 +377,7 @@ module Lucid::Compiler
     end
 
     # CLOSED_CALL ::= (IDENT | PATH) '(' [EXPRESSION (',' [NEWLINE] EXPRESSION)*] ')'
-    private def parse_closed_call(receiver : Node) : Node
+    private def parse_closed_call(receiver : Node) : Expression
       skip_token
       args = [] of Node
       delimited = true
