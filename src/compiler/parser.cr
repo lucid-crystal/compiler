@@ -440,9 +440,8 @@ module Lucid::Compiler
 
     private def parse_grouped_expression : Expression
       expr = parse_expression next_token_skip(space: true), :lowest
-      token = next_token?
 
-      if token.nil? || !token.kind.right_paren?
+      unless next_token_skip(space: true).kind.right_paren?
         raise "expected closing parenthesis after expression"
       end
 
