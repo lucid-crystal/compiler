@@ -272,7 +272,19 @@ module Lucid::Compiler
       end
 
       peek = peek_token_skip space: true
-      if peek.kind.eof? || peek.kind.newline? || peek.kind.comma? || peek.kind.right_paren? || peek.operator?
+      is_call = if peek.kind.eof? || peek.kind.newline? || peek.kind.comma? || peek.kind.right_paren?
+                  true
+                elsif peek.operator?
+                  pos = @pos
+                  next_token_skip space: true
+                  stop = peek_token.kind.space?
+                  @pos = pos
+                  stop
+                else
+                  false
+                end
+
+      if is_call
         case receiver
         when Const then return receiver
         when Path
