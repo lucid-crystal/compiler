@@ -313,17 +313,21 @@ module Lucid::Compiler
 
   class Prefix < Expression
     enum Operator
-      Plus        # +
-      Minus       # -
+      Not         # !
       Splat       # *
       DoubleSplat # **
+      Plus        # +
+      Minus       # -
+      BitNot      # ~
 
       def self.from(kind : Token::Kind)
         case kind
-        when .plus?        then Plus
-        when .minus?       then Minus
+        when .bang?        then Not
         when .star?        then Splat
         when .double_star? then DoubleSplat
+        when .plus?        then Plus
+        when .minus?       then Minus
+        when .tilde?       then BitNot
         else
           raise "invalid prefix operator '#{kind}'"
         end
@@ -331,10 +335,12 @@ module Lucid::Compiler
 
       def to_s : String
         case self
-        in Plus        then "+"
-        in Minus       then "-"
+        in Not         then "!"
         in Splat       then "*"
         in DoubleSplat then "**"
+        in Plus        then "+"
+        in Minus       then "-"
+        in BitNot      then "~"
         end
       end
     end
@@ -367,21 +373,63 @@ module Lucid::Compiler
 
   class Infix < Expression
     enum Operator
-      Add      # +
-      Subtract # -
-      Multiply # *
-      Divide   # /
-      DivFloor # //
-      Power    # **
+      NotEqual       # !=
+      PatternUnmatch # !~
+      Modulo         # %
+      BitAnd         # &
+      BinaryMultiply # &*
+      BinaryAdd      # &+
+      BinarySubtract # &-
+      Multiply       # *
+      Power          # **
+      Add            # +
+      Subtract       # -
+      InRange        # ..
+      OutRange       # ...
+      Divide         # /
+      DivFloor       # //
+      LessThan       # <
+      ShiftLeft      # <<
+      LessEqual      # <=
+      Comparison     # <=>
+      Equal          # ==
+      CaseEqual      # ===
+      PatternMatch   # =~
+      GreaterThan    # >
+      ShiftRight     # >>
+      GreaterEqual   # >=
+      Xor            # ^
+      BitOr          # |
 
       def self.from(kind : Token::Kind)
         case kind
-        when .plus?         then Add
-        when .minus?        then Subtract
-        when .star?         then Multiply
-        when .slash?        then Divide
-        when .double_slash? then DivFloor
-        when .double_star?  then Power
+        when .not_equal?       then NotEqual
+        when .pattern_unmatch? then PatternUnmatch
+        when .modulo?          then Modulo
+        when .bit_and?         then BitAnd
+        when .binary_star?     then BinaryMultiply
+        when .binary_plus?     then BinaryAdd
+        when .binary_minus?    then BinarySubtract
+        when .star?            then Multiply
+        when .double_star?     then Power
+        when .plus?            then Add
+        when .minus?           then Subtract
+        when .double_period?   then InRange
+        when .triple_period?   then OutRange
+        when .slash?           then Divide
+        when .double_slash?    then DivFloor
+        when .lesser?          then LessThan
+        when .shift_left?      then ShiftLeft
+        when .lesser_equal?    then LessEqual
+        when .comparison?      then Comparison
+        when .equal?           then Equal
+        when .case_equal?      then CaseEqual
+        when .pattern_match?   then PatternMatch
+        when .greater?         then GreaterThan
+        when .shift_right?     then ShiftRight
+        when .greater_equal?   then GreaterEqual
+        when .caret?           then Xor
+        when .bit_or?          then BitOr
         else
           raise "invalid infix operator '#{kind}'"
         end
@@ -389,12 +437,33 @@ module Lucid::Compiler
 
       def to_s : String
         case self
-        in Add      then "+"
-        in Subtract then "-"
-        in Multiply then "*"
-        in Divide   then "/"
-        in DivFloor then "//"
-        in Power    then "**"
+        in NotEqual       then "!="
+        in PatternUnmatch then "!~"
+        in Modulo         then "%"
+        in BitAnd         then "&"
+        in BinaryMultiply then "&*"
+        in BinaryAdd      then "&+"
+        in BinarySubtract then "&-"
+        in Multiply       then "*"
+        in Power          then "**"
+        in Add            then "+"
+        in Subtract       then "-"
+        in InRange        then ".."
+        in OutRange       then "..."
+        in Divide         then "/"
+        in DivFloor       then "//"
+        in LessThan       then "<"
+        in ShiftLeft      then "<<"
+        in LessEqual      then "<="
+        in Comparison     then "<=>"
+        in Equal          then "=="
+        in CaseEqual      then "==="
+        in PatternMatch   then "=~"
+        in GreaterThan    then ">"
+        in ShiftRight     then ">>"
+        in GreaterEqual   then ">="
+        in Xor            then "^"
+        in BitOr          then "|"
         end
       end
     end
