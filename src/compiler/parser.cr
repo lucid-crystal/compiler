@@ -174,7 +174,7 @@ module Lucid::Compiler
 
     private def parse_expression_statement(token : Token) : Statement
       expr = ExpressionStatement.new parse_expression(token, :lowest)
-      next_token
+      next_token_skip space: true, newline: true
 
       expr
     end
