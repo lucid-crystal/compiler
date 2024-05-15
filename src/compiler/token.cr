@@ -18,35 +18,77 @@ module Lucid::Compiler
 
       LeftParen   # (
       RightParen  # )
+      Comma       # ,
       Colon       # :
       DoubleColon # ::
-      Comma       # ,
-      Period      # .
+      Semicolon   # ;
 
-      Plus        # +
-      Minus       # -
-      Star        # *
-      DoubleStar  # **
-      Slash       # /
-      DoubleSlash # //
+      Bang             # !
+      NotEqual         # !=
+      PatternUnmatch   # !~
+      Modulo           # %
+      BitAnd           # &
+      And              # &&
+      BinaryStar       # &*
+      BinaryDoubleStar # &**
+      BinaryPlus       # &+
+      BinaryMinus      # &-
+      Star             # *
+      DoubleStar       # **
+      Plus             # +
+      Minus            # -
+      Proc             # ->
+      Period           # .
+      DoublePeriod     # ..
+      TriplePeriod     # ...
+      Slash            # /
+      DoubleSlash      # //
+      Lesser           # <
+      ShiftLeft        # <<
+      LesserEqual      # <=
+      Comparison       # <=>
+      Equal            # ==
+      CaseEqual        # ===
+      Rocket           # =>
+      PatternMatch     # =~
+      Greater          # >
+      ShiftRight       # >>
+      GreaterEqual     # >=
+      Question         # ?
+      Caret            # ^
+      Backtick         # `
+      BitOr            # |
+      Or               # ||
+      Tilde            # ~
 
       Assign            # =
-      Equal             # ==
-      CaseEqual         # ===
-      PlusAssign        # +=
-      MinusAssign       # -=
+      ModuloAssign      # %=
+      BitAndAssign      # &=
+      AndAssign         # &&=
+      BinaryStarAssign  # &*=
+      BinaryPlusAssign  # &+=
+      BinaryMinusAssign # &-=
       StarAssign        # *=
       DoubleStarAssign  # **=
+      PlusAssign        # +=
+      MinusAssign       # -=
       SlashAssign       # /=
       DoubleSlashAssign # //=
+      ShiftLeftAssign   # <<=
+      ShiftRightAssign  # >>=
+      CaretAssign       # ^=
+      BitOrAssign       # |=
+      OrAssign          # ||=
 
       IsA        # is_a?
       RespondsTo # responds_to?
 
       Module
-      Enum
-      Struct
       Class
+      Struct
+      # Lib
+      Enum
+      # Alias
       Def
       End
 
@@ -71,11 +113,11 @@ module Lucid::Compiler
     end
 
     def operator? : Bool
-      @kind.in?(Kind::Plus..Kind::DoubleSlash)
+      @kind.in?(Kind::Bang..Kind::Tilde)
     end
 
     def assign? : Bool
-      @kind.in?(Kind::Assign..Kind::DoubleSlashAssign)
+      @kind.in?(Kind::Assign..Kind::OrAssign)
     end
 
     def to_s(io : IO) : Nil
