@@ -48,12 +48,14 @@ module Lucid::Compiler
           Range
         when .question?
           Conditional
-        when .assign?
-          Assignment
         when .star?, .double_star?
           Splat
         else
-          Lowest
+          if kind.in?(Kind::Assign..Kind::OrAssign)
+            Assignment
+          else
+            Lowest
+          end
         end
       end
     end

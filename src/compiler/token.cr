@@ -116,10 +116,6 @@ module Lucid::Compiler
       @kind.in?(Kind::Bang..Kind::Tilde)
     end
 
-    def assign? : Bool
-      @kind.in?(Kind::Assign..Kind::OrAssign)
-    end
-
     def to_s(io : IO) : Nil
       if @value
         @value.inspect io
