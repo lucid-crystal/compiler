@@ -39,6 +39,22 @@ describe LC::Lexer do
     )
   end
 
+  it "parses complex operators" do
+    assert_tokens(
+      ".|..||...<=>^===`=~!~=>;->",
+      :period, :bit_or, :double_period, :or, :triple_period,
+      :comparison, :caret, :case_equal, :backtick, :pattern_match,
+      :pattern_unmatch, :rocket, :semicolon, :proc, :eof
+    )
+
+    assert_tokens(
+      "%=//=<<=>>=**=&+=&-==",
+      :modulo_assign, :double_slash_assign, :shift_left_assign,
+      :shift_right_assign, :double_star_assign, :binary_plus_assign,
+      :binary_minus_assign, :assign, :eof
+    )
+  end
+
   it "parses comments" do
     assert_tokens(
       <<-CR,
