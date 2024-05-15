@@ -1,26 +1,57 @@
 module Lucid::Compiler
   class Parser
+    # https://crystal-lang.org/reference/1.12/syntax_and_semantics/operators.html#operator-precedence
     private enum Precedence
       Lowest
-      Equals
-      Compare
-      Sum
-      Product
-      Prefix
-      Call
+      Splat
+      Assignment
+      Conditional
+      Range
+      Or
+      And
+      Comparison
+      Equality
+      BinaryOr
+      BinaryAnd
+      Shift
+      # Additive # doesn't make sense
+      Multiplicative
+      Exponential
+      Unary
       Index
 
       def self.from(kind : Token::Kind)
         case kind
-        when .plus?, .minus?
-          Sum
-        when .star?, .double_star?, .slash?, .double_slash?
-          Product
-        when .equal?, .case_equal?
-          Equals
-        when .left_paren?
-          Call
-          # TODO: handle Index when [] is implemented
+        # when .left_bracket?
+        #   Index
+        when .bang?, .binary_plus?, .binary_minus?, .plus?, .minus?, .tilde?
+          Unary
+        when .binary_double_star?, .double_star?
+          Exponential
+        when .modulo?, .binary_star?, .star?, .slash?, .double_slash?
+          Multiplicative
+        when .shift_left?, .shift_right?
+          Shift
+        when .bit_and?
+          BinaryAnd
+        when .bit_or?, .caret?
+          BinaryOr
+        when .not_equal?, .pattern_unmatch?, .equal?, .case_equal?, .pattern_match?
+          Equality
+        when .lesser?, .lesser_equal?, .comparison?, .greater?, .greater_equal?
+          Comparison
+        when .and?
+          And
+        when .or?
+          Or
+        when .double_period?, .triple_period?
+          Range
+        when .question?
+          Conditional
+        when .assign?
+          Assignment
+        when .star?, .double_star?
+          Splat
         else
           Lowest
         end
@@ -163,9 +194,10 @@ module Lucid::Compiler
       end
 
       body = [] of ExpressionStatement
-      until token.kind.end?
+      loop do
+        break if current_token.kind.end?
+        raise "unexpected end of file" if current_token.kind.eof?
         body << parse_expression_statement token
-        token = next_token_skip space: true
       end
 
       skip_token
