@@ -57,6 +57,9 @@ module Lucid::Compiler
       when ')'
         next_char
         Token.new :right_paren, location
+      when ','
+        next_char
+        Token.new :comma, location
       when ':'
         if next_char == ':'
           next_char
@@ -64,36 +67,63 @@ module Lucid::Compiler
         else
           Token.new :colon, location
         end
-      when ','
+      when ';'
         next_char
-        Token.new :comma, location
-      when '.'
-        next_char
-        Token.new :period, location
-      when '='
+        Token.new :semicolon, location
+      when '!'
+        case next_char
+        when '='
+          next_char
+          Token.new :not_equal, location
+        when '~'
+          next_char
+          Token.new :pattern_unmatch, location
+        else
+          Token.new :bang, location
+        end
+      when '%'
         if next_char == '='
+          next_char
+          Token.new :modulo_assign, location
+        else
+          Token.new :modulo, location
+        end
+      when '&'
+        case next_char
+        when '&'
           if next_char == '='
             next_char
-            Token.new :case_equal, location
+            Token.new :and_assign, location
           else
-            Token.new :equal, location
+            Token.new :and, location
+          end
+        when '*'
+          case next_char
+          when '*'
+            next_char
+            Token.new :binary_double_star, location
+          when '='
+            next_char
+            Token.new :binary_star_assign, location
+          else
+            Token.new :binary_star, location
+          end
+        when '+'
+          if next_char == '='
+            next_char
+            Token.new :binary_plus_assign, location
+          else
+            Token.new :binary_plus, location
+          end
+        when '-'
+          if next_char == '='
+            next_char
+            Token.new :binary_minus_assign, location
+          else
+            Token.new :binary_minus, location
           end
         else
-          Token.new :assign, location
-        end
-      when '+'
-        if next_char == '='
-          next_char
-          Token.new :plus_assign, location
-        else
-          Token.new :plus, location
-        end
-      when '-'
-        if next_char == '='
-          next_char
-          Token.new :minus_assign, location
-        else
-          Token.new :minus, location
+          Token.new :bit_and, location
         end
       when '*'
         case next_char
@@ -110,6 +140,35 @@ module Lucid::Compiler
         else
           Token.new :star, location
         end
+      when '+'
+        if next_char == '='
+          next_char
+          Token.new :plus_assign, location
+        else
+          Token.new :plus, location
+        end
+      when '-'
+        case next_char
+        when '='
+          next_char
+          Token.new :minus_assign, location
+        when '>'
+          next_char
+          Token.new :proc, location
+        else
+          Token.new :minus, location
+        end
+      when '.'
+        if next_char == '.'
+          if next_char == '.'
+            next_char
+            Token.new :triple_period, location
+          else
+            Token.new :double_period, location
+          end
+        else
+          Token.new :period, location
+        end
       when '/'
         case next_char
         when '/'
@@ -125,6 +184,85 @@ module Lucid::Compiler
         else
           Token.new :slash, location
         end
+      when '<'
+        case next_char
+        when '='
+          if next_char == '>'
+            next_char
+            Token.new :comparison, location
+          else
+            Token.new :lesser_equal, location
+          end
+        when '<'
+          if next_char == '='
+            next_char
+            Token.new :shift_left_assign, location
+          else
+            Token.new :shift_left, location
+          end
+        else
+          Token.new :lesser, location
+        end
+      when '='
+        case next_char
+        when '='
+          if next_char == '='
+            next_char
+            Token.new :case_equal, location
+          else
+            Token.new :equal, location
+          end
+        when '>'
+          next_char
+          Token.new :rocket, location
+        when '~'
+          next_char
+          Token.new :pattern_match, location
+        else
+          Token.new :assign, location
+        end
+      when '>'
+        case next_char
+        when '='
+          next_char
+          Token.new :greater_equal, location
+        when '>'
+          if next_char == '='
+            next_char
+            Token.new :shift_right_assign, location
+          else
+            Token.new :shift_right, location
+          end
+        else
+          Token.new :greater, location
+        end
+      when '?'
+        next_char
+        Token.new :question, location
+      when '^'
+        next_char
+        Token.new :caret, location
+      when '`'
+        next_char
+        Token.new :backtick, location
+      when '|'
+        case next_char
+        when '|'
+          if next_char == '='
+            next_char
+            Token.new :or_assign, location
+          else
+            Token.new :or, location
+          end
+        when '='
+          next_char
+          Token.new :bit_or_assign, location
+        else
+          Token.new :bit_or, location
+        end
+      when '~'
+        next_char
+        Token.new :tilde, location
       when '"'
         next_char
         @loc.increment_column_start
