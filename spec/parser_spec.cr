@@ -542,9 +542,9 @@ describe LC::Parser do
   end
 
   it "parses method defs with multiple parameters" do
-    # TODO: turns out parsing infix expressions hasn't been implemented yet
     node = parse_stmt <<-CR
       def add(a : Int32, b : Int32) : Int32
+        a + b
       end
       CR
 
@@ -572,6 +572,25 @@ describe LC::Parser do
 
     node.return_type.should be_a LC::Const
     node.return_type.as(LC::Const).value.should eq "Int32"
-    node.body.should be_empty
+
+    node.body.size.should eq 1
+    expr = node.body[0].as(LC::ExpressionStatement).value
+    expr.should be_a LC::Infix
+    expr = expr.as(LC::Infix)
+
+    expr.left.should be_a LC::Call
+    value = expr.left.as(LC::Call)
+
+    value.receiver.should be_a LC::Ident
+    value.receiver.as(LC::Ident).value.should eq "a"
+    value.args.should be_empty
+
+    expr.op.should eq LC::Infix::Operator::Add
+    expr.right.should be_a LC::Call
+    value = expr.right.as(LC::Call)
+
+    value.receiver.should be_a LC::Ident
+    value.receiver.as(LC::Ident).value.should eq "b"
+    value.args.should be_empty
   end
 end
