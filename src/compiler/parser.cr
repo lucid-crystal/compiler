@@ -107,9 +107,7 @@ module Lucid::Compiler
     private def peek_token_skip(space : Bool = false, newline : Bool = false,
                                 offset : Int32 = @pos) : Token
       if token = @tokens[offset + 1]?
-        if space && token.kind.space?
-          peek_token_skip space, newline, offset + 1
-        elsif newline && token.kind.newline?
+        if (space && token.kind.space?) || (newline && token.kind.newline?)
           peek_token_skip space, newline, offset + 1
         else
           token
@@ -334,7 +332,7 @@ module Lucid::Compiler
 
       while peek_token.kind.period?
         skip_token
-        break unless token = next_token_skip space: true
+        token = next_token_skip space: true
 
         if token.kind.ident?
           names << Ident.new(token.value, false).at(token.loc)
@@ -359,7 +357,7 @@ module Lucid::Compiler
         global = peek_token.kind.double_colon?
         raise "unexpected token #{peek_token}" if global && in_method
         skip_token
-        break unless token = next_token_skip space: true
+        token = next_token_skip space: true
 
         case token.kind
         when .ident?
