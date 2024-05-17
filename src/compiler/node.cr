@@ -24,10 +24,10 @@ module Lucid::Compiler
     property name : Node
     property params : Array(Parameter)
     property return_type : Node?
-    property body : Array(ExpressionStatement)
+    property body : Array(Expression)
 
     def initialize(@name : Node, @params : Array(Parameter),
-                   @return_type : Node?, @body : Array(ExpressionStatement))
+                   @return_type : Node?, @body : Array(Expression))
       super()
     end
 

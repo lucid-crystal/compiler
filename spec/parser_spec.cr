@@ -490,10 +490,8 @@ describe LC::Parser do
     node.return_type.as(LC::Const).value.should eq "Nil"
 
     node.body.size.should eq 2
-    node.body[0].should be_a LC::ExpressionStatement
-    expr = node.body[0].as(LC::ExpressionStatement).value
-    expr.should be_a LC::Call
-    expr = expr.as(LC::Call)
+    node.body[0].should be_a LC::Call
+    expr = node.body[0].as(LC::Call)
 
     expr.receiver.should be_a LC::Ident
     expr.receiver.as(LC::Ident).value.should eq "puts"
@@ -501,10 +499,8 @@ describe LC::Parser do
     expr.args[0].should be_a LC::StringLiteral
     expr.args[0].as(LC::StringLiteral).value.should eq "bar"
 
-    node.body[1].should be_a LC::ExpressionStatement
-    expr = node.body[1].as(LC::ExpressionStatement).value
-    expr.should be_a LC::Call
-    expr = expr.as(LC::Call)
+    node.body[1].should be_a LC::Call
+    expr = node.body[1].as(LC::Call)
 
     expr.receiver.should be_a LC::Ident
     expr.receiver.as(LC::Ident).value.should eq "puts"
@@ -526,10 +522,8 @@ describe LC::Parser do
     node.return_type.should be_nil
 
     node.body.size.should eq 1
-    node.body[0].should be_a LC::ExpressionStatement
-    expr = node.body[0].as(LC::ExpressionStatement).value
-    expr.should be_a LC::Call
-    expr = expr.as(LC::Call)
+    node.body[0].should be_a LC::Call
+    expr = node.body[0].as(LC::Call)
 
     expr.receiver.should be_a LC::Ident
     expr.receiver.as(LC::Ident).value.should eq "puts"
@@ -573,9 +567,8 @@ describe LC::Parser do
     node.return_type.as(LC::Const).value.should eq "Nil"
 
     node.body.size.should eq 1
-    expr = node.body[0].as(LC::ExpressionStatement).value
-    expr.should be_a LC::Call
-    expr = expr.as(LC::Call)
+    node.body[0].should be_a LC::Call
+    expr = node.body[0].as(LC::Call)
 
     expr.receiver.should be_a LC::Ident
     expr.receiver.as(LC::Ident).value.should eq "puts"
@@ -625,9 +618,8 @@ describe LC::Parser do
     node.return_type.as(LC::Const).value.should eq "Int32"
 
     node.body.size.should eq 1
-    expr = node.body[0].as(LC::ExpressionStatement).value
-    expr.should be_a LC::Infix
-    expr = expr.as(LC::Infix)
+    node.body[0].should be_a LC::Infix
+    expr = node.body[0].as(LC::Infix)
 
     expr.left.should be_a LC::Call
     value = expr.left.as(LC::Call)
