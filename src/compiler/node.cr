@@ -24,29 +24,29 @@ module Lucid::Compiler
     property name : Node
     property params : Array(Parameter)
     property return_type : Node?
+    property free_vars : Array(Const)
     property body : Array(Expression)
 
-    def initialize(@name : Node, @params : Array(Parameter),
-                   @return_type : Node?, @body : Array(Expression))
+    def initialize(@name : Node, @params : Array(Parameter), @return_type : Node?,
+                   @free_vars : Array(Const), @body : Array(Expression))
       super()
     end
 
     def to_s(io : IO) : Nil
       io << "def " << @name
       unless @params.empty?
-        io << '(' << @params[0]
-
-        if @params.size > 1
-          @params.each do |param|
-            io << ", " << param
-          end
-        end
-
+        io << '('
+        @params.join(io, ", ")
         io << ')'
       end
 
       if @return_type
         io << " : " << @return_type
+      end
+
+      unless @free_vars.empty?
+        io << " forall "
+        @free_vars.join(io, ", ")
       end
 
       io << '\n'
@@ -83,6 +83,22 @@ module Lucid::Compiler
 
         pp.text "return_type: "
         @return_type.pretty_print pp
+        pp.comma
+
+        pp.text "free_vars: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @free_vars.empty?
+
+          @free_vars[0].pretty_print pp
+          if @free_vars.size > 1
+            @free_vars.skip(1).each do |var|
+              pp.comma
+              var.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
         pp.comma
 
         pp.text "body: ["

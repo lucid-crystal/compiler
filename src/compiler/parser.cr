@@ -142,7 +142,7 @@ module Lucid::Compiler
     #         ['&' IDENT [':' CONST]]
     #         ')'
     #       ]
-    #       [':' (CONST | PATH)] (';' | '\n' | '\r\n')
+    #       [':' (CONST | PATH)] ['forall' CONST [',' CONST]*] (';' | '\n' | '\r\n')
     #       [EXPRESSION*]
     #       'end'
     private def parse_def(token : Token) : Statement
@@ -151,6 +151,7 @@ module Lucid::Compiler
       token = next_token_skip space: true
       params = [] of Parameter
       empty_parens = false
+      free_vars = [] of Const
 
       if token.kind.left_paren?
         token = next_token_skip space: true
@@ -206,6 +207,21 @@ module Lucid::Compiler
         token = next_token_skip space: true
       end
 
+      if token.kind.forall?
+        loop do
+          token = next_token_skip space: true
+          raise "expected token const; got #{token}" unless token.kind.const?
+
+          case node = parse_const_or_path token, false
+          when Const then free_vars << node
+          else            raise "free variables cannot be paths"
+          end
+
+          token = next_token_skip space: true
+          break unless token.kind.comma?
+        end
+      end
+
       unless empty_parens && return_type.nil?
         unless token.kind.newline? || token.kind.semicolon?
           raise "expected a newline or semicolon after def signature; got #{token}"
@@ -221,7 +237,7 @@ module Lucid::Compiler
       end
 
       skip_token
-      Def.new(name, params, return_type, body).at(start & token.loc)
+      Def.new(name, params, return_type, free_vars, body).at(start & token.loc)
     end
 
     private def parse_expression_statement(token : Token) : Statement

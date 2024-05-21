@@ -231,5 +231,37 @@ describe LC::Parser do
       value.receiver.as(LC::Ident).value.should eq "b"
       value.args.should be_empty
     end
+
+    it "parses method defs with free variables" do
+      node = parse_stmt <<-CR
+        def foo(x : T, y : U) forall T, U
+        end
+        CR
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "foo"
+
+      node.params.size.should eq 2
+      param = node.params[0]
+
+      param.name.should be_a LC::Ident
+      param.name.as(LC::Ident).value.should eq "x"
+      param.type.should be_a LC::Const
+      param.type.as(LC::Const).value.should eq "T"
+      param = node.params[1]
+
+      param.name.should be_a LC::Ident
+      param.name.as(LC::Ident).value.should eq "y"
+      param.type.should be_a LC::Const
+      param.type.as(LC::Const).value.should eq "U"
+
+      node.return_type.should be_nil
+      node.free_vars.size.should eq 2
+      node.free_vars[0].value.should eq "T"
+      node.free_vars[1].value.should eq "U"
+    end
   end
 end
