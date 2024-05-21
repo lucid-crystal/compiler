@@ -303,8 +303,19 @@ module Lucid::Compiler
         end
       when 'f'
         start = current_pos
-        if next_sequence?('a', 'l', 's', 'e')
-          lex_keyword_or_ident :false, start
+        case next_char
+        when 'a'
+          if next_sequence?('l', 's', 'e')
+            lex_keyword_or_ident :false, start
+          else
+            lex_ident start
+          end
+        when 'o'
+          if next_sequence?('r', 'a', 'l', 'l')
+            lex_keyword_or_ident :forall, start
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end

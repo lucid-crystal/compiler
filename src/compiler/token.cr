@@ -80,17 +80,17 @@ module Lucid::Compiler
       BitOrAssign       # |=
       OrAssign          # ||=
 
-      IsA        # is_a?
-      RespondsTo # responds_to?
-
-      Module
-      Class
-      Struct
-      # Lib
-      Enum
       # Alias
+      Class
       Def
       End
+      Enum
+      Forall
+      IsA
+      # Lib
+      Module
+      RespondsTo
+      Struct
 
       # ameba:disable Naming/PredicateName
       def is_nil? : Bool

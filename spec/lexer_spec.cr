@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-describe LC::Lexer do
+describe LC::Lexer, tags: "lexer" do
   it "parses string expressions" do
     assert_tokens %("hello world"), :string, :eof
   end
@@ -129,6 +129,19 @@ describe LC::Lexer do
         CR
       :def, :space, :ident, :space, :colon, :space, :const,
       :newline, :space, :integer, :newline, :end, :eof
+    )
+  end
+
+  it "parses def expressions with generics" do
+    assert_tokens(
+      <<-CR,
+        def puts(obj : T) : Nil forall T
+        end
+        CR
+      :def, :space, :ident, :left_paren, :ident, :space,
+      :colon, :space, :const, :right_paren, :space, :colon,
+      :space, :const, :space, :forall, :space, :const,
+      :newline, :end, :eof
     )
   end
 
