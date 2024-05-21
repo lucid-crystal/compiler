@@ -195,7 +195,7 @@ module Lucid::Compiler
             elsif token.kind.comma?
               token = next_token_skip space: true
             else
-              raise "expected a comma or right parenthesis; got '#{token}'"
+              raise "expected a comma or right parenthesis; got #{token}"
             end
           end
         end
@@ -208,7 +208,7 @@ module Lucid::Compiler
 
       unless empty_parens && return_type.nil?
         unless token.kind.newline? || token.kind.semicolon?
-          raise "expected a newline or semicolon after def signature; got '#{token}'"
+          raise "expected a newline or semicolon after def signature; got #{token}"
         end
         token = next_token_skip space: true, newline: true, semicolon: true
       end

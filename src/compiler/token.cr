@@ -120,7 +120,7 @@ module Lucid::Compiler
       if @value
         @value.inspect io
       else
-        io << @kind.to_s.underscore
+        io << '\'' << @kind.to_s.underscore << '\''
       end
     end
 
