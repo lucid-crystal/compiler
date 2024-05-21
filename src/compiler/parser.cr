@@ -73,7 +73,8 @@ module Lucid::Compiler
 
       loop do
         break if current_token.kind.eof?
-        statements << parse_statement current_token
+        break unless stmt = parse_statement current_token
+        statements << stmt
       end
 
       statements
@@ -95,10 +96,13 @@ module Lucid::Compiler
       @tokens[@pos + 1]
     end
 
-    private def next_token_skip(space : Bool = false, newline : Bool = false) : Token
+    private def next_token_skip(space : Bool = false, newline : Bool = false,
+                                semicolon : Bool = false) : Token
       token = next_token
-      if (space && token.kind.space?) || (newline && token.kind.newline?)
-        next_token_skip space, newline
+      if (space && token.kind.space?) ||
+         (newline && token.kind.newline?) ||
+         (semicolon && token.kind.semicolon?)
+        next_token_skip space, newline, semicolon
       else
         token
       end
@@ -119,6 +123,10 @@ module Lucid::Compiler
 
     private def parse_statement(token : Token) : Statement?
       case token.kind
+      when .eof?
+        nil
+      when .space?, .newline?, .semicolon?
+        parse_statement next_token_skip space: true, newline: true, semicolon: true
       when .def?
         parse_def token
         # when .class?, .struct? then parse_class token
@@ -173,7 +181,7 @@ module Lucid::Compiler
             elsif token.kind.comma?
               token = next_token_skip space: true
             else
-              raise "expected a comma after the last parameter"
+              raise "expected a comma or right parenthesis; got '#{token}'"
             end
           end
         end
@@ -185,10 +193,10 @@ module Lucid::Compiler
       end
 
       unless parens && return_type.nil?
-        unless token.kind.newline? # TODO: add semicolon
-          raise "expected a newline after def signature"
+        unless token.kind.newline? || token.kind.semicolon?
+          raise "expected a newline or semicolon after def signature; got '#{token}'"
         end
-        token = next_token_skip space: true, newline: true
+        token = next_token_skip space: true, newline: true, semicolon: true
       end
 
       body = [] of Expression
@@ -204,7 +212,7 @@ module Lucid::Compiler
 
     private def parse_expression_statement(token : Token) : Statement
       expr = ExpressionStatement.new parse_expression(token, :lowest)
-      next_token_skip space: true, newline: true
+      next_token_skip space: true, newline: true, semicolon: true
 
       expr
     end
@@ -401,7 +409,7 @@ module Lucid::Compiler
           args << parse_expression current_token, :lowest
           received = true
           case peek_token_skip(space: true).kind
-          when .eof?, .newline?, .end?
+          when .eof?, .newline?, .semicolon?, .end?
             break
           when .comma?
             delimited = true

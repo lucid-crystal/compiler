@@ -436,6 +436,20 @@ describe LC::Parser do
     end
   end
 
+  it "parses expressions ignoring semicolons" do
+    node = parse_expr %(;;;;;;;puts "hello world";;;;;;;)
+
+    node.should be_a LC::Call
+    node = node.as(LC::Call)
+
+    node.receiver.should be_a LC::Ident
+    node.receiver.as(LC::Ident).value.should eq "puts"
+
+    node.args.size.should eq 1
+    node.args[0].should be_a LC::StringLiteral
+    node.args[0].as(LC::StringLiteral).value.should eq "hello world"
+  end
+
   it "parses infix operator expressions" do
     node = parse_expr "1 + 1"
 
@@ -563,12 +577,41 @@ describe LC::Parser do
     node.params.should be_empty
     node.return_type.should be_nil
     node.body.should be_empty
+
+    node = parse_stmt <<-CR
+      def foo; end
+      CR
+
+    node.should be_a LC::Def
+    node = node.as(LC::Def)
+
+    node.name.should be_a LC::Ident
+    node.name.as(LC::Ident).value.should eq "foo"
+
+    node.params.should be_empty
+    node.return_type.should be_nil
+    node.body.should be_empty
   end
 
   it "parses method defs with a return type" do
     node = parse_stmt <<-CR
       def foo() : Nil
       end
+      CR
+
+    node.should be_a LC::Def
+    node = node.as(LC::Def)
+
+    node.name.should be_a LC::Ident
+    node.name.as(LC::Ident).value.should eq "foo"
+
+    node.params.should be_empty
+    node.return_type.should be_a LC::Const
+    node.return_type.as(LC::Const).value.should eq "Nil"
+    node.body.should be_empty
+
+    node = parse_stmt <<-CR
+      def foo : Nil; end
       CR
 
     node.should be_a LC::Def
@@ -644,8 +687,8 @@ describe LC::Parser do
     expr.args[0].as(LC::StringLiteral).value.should eq "bar"
   end
 
-  it "disallows method def single line body without parentheses or newline" do
-    expect_raises(Exception, "expected a newline after def signature") do
+  it "disallows method def single line body without parentheses, newline or semicolon" do
+    expect_raises(Exception, "expected a newline or semicolon after def signature") do
       parse_stmt %(def foo puts "bar" end)
     end
   end
