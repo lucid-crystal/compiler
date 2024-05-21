@@ -66,7 +66,7 @@ describe LC::Parser do
       node.body.should be_empty
     end
 
-    it "parses method defs with a body" do
+    it "parses method defs with a body (1)" do
       node = parse_stmt <<-CR
         def foo() : Nil
           puts "bar"
@@ -102,6 +102,41 @@ describe LC::Parser do
       expr.args.size.should eq 1
       expr.args[0].should be_a LC::StringLiteral
       expr.args[0].as(LC::StringLiteral).value.should eq "baz"
+    end
+
+    it "parses method defs with a body (2)" do
+      node = parse_stmt <<-CR
+        def test : Nil
+          foo
+          bar
+          baz
+        end
+        CR
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "test"
+
+      node.params.should be_empty
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Nil"
+
+      node.body.size.should eq 3
+      node.body[0].should be_a LC::Call
+      expr = node.body[0].as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "foo"
+      expr = node.body[1].as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "bar"
+      expr = node.body[2].as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "baz"
     end
 
     it "parses method defs with a single line body" do

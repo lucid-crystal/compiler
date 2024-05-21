@@ -231,9 +231,11 @@ module Lucid::Compiler
 
       body = [] of Expression
       loop do
-        break if current_token.kind.end?
-        raise "unexpected end of file" if current_token.kind.eof?
+        break if token.kind.end?
+        raise "unexpected end of file" if token.kind.eof?
+
         body << parse_expression_statement(token).value
+        token = current_token
       end
 
       skip_token
