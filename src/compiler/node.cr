@@ -314,6 +314,7 @@ module Lucid::Compiler
   class Prefix < Expression
     enum Operator
       Not         # !
+      BitAnd      # &
       Splat       # *
       DoubleSplat # **
       Plus        # +
@@ -323,6 +324,7 @@ module Lucid::Compiler
       def self.from(kind : Token::Kind)
         case kind
         when .bang?        then Not
+        when .bit_and?     then BitAnd
         when .star?        then Splat
         when .double_star? then DoubleSplat
         when .plus?        then Plus
@@ -336,6 +338,7 @@ module Lucid::Compiler
       def to_s : String
         case self
         in Not         then "!"
+        in BitAnd      then "&"
         in Splat       then "*"
         in DoubleSplat then "**"
         in Plus        then "+"

@@ -150,18 +150,32 @@ module Lucid::Compiler
       name = parse_ident_or_path next_token_skip(space: true), false
       token = next_token_skip space: true
       params = [] of Parameter
-      parens = false
+      empty_parens = false
 
       if token.kind.left_paren?
-        parens = true
         token = next_token_skip space: true
 
         if token.kind.right_paren?
+          empty_parens = true
           token = next_token_skip space: true
         else
           loop do
-            pname = parse_ident_or_path token, false
-            token = next_token_skip space: true
+            # TODO: catch-all when not ident or bit-and
+            if token.kind.bit_and?
+              block = true
+              token = next_token_skip space: true
+
+              if token.kind.ident?
+                pname = parse_ident_or_path token, false
+                token = next_token_skip space: true
+              else
+                pname = NilLiteral.new
+              end
+            else
+              block = false
+              pname = parse_ident_or_path token, false
+              token = next_token_skip space: true
+            end
 
             if token.kind.colon?
               type = parse_const_or_path next_token_skip(space: true), false
@@ -173,7 +187,7 @@ module Lucid::Compiler
               token = next_token_skip space: true
             end
 
-            params << Parameter.new(pname, type, value, false)
+            params << Parameter.new(pname, type, value, block)
 
             if token.kind.right_paren?
               token = next_token_skip space: true
@@ -192,7 +206,7 @@ module Lucid::Compiler
         token = next_token_skip space: true
       end
 
-      unless parens && return_type.nil?
+      unless empty_parens && return_type.nil?
         unless token.kind.newline? || token.kind.semicolon?
           raise "expected a newline or semicolon after def signature; got '#{token}'"
         end
@@ -233,7 +247,7 @@ module Lucid::Compiler
       left
     end
 
-    # PREFIX_EXPR ::= ('!' | '~' | '-' | '*' | '**') EXPRESSION
+    # PREFIX_EXPR ::= ['!' | '&' | '*' | '**' | '+' | '-' | '~'] EXPRESSION
     private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
       when .double_colon?   then parse_var_or_call next_token_skip(space: true), true
