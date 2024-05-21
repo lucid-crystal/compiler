@@ -22,6 +22,8 @@ module Lucid::Compiler
       Colon       # :
       DoubleColon # ::
       Semicolon   # ;
+      LeftBrace   # {
+      RightBrace  # }
 
       Bang             # !
       NotEqual         # !=
@@ -83,6 +85,7 @@ module Lucid::Compiler
       # Alias
       Class
       Def
+      Do
       End
       Enum
       Forall

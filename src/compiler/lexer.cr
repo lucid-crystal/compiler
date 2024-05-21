@@ -70,6 +70,12 @@ module Lucid::Compiler
       when ';'
         next_char
         Token.new :semicolon, location
+      when '{'
+        next_char
+        Token.new :left_brace, location
+      when '}'
+        next_char
+        Token.new :right_brace, location
       when '!'
         case next_char
         when '='
@@ -278,8 +284,15 @@ module Lucid::Compiler
         end
       when 'd'
         start = current_pos
-        if next_sequence?('e', 'f')
-          lex_keyword_or_ident :def, start
+        case next_char
+        when 'e'
+          if next_char == 'f'
+            lex_keyword_or_ident :def, start
+          else
+            lex_ident start
+          end
+        when 'o'
+          lex_keyword_or_ident :do, start
         else
           lex_ident start
         end

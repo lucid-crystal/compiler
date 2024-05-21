@@ -41,10 +41,11 @@ describe LC::Lexer, tags: "lexer" do
 
   it "parses complex operators" do
     assert_tokens(
-      ".|..||...<=>^===`=~!~=>;->",
+      ".|..||...<=>^===`=~!~=>;->{}",
       :period, :bit_or, :double_period, :or, :triple_period,
       :comparison, :caret, :case_equal, :backtick, :pattern_match,
-      :pattern_unmatch, :rocket, :semicolon, :proc, :eof
+      :pattern_unmatch, :rocket, :semicolon, :proc, :left_brace,
+      :right_brace, :eof
     )
 
     assert_tokens(

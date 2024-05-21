@@ -672,4 +672,73 @@ module Lucid::Compiler
       pp.text "NilLiteral"
     end
   end
+
+  class ProcLiteral < Expression
+    property params : Array(Parameter)
+    property body : Array(Expression)
+
+    def initialize(@params : Array(Parameter), @body : Array(Expression))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "-> "
+      unless @params.empty?
+        io << '(' << @params[0]
+
+        if @params.size > 1
+          @params.each do |param|
+            io << ", " << param
+          end
+        end
+
+        io << ") "
+      end
+
+      io << "do\n"
+      @body.each do |expr|
+        io << ' '
+        expr.to_s io
+      end
+      io << "end"
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ProcLiteral("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "params: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @params.empty?
+
+          @params[0].pretty_print pp
+          if @params.size > 1
+            @params.skip(1).each do |param|
+              pp.comma
+              param.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "body: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @body.empty?
+
+          @body[0].pretty_print pp
+          if @body.size > 1
+            @body.skip(1).each do |expr|
+              pp.comma
+              expr.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
 end

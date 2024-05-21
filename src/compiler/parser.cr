@@ -274,6 +274,7 @@ module Lucid::Compiler
       when .true?, .false?  then parse_bool token
       when .is_nil?         then parse_nil token
       when .left_paren?     then parse_grouped_expression
+      when .proc?           then parse_proc token
       else
         return unless token.operator?
 
@@ -527,6 +528,57 @@ module Lucid::Compiler
       end
 
       expr
+    end
+
+    private def parse_proc(token : Token) : Expression
+      start = token.loc
+      token = next_token_skip space: true
+      params = [] of Parameter
+
+      if token.kind.left_paren?
+        loop do
+          pname = parse_ident_or_path next_token_skip(space: true), false
+          token = next_token_skip space: true
+          unless token.kind.colon?
+            raise "expected a colon after parameter name; got #{token}"
+          end
+
+          type = parse_const_or_path next_token_skip(space: true), false
+          params << Parameter.new(pname, type, nil, false)
+
+          token = next_token_skip space: true
+          case token.kind
+          when .comma?       then next
+          when .right_paren? then break
+          else
+            raise "expected a comma or right parenthesis; got #{token}"
+          end
+        end
+
+        token = next_token_skip space: true
+      end
+
+      if token.kind.left_brace?
+        closing_token = Token::Kind::RightBrace
+      elsif token.kind.do?
+        closing_token = Token::Kind::End
+      else
+        raise "unexpected token #{token}"
+      end
+
+      token = next_token_skip space: true, newline: true
+      body = [] of Expression
+
+      loop do
+        break if token.kind == closing_token
+        raise "unexpected end of file" if token.kind.eof?
+
+        body << parse_expression_statement(token).value
+        token = current_token
+      end
+
+      skip_token
+      ProcLiteral.new(params, body).at(start & token.loc)
     end
   end
 end
