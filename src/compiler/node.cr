@@ -308,6 +308,16 @@ module Lucid::Compiler
     end
   end
 
+  class Self < Ident
+    def to_s(io : IO) : Nil
+      io << "self"
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Self"
+    end
+  end
+
   class Underscore < Expression
     def to_s(io : IO) : Nil
       io << '_'

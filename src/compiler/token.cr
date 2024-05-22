@@ -97,6 +97,7 @@ module Lucid::Compiler
       Private
       Protected
       RespondsTo
+      Self
       Struct
 
       # ameba:disable Naming/PredicateName

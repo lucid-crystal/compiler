@@ -391,8 +391,19 @@ module Lucid::Compiler
         end
       when 's'
         start = current_pos
-        if next_sequence?('t', 'r', 'u', 'c', 't')
-          lex_keyword_or_ident :struct, start
+        case next_char
+        when 'e'
+          if next_sequence?('l', 'f')
+            lex_keyword_or_ident :self, start
+          else
+            lex_ident start
+          end
+        when 't'
+          if next_sequence?('r', 'u', 'c', 't')
+            lex_keyword_or_ident :struct, start
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end

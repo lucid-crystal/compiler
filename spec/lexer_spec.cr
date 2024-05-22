@@ -22,6 +22,10 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens "nil", :nil, :eof
   end
 
+  it "parses self expressions" do
+    assert_tokens "self", :self, :eof
+  end
+
   it "parses the assignment operator" do
     assert_tokens "x = 7", :ident, :space, :assign, :Space, :integer, :eof
   end

@@ -333,15 +333,17 @@ module Lucid::Compiler
     # PREFIX_EXPR ::= ['!' | '&' | '*' | '**' | '+' | '-' | '~'] EXPRESSION
     private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
-      when .double_colon?                 then parse_var_or_call next_token_skip(space: true), true
-      when .ident?, .const?, .underscore? then parse_var_or_call token, false
-      when .integer?                      then parse_integer token
-      when .float?                        then parse_float token
-      when .string?                       then parse_string token
-      when .true?, .false?                then parse_bool token
-      when .is_nil?                       then parse_nil token
-      when .left_paren?                   then parse_grouped_expression
-      when .proc?                         then parse_proc token
+      when .double_colon?
+        parse_var_or_call next_token_skip(space: true), true
+      when .ident?, .const?, .self?, .underscore?
+        parse_var_or_call token, false
+      when .integer?       then parse_integer token
+      when .float?         then parse_float token
+      when .string?        then parse_string token
+      when .true?, .false? then parse_bool token
+      when .is_nil?        then parse_nil token
+      when .left_paren?    then parse_grouped_expression
+      when .proc?          then parse_proc token
       else
         return unless token.operator?
 
@@ -369,9 +371,10 @@ module Lucid::Compiler
     #
     # PATH ::= [(['::'] CONST)+ '.'] IDENT ('.' IDENT)*
     private def parse_var_or_call(token : Token, global : Bool) : Expression
-      if token.kind.ident?
+      case token.kind
+      when .ident?, .self?
         receiver = parse_ident_or_path token, global
-      elsif token.kind.const?
+      when .const?
         receiver = parse_const_or_path token, global
       else
         receiver = Underscore.new.at(token.loc)
@@ -446,7 +449,12 @@ module Lucid::Compiler
 
     # IDENT ::= ('a'..'z' | '_') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_ident_or_path(token : Token, global : Bool) : Expression
-      names = [Ident.new(token.value, global).at(token.loc)]
+      names = [] of Ident
+      if token.kind.self?
+        names << Self.new("self", global).at(token.loc)
+      else
+        names << Ident.new(token.value, global).at(token.loc)
+      end
 
       while peek_token.kind.period?
         skip_token
