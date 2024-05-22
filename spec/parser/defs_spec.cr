@@ -140,8 +140,25 @@ describe LC::Parser do
     end
 
     it "parses method defs with a single line body" do
-      node = parse_stmt %(def foo() puts "bar" end)
+      node = parse_stmt "def foo() puts end"
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
 
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "foo"
+
+      node.params.should be_empty
+      node.return_type.should be_nil
+
+      node.body.size.should eq 1
+      node.body[0].should be_a LC::Call
+      expr = node.body[0].as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "puts"
+      expr.args.should be_empty
+
+      node = parse_stmt %(def foo() puts "bar" end)
       node.should be_a LC::Def
       node = node.as(LC::Def)
 
