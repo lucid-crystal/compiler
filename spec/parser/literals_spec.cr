@@ -23,6 +23,16 @@ describe LC::Parser do
       assert_node LC::NilLiteral, "nil"
     end
 
+    it "parses underscore expressions" do
+      assert_node LC::Underscore, "_"
+    end
+
+    it "disallows calling underscore" do
+      expect_raises(Exception, "underscore cannot be called as a method") do
+        parse_expr "_ foo"
+      end
+    end
+
     it "parses empty proc expressions" do
       {parse_expr("-> { }"), parse_expr("-> () { }")}.each do |node|
         node.should be_a LC::ProcLiteral

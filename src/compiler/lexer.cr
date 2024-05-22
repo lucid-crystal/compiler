@@ -70,6 +70,13 @@ module Lucid::Compiler
       when ';'
         next_char
         Token.new :semicolon, location
+      when '_'
+        char = next_char
+        if char == '_' || char.ascii_alphanumeric?
+          lex_ident current_pos - 1
+        else
+          Token.new :underscore, location
+        end
       when '{'
         next_char
         Token.new :left_brace, location

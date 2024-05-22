@@ -22,6 +22,7 @@ module Lucid::Compiler
       Colon       # :
       DoubleColon # ::
       Semicolon   # ;
+      Underscore  # _
       LeftBrace   # {
       RightBrace  # }
 

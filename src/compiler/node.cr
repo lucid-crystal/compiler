@@ -287,6 +287,16 @@ module Lucid::Compiler
     end
   end
 
+  class Underscore < Expression
+    def to_s(io : IO) : Nil
+      io << '_'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Underscore"
+    end
+  end
+
   class Var < Expression
     property name : Node
     property type : Node?

@@ -70,6 +70,13 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens "int32 Int32", :ident, :space, :const, :eof
   end
 
+  it "parses underscores and idents separately" do
+    assert_tokens "_", :underscore, :eof
+    assert_tokens "__", :ident, :eof
+    assert_tokens "_x", :ident, :eof
+    assert_tokens "_0", :ident, :eof
+  end
+
   it "parses ident that starts with en" do
     assert_tokens "encryption = 1", :ident, :space, :assign, :space, :integer, :eof
   end

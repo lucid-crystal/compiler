@@ -282,15 +282,15 @@ module Lucid::Compiler
     # PREFIX_EXPR ::= ['!' | '&' | '*' | '**' | '+' | '-' | '~'] EXPRESSION
     private def parse_prefix_expression(token : Token) : Expression?
       case token.kind
-      when .double_colon?   then parse_var_or_call next_token_skip(space: true), true
-      when .ident?, .const? then parse_var_or_call token, false
-      when .integer?        then parse_integer token
-      when .float?          then parse_float token
-      when .string?         then parse_string token
-      when .true?, .false?  then parse_bool token
-      when .is_nil?         then parse_nil token
-      when .left_paren?     then parse_grouped_expression
-      when .proc?           then parse_proc token
+      when .double_colon?                 then parse_var_or_call next_token_skip(space: true), true
+      when .ident?, .const?, .underscore? then parse_var_or_call token, false
+      when .integer?                      then parse_integer token
+      when .float?                        then parse_float token
+      when .string?                       then parse_string token
+      when .true?, .false?                then parse_bool token
+      when .is_nil?                       then parse_nil token
+      when .left_paren?                   then parse_grouped_expression
+      when .proc?                         then parse_proc token
       else
         return unless token.operator?
 
@@ -320,8 +320,10 @@ module Lucid::Compiler
     private def parse_var_or_call(token : Token, global : Bool) : Expression
       if token.kind.ident?
         receiver = parse_ident_or_path token, global
-      else
+      elsif token.kind.const?
         receiver = parse_const_or_path token, global
+      else
+        receiver = Underscore.new.at(token.loc)
       end
 
       peek = peek_token_skip space: true
@@ -343,9 +345,13 @@ module Lucid::Compiler
                   false
                 end
 
+      if !is_call && receiver.is_a?(Underscore)
+        raise "underscore cannot be called as a method"
+      end
+
       if is_call
         case receiver
-        when Const then return receiver
+        when Const, Underscore then return receiver
         when Path
           if receiver.names.last.is_a?(Const)
             return receiver
@@ -513,6 +519,10 @@ module Lucid::Compiler
       raise "expected closing parenthesis for call" unless closed
 
       Call.new(receiver, args).at(receiver.loc)
+    end
+
+    private def parse_underscore(token : Token) : Expression
+      Underscore.new.at(token.loc)
     end
 
     private def parse_integer(token : Token) : Expression
