@@ -244,7 +244,9 @@ module Lucid::Compiler
 
     private def parse_expression_statement(token : Token) : Statement
       expr = ExpressionStatement.new parse_expression(token, :lowest)
-      next_token_skip space: true, newline: true, semicolon: true
+      unless current_token.kind.eof?
+        next_token_skip space: true, newline: true, semicolon: true
+      end
 
       expr
     end
@@ -311,7 +313,12 @@ module Lucid::Compiler
       end
 
       peek = peek_token_skip space: true
-      is_call = if peek.kind.eof? || peek.kind.newline? || peek.kind.comma? || peek.kind.right_paren?
+      is_call = if peek.kind.eof? ||
+                   peek.kind.newline? ||
+                   peek.kind.right_paren? ||
+                   peek.kind.comma? ||
+                   peek.kind.semicolon? ||
+                   peek.kind.right_brace?
                   true
                 elsif peek.operator?
                   pos = @pos
@@ -421,40 +428,33 @@ module Lucid::Compiler
 
     # OPEN_CALL ::= (IDENT | PATH) [EXPRESSION (',' [NEWLINE] EXPRESSION)*]
     private def parse_open_call(receiver : Node) : Expression
-      args = [] of Node
-      delimited = true
-      received = false
+      args = [parse_expression(current_token, :lowest)] of Node
+      delimited = false
+      received = true
 
       loop do
-        case current_token.kind
-        when .eof?
+        token = peek_token_skip space: true
+        case token.kind
+        when .eof?, .semicolon?, .right_brace?, .end?
           break
         when .newline?
-          break if !delimited && received
-          skip_token
-        when .space?
-          skip_token
+          break unless delimited
+          next_token_skip space: true
         when .comma?
-          raise "unexpected token ','" unless delimited
-          delimited = false
-          skip_token
+          raise "unexpected token ','" if delimited
+          next_token_skip space: true
+          delimited = true
+          received = false
         else
-          args << parse_expression current_token, :lowest
+          raise "expected a comma after the last argument" if received
+
+          args << parse_expression next_token_skip(space: true), :lowest
+          delimited = false
           received = true
-          case peek_token_skip(space: true).kind
-          when .eof?, .newline?, .semicolon?, .end?
-            break
-          when .comma?
-            delimited = true
-            received = false
-            skip_token
-          else
-            raise "expected a comma after the last argument"
-          end
         end
       end
 
-      raise "invalid trailing comma in call" unless received
+      raise "invalid trailing comma in call" if delimited
 
       Call.new(receiver, args).at(receiver.loc)
     end
