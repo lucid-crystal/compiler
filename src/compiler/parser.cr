@@ -318,7 +318,8 @@ module Lucid::Compiler
                    peek.kind.right_paren? ||
                    peek.kind.comma? ||
                    peek.kind.semicolon? ||
-                   peek.kind.right_brace?
+                   peek.kind.right_brace? ||
+                   peek.kind.end?
                   true
                 elsif peek.operator?
                   pos = @pos
