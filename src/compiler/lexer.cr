@@ -282,6 +282,13 @@ module Lucid::Compiler
         value = read_string_to '"'
         next_char
         Token.new :string, location, value
+      when 'a'
+        start = current_pos
+        if next_sequence?('b', 's', 't', 'r', 'a', 'c', 't')
+          lex_keyword_or_ident :abstract, start
+        else
+          lex_ident start
+        end
       when 'c'
         start = current_pos
         if next_sequence?('l', 'a', 's', 's')
@@ -357,6 +364,28 @@ module Lucid::Compiler
         start = current_pos
         if next_sequence?('o', 'd', 'u', 'l', 'e')
           lex_keyword_or_ident :module, start
+        else
+          lex_ident start
+        end
+      when 'p'
+        start = current_pos
+        if next_char == 'r'
+          case next_char
+          when 'i'
+            if next_sequence?('v', 'a', 't', 'e')
+              lex_keyword_or_ident :private, start
+            else
+              lex_ident start
+            end
+          when 'o'
+            if next_sequence?('t', 'e', 'c', 't', 'e', 'd')
+              lex_keyword_or_ident :protected, start
+            else
+              lex_ident start
+            end
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end

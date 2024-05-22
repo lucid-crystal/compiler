@@ -83,6 +83,7 @@ module Lucid::Compiler
       BitOrAssign       # |=
       OrAssign          # ||=
 
+      Abstract
       # Alias
       Class
       Def
@@ -93,6 +94,8 @@ module Lucid::Compiler
       IsA
       # Lib
       Module
+      Private
+      Protected
       RespondsTo
       Struct
 

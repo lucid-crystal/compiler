@@ -153,6 +153,18 @@ describe LC::Lexer, tags: "lexer" do
     )
   end
 
+  it "parses def expressions with visibility modifiers" do
+    assert_tokens("abstract def foo", :abstract, :space, :def, :space, :ident, :eof)
+    assert_tokens(
+      "private def foo; end",
+      :private, :space, :def, :space, :ident, :semicolon, :space, :end, :eof
+    )
+    assert_tokens(
+      "protected def foo; end",
+      :protected, :space, :def, :space, :ident, :semicolon, :space, :end, :eof
+    )
+  end
+
   it "parses module expressions" do
     assert_tokens(
       <<-CR,
