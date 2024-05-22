@@ -436,6 +436,7 @@ module Lucid::Compiler
       PatternUnmatch # !~
       Modulo         # %
       BitAnd         # &
+      And            # &&
       BinaryMultiply # &*
       BinaryAdd      # &+
       BinarySubtract # &-
@@ -459,6 +460,7 @@ module Lucid::Compiler
       GreaterEqual   # >=
       Xor            # ^
       BitOr          # |
+      Or             # ||
 
       def self.from(kind : Token::Kind)
         case kind
@@ -466,6 +468,7 @@ module Lucid::Compiler
         when .pattern_unmatch? then PatternUnmatch
         when .modulo?          then Modulo
         when .bit_and?         then BitAnd
+        when .and?             then And
         when .binary_star?     then BinaryMultiply
         when .binary_plus?     then BinaryAdd
         when .binary_minus?    then BinarySubtract
@@ -489,6 +492,7 @@ module Lucid::Compiler
         when .greater_equal?   then GreaterEqual
         when .caret?           then Xor
         when .bit_or?          then BitOr
+        when .or?              then Or
         else
           raise "invalid infix operator '#{kind}'"
         end
@@ -500,6 +504,7 @@ module Lucid::Compiler
         in PatternUnmatch then "!~"
         in Modulo         then "%"
         in BitAnd         then "&"
+        in And            then "&&"
         in BinaryMultiply then "&*"
         in BinaryAdd      then "&+"
         in BinarySubtract then "&-"
@@ -523,6 +528,7 @@ module Lucid::Compiler
         in GreaterEqual   then ">="
         in Xor            then "^"
         in BitOr          then "|"
+        in Or             then "||"
         end
       end
     end

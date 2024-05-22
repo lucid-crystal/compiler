@@ -113,5 +113,34 @@ describe LC::Parser do
       node.right.should be_a LC::IntLiteral
       node.right.as(LC::IntLiteral).value.should eq 3
     end
+
+    it "parses logic infix operator expressions" do
+      node = parse_expr "foo || bar && baz"
+      node.should be_a LC::Infix
+      node = node.as(LC::Infix)
+
+      node.left.should be_a LC::Call
+      expr = node.left.as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "foo"
+
+      node.op.should eq LC::Infix::Operator::Or
+      node.right.should be_a LC::Infix
+      node = node.right.as(LC::Infix)
+
+      node.left.should be_a LC::Call
+      expr = node.left.as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "bar"
+
+      node.op.should eq LC::Infix::Operator::And
+      node.right.should be_a LC::Call
+      expr = node.right.as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "baz"
+    end
   end
 end
