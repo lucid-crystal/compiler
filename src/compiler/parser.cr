@@ -539,7 +539,10 @@ module Lucid::Compiler
 
       if token.kind.left_paren?
         loop do
-          pname = parse_ident_or_path next_token_skip(space: true), false
+          token = next_token_skip space: true, newline: true
+          break if token.kind.right_paren?
+
+          pname = parse_ident_or_path token, false
           token = next_token_skip space: true
           unless token.kind.colon?
             raise "expected a colon after parameter name; got #{token}"
@@ -547,8 +550,8 @@ module Lucid::Compiler
 
           type = parse_const_or_path next_token_skip(space: true), false
           params << Parameter.new(pname, type, nil, false)
+          token = next_token_skip space: true, newline: true
 
-          token = next_token_skip space: true
           case token.kind
           when .comma?       then next
           when .right_paren? then break
@@ -557,7 +560,7 @@ module Lucid::Compiler
           end
         end
 
-        token = next_token_skip space: true
+        token = next_token_skip space: true, newline: true
       end
 
       if token.kind.left_brace?
