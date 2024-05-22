@@ -122,17 +122,22 @@ module Lucid::Compiler
 
   class Parameter < Node
     property name : Node
+    property internal_name : Node?
     property type : Node?
     property default_value : Node?
     property? block : Bool
 
-    def initialize(@name : Node, @type : Node?, @default_value : Node?, @block : Bool)
+    def initialize(@name : Node, @internal_name : Node?, @type : Node?, @default_value : Node?,
+                   @block : Bool)
       super()
     end
 
     def to_s(io : IO) : Nil
       io << '&' if @block
       io << @name
+      if @internal_name
+        io << ' ' << @internal_name
+      end
       if @type
         io << " : " << @type
       end
@@ -147,6 +152,10 @@ module Lucid::Compiler
         pp.breakable ""
         pp.text "name: "
         @name.pretty_print pp
+        pp.comma
+
+        pp.text "internal_name: "
+        @internal_name.pretty_print pp
         pp.comma
 
         pp.text "type: "

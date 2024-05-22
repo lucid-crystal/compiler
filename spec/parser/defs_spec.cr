@@ -284,6 +284,48 @@ describe LC::Parser do
       value.args.should be_empty
     end
 
+    it "parses method defs with external parameter names" do
+      node = parse_stmt <<-CR
+        def write(to file : IO) : Nil
+        end
+        CR
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "write"
+
+      node.params.size.should eq 1
+      param = node.params[0]
+
+      param.name.should be_a LC::Ident
+      param.name.as(LC::Ident).value.should eq "to"
+      param.internal_name.should be_a LC::Ident
+      param.internal_name.as(LC::Ident).value.should eq "file"
+      param.type.should be_a LC::Const
+      param.type.as(LC::Const).value.should eq "IO"
+
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Nil"
+    end
+
+    it "disallows method def external names for block parameters" do
+      expect_raises(Exception, "block parameters cannot have external names") do
+        parse_stmt <<-CR
+          def write(&to file : IO ->) : Nil
+          end
+          CR
+      end
+
+      expect_raises(Exception, "block parameters cannot have external names") do
+        parse_stmt <<-CR
+          def write(to &file : IO ->) : Nil
+          end
+          CR
+      end
+    end
+
     it "parses method defs with free variables" do
       node = parse_stmt <<-CR
         def foo(x : T, y : U) forall T, U

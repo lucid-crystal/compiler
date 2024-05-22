@@ -161,6 +161,8 @@ module Lucid::Compiler
           token = next_token_skip space: true
         else
           loop do
+            internal : Node? = nil
+
             # TODO: catch-all when not ident or bit-and
             if token.kind.bit_and?
               block = true
@@ -178,6 +180,16 @@ module Lucid::Compiler
               token = next_token_skip space: true
             end
 
+            if token.kind.bit_and? && !pname.is_a?(NilLiteral)
+              raise "block parameters cannot have external names"
+            end
+
+            if token.kind.ident?
+              raise "block parameters cannot have external names" if block
+              internal = parse_ident_or_path token, false
+              token = next_token_skip space: true
+            end
+
             if token.kind.colon?
               type = parse_const_or_path next_token_skip(space: true), false
               token = next_token_skip space: true
@@ -188,7 +200,7 @@ module Lucid::Compiler
               token = next_token_skip space: true
             end
 
-            params << Parameter.new(pname, type, value, block)
+            params << Parameter.new(pname, internal, type, value, block)
 
             if token.kind.right_paren?
               token = next_token_skip space: true
@@ -550,7 +562,7 @@ module Lucid::Compiler
           end
 
           type = parse_const_or_path next_token_skip(space: true), false
-          params << Parameter.new(pname, type, nil, false)
+          params << Parameter.new(pname, nil, type, nil, false)
           token = next_token_skip space: true, newline: true
 
           case token.kind
