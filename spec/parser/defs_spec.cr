@@ -357,5 +357,146 @@ describe LC::Parser do
       node.free_vars[0].value.should eq "T"
       node.free_vars[1].value.should eq "U"
     end
+
+    it "parses abstract method defs" do
+      node = parse_stmt "abstract def read(slice : Bytes) : Int32"
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "read"
+
+      node.params.size.should eq 1
+      param = node.params[0]
+
+      param.name.should be_a LC::Ident
+      param.name.as(LC::Ident).value.should eq "slice"
+      param.type.should be_a LC::Const
+      param.type.as(LC::Const).value.should eq "Bytes"
+
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Int32"
+
+      node.body.should be_empty
+      node.private?.should be_false
+      node.protected?.should be_false
+      node.abstract?.should be_true
+    end
+
+    it "parses private method defs" do
+      node = parse_stmt <<-CR
+        private def read_impl(slice : Bytes) : Int32
+          does_something_cool
+        end
+        CR
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "read_impl"
+
+      node.params.size.should eq 1
+      param = node.params[0]
+
+      param.name.should be_a LC::Ident
+      param.name.as(LC::Ident).value.should eq "slice"
+      param.type.should be_a LC::Const
+      param.type.as(LC::Const).value.should eq "Bytes"
+
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Int32"
+
+      node.body.size.should eq 1
+      node.body[0].should be_a LC::Call
+      expr = node.body[0].as(LC::Call)
+
+      expr.receiver.should be_a LC::Ident
+      expr.receiver.as(LC::Ident).value.should eq "does_something_cool"
+
+      node.private?.should be_true
+      node.protected?.should be_false
+      node.abstract?.should be_false
+    end
+
+    it "parses protected method defs" do
+      node = parse_stmt <<-CR
+        protected def does_something_cool : Nil
+        end
+        CR
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "does_something_cool"
+
+      node.params.should be_empty
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Nil"
+      node.body.should be_empty
+
+      node.private?.should be_false
+      node.protected?.should be_true
+      node.abstract?.should be_false
+    end
+
+    it "parses private abstract method defs" do
+      node = parse_stmt "private abstract def select_impl : Nil"
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "select_impl"
+
+      node.params.should be_empty
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Nil"
+      node.body.should be_empty
+
+      node.private?.should be_true
+      node.protected?.should be_false
+      node.abstract?.should be_true
+    end
+
+    it "parses protected abstract method defs" do
+      node = parse_stmt "protected abstract def execute : Bool"
+
+      node.should be_a LC::Def
+      node = node.as(LC::Def)
+
+      node.name.should be_a LC::Ident
+      node.name.as(LC::Ident).value.should eq "execute"
+
+      node.params.should be_empty
+      node.return_type.should be_a LC::Const
+      node.return_type.as(LC::Const).value.should eq "Bool"
+      node.body.should be_empty
+
+      node.private?.should be_false
+      node.protected?.should be_true
+      node.abstract?.should be_true
+    end
+
+    it "disallows duplicate visibility keywords on method defs" do
+      expect_raises(Exception, "unexpected token 'private'") do
+        parse_stmt "private private def foo"
+      end
+
+      expect_raises(Exception, "unexpected token 'protected'") do
+        parse_stmt "protected protected def foo"
+      end
+
+      expect_raises(Exception, "unexpected token 'abstract'") do
+        parse_stmt "abstract abstract def foo"
+      end
+    end
+
+    it "disallows private-protected keywords on method defs" do
+      expect_raises(Exception, "cannot apply private and protected visibility") do
+        parse_stmt "private protected def foo"
+      end
+    end
   end
 end

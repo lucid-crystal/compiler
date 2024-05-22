@@ -127,6 +127,8 @@ module Lucid::Compiler
         nil
       when .space?, .newline?, .semicolon?
         parse_statement next_token_skip space: true, newline: true, semicolon: true
+      when .abstract?, .private?, .protected?
+        parse_visibility_statement token.kind
       when .def?
         parse_def token
         # when .class?, .struct? then parse_class token
@@ -135,8 +137,51 @@ module Lucid::Compiler
       end
     end
 
+    private def parse_visibility_statement(kind : Token::Kind) : Statement
+      _abstract = kind.abstract?
+      _private = kind.private?
+      _protected = kind.protected?
+
+      token = next_token_skip space: true
+      if token.kind.abstract?
+        raise "unexpected token 'abstract'" if _abstract
+        _abstract = true
+        token = next_token_skip space: true
+      end
+
+      if token.kind.private?
+        raise "unexpected token 'private'" if _private
+        raise "cannot apply private and protected visibility" if _protected
+        _private = true
+        token = next_token_skip space: true
+      end
+
+      if token.kind.protected?
+        raise "unexpected token 'protected'" if _protected
+        raise "cannot apply private and protected visibility" if _private
+        _protected = true
+        token = next_token_skip space: true
+      end
+
+      if token.kind.def? && _abstract
+        node = parse_def token, true
+      else
+        node = parse_statement token
+      end
+
+      case node
+      when Def
+        node.private = _private
+        node.protected = _protected
+      else
+        raise "visibility modifier cannot be applied to #{node}"
+      end
+
+      node
+    end
+
     # DEF ::=
-    #       'def' (IDENT | PATH | OP) [
+    #       ['private' | 'protected'] ['abstract'] 'def' (IDENT | PATH | OP) [
     #         '('
     #         [IDENT [IDENT] [':' CONST] ['=' EXPRESSION] ',']*
     #         ['&' IDENT [':' CONST]]
@@ -144,8 +189,8 @@ module Lucid::Compiler
     #       ]
     #       [':' (CONST | PATH)] ['forall' CONST [',' CONST]*] (';' | '\n' | '\r\n')
     #       [EXPRESSION*]
-    #       'end'
-    private def parse_def(token : Token) : Statement
+    #       ['end']
+    private def parse_def(token : Token, is_abstract : Bool = false) : Statement
       start = token.loc
       name = parse_ident_or_path next_token_skip(space: true), false
       token = next_token_skip space: true
@@ -231,6 +276,12 @@ module Lucid::Compiler
 
           token = next_token_skip space: true
           break unless token.kind.comma?
+        end
+      end
+
+      if is_abstract
+        return Def.new(name, params, return_type, free_vars, [] of Expression).tap do |method|
+          method.abstract = true
         end
       end
 

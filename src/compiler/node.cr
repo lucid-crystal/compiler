@@ -26,6 +26,9 @@ module Lucid::Compiler
     property return_type : Node?
     property free_vars : Array(Const)
     property body : Array(Expression)
+    property? abstract : Bool = false
+    property? private : Bool = false
+    property? protected : Bool = false
 
     def initialize(@name : Node, @params : Array(Parameter), @return_type : Node?,
                    @free_vars : Array(Const), @body : Array(Expression))
@@ -33,7 +36,11 @@ module Lucid::Compiler
     end
 
     def to_s(io : IO) : Nil
+      io << "private " if @private
+      io << "protected " if @protected
+      io << "abstract " if @abstract
       io << "def " << @name
+
       unless @params.empty?
         io << '('
         @params.join(io, ", ")
@@ -49,12 +56,14 @@ module Lucid::Compiler
         @free_vars.join(io, ", ")
       end
 
-      io << '\n'
-      @body.each do |expr|
-        io << ' '
-        expr.to_s io
+      unless @abstract
+        io << '\n'
+        @body.each do |expr|
+          io << ' '
+          expr.to_s io
+        end
+        io << "end"
       end
-      io << "end"
     end
 
     def pretty_print(pp : PrettyPrint) : Nil
@@ -99,6 +108,18 @@ module Lucid::Compiler
           end
         end
         pp.text "]"
+        pp.comma
+
+        pp.text "private: "
+        @private.pretty_print pp
+        pp.comma
+
+        pp.text "protected: "
+        @protected.pretty_print pp
+        pp.comma
+
+        pp.text "abstract: "
+        @abstract.pretty_print pp
         pp.comma
 
         pp.text "body: ["
