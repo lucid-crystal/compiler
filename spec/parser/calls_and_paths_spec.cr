@@ -12,6 +12,16 @@ describe LC::Parser do
       node.args.size.should eq 0
     end
 
+    it "parses delimited call expressions" do
+      {parse_expr("puts;"), parse_expr("puts\n")}.each do |node|
+        node.should be_a LC::Call
+        node = node.as(LC::Call)
+
+        node.receiver.should be_a LC::Ident
+        node.receiver.as(LC::Ident).value.should eq "puts"
+      end
+    end
+
     it "parses path call expressions" do
       node = parse_expr "foo.bar.baz"
       node.should be_a LC::Call
