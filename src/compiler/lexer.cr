@@ -493,6 +493,8 @@ module Lucid::Compiler
           lex_octal
         when 'x'
           lex_hexadecimal
+        when 'b'
+          lex_binary
         else
           lex_raw_number
         end
@@ -502,11 +504,66 @@ module Lucid::Compiler
     end
 
     private def lex_octal : Token
-      raise "not implemented"
+      start = current_pos + 1
+      kind = Token::Kind::Integer
+
+      loop do
+        case next_char
+        when '0'..'7'
+          next
+        when '8', '9', '.'
+          raise "invalid octal literal"
+        when 'i', 'u'
+          raise "not implemented"
+        else
+          break
+        end
+      end
+
+      value = read_string_from(start).to_i64(base: 8).to_s
+      Token.new kind, location, value
     end
 
     private def lex_hexadecimal : Token
-      raise "not implemented"
+      start = current_pos + 1
+      kind = Token::Kind::Integer
+
+      loop do
+        case next_char
+        when .hex?, '_'
+          next
+        when '.'
+          raise "invalid hexadecimal literal"
+        when 'i', 'u'
+          raise "not implemented"
+        else
+          break
+        end
+      end
+
+      value = read_string_from(start).to_i64(base: 16).to_s
+      Token.new kind, location, value
+    end
+
+    private def lex_binary : Token
+      start = current_pos + 1
+      kind = Token::Kind::Integer
+
+      loop do
+        case next_char
+        when '0', '1', '_'
+          next
+        when '.'
+          raise "invalid binary literal"
+        when 'i', 'u'
+          raise "not implemented"
+        else
+          break
+        end
+      end
+
+      value = read_string_from(start).to_i64(base: 2).to_s
+      Token.new kind, location, value
     end
 
     private def lex_raw_number : Token
@@ -526,7 +583,7 @@ module Lucid::Compiler
           else
             raise "invalid float literal"
           end
-        when 'i'
+        when 'i', 'u'
           case next_char
           when '8'
             break
@@ -534,16 +591,18 @@ module Lucid::Compiler
             case next_char
             when '2'
               raise "invalid integer literal" unless next_char == '8'
+              break
             when '6'
               break
             else
               raise "invalid integer literal"
             end
-            break
           when '3'
             raise "invalid integer literal" unless next_char == '2'
+            break
           when '6'
             raise "invalid integer literal" unless next_char == '4'
+            break
           else
             raise "invalid integer literal"
           end
