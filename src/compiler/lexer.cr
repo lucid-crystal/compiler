@@ -619,7 +619,7 @@ module Lucid::Compiler
             raise "invalid hex (non hex character)" 
           end
           next_char
-          raise "unterminated hex" unless current_char == end_char
+          raise "unterminated char literal" unless current_char == end_char
         else
           is_valid_escape = current_char.in?(end_char, '\\', 'e', 'f', 'n', 'r', 't', 'v') && @reader.peek_next_char == end_char
           raise "unterminated char literal" unless is_valid_escape

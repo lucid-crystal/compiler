@@ -7,6 +7,9 @@ describe LC::Lexer, tags: "lexer" do
 
   it "parses char literals" do
     assert_tokens "'e'", :char, :eof
+    expect_raises(Exception, "unterminated char literal") do
+      assert_tokens "'e", :char, :eof
+    end
   end
 
   it "parses char escape" do
@@ -44,6 +47,9 @@ describe LC::Lexer, tags: "lexer" do
     end
     expect_raises(Exception, "invalid hex (non hex character)") do
       assert_tokens "'\\u{ZFFFZ}'", :char, :eof
+    end
+    expect_raises(Exception, "unterminated char literal") do
+      assert_tokens "'\\n", :char, :eof
     end
   end
 
