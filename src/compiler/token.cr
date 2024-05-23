@@ -10,6 +10,7 @@ module Lucid::Compiler
       Const
 
       String
+      Char
       Integer
       Float
       True

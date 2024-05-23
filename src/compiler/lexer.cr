@@ -282,6 +282,12 @@ module Lucid::Compiler
         value = read_string_to '"'
         next_char
         Token.new :string, location, value
+      when '\''
+        next_char
+        @loc.increment_column_start
+        value = read_char_to '\''
+        next_char
+        Token.new :char, location, value
       when 'a'
         start = current_pos
         if next_sequence?('b', 's', 't', 'r', 'a', 'c', 't')
@@ -578,6 +584,48 @@ module Lucid::Compiler
           break unless escaped
           escaped = false
         end
+        next_char
+      end
+
+      read_string_from start
+    end
+
+    private def read_char_to(end_char : Char) : String
+      start = current_pos
+      if current_char == '\\'
+        next_char
+        if current_char == 'u'
+          next_char
+
+          if current_char.hex?
+            3.times do
+              next_char
+              raise "invalid hex (expected 4 character)" unless current_char.hex?
+            end
+          elsif current_char == '{'
+            next_char
+            since = 0
+            loop do
+              invalid_end = since > 5 && current_char != '}'
+              raise "invalid hex (exceeding 6 characters)" if invalid_end
+              break if current_char == '}' && since >= 1
+              
+              raise "invalid hex (non hex character)" unless current_char.hex?
+              next_char
+              since += 1
+            end
+          else
+            raise "invalid hex (not in charset)" 
+          end
+          next_char
+          raise "unterminated hex" unless current_char == end_char
+        else
+          is_valid_escape = current_char.in?(end_char, '\\', 'e', 'f', 'n', 'r', 't', 'v') && @reader.peek_next_char == end_char
+          raise "unterminated char literal" unless is_valid_escape
+          next_char
+        end
+      else
+        raise "unterminated char literal" if @reader.peek_next_char != end_char
         next_char
       end
 
