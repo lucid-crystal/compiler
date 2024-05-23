@@ -597,7 +597,6 @@ module Lucid::Compiler
             else
               raise "invalid integer literal"
             end
-            break
           when '3'
             raise "invalid integer literal" unless next_char == '2'
             break
