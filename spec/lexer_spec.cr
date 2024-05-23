@@ -5,6 +5,48 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens %("hello world"), :string, :eof
   end
 
+  it "parses char literals" do
+    assert_tokens "'e'", :char, :eof
+  end
+
+  it "parses char escape" do
+    assert_tokens "'\\''", :char, :eof
+    assert_tokens "'\\\\'", :char, :eof
+    assert_tokens "'\\e'", :char, :eof
+    assert_tokens "'\\f'", :char, :eof
+    assert_tokens "'\\n'", :char, :eof
+    assert_tokens "'\r'", :char, :eof
+    assert_tokens "'\\t'", :char, :eof
+    assert_tokens "'\\v'", :char, :eof
+  end
+
+  it "parses hex in char" do
+    assert_tokens "'\\uFFFF'", :char, :eof
+    assert_tokens "'\\u{F}'", :char, :eof
+    assert_tokens "'\\u{FFFFFF}'", :char, :eof
+  end
+
+  it "parses hex in char properly" do
+    expect_raises(Exception, "invalid hex (expected 4 characters)") do
+      assert_tokens "'\\uFFF'", :char, :eof
+    end
+    expect_raises(Exception, "invalid hex (non hex character)") do
+      assert_tokens "'\\uFFFZ'", :char, :eof
+    end
+    expect_raises(Exception, "invalid hex (non hex character)") do
+      assert_tokens "'\\u{ZFFF}'", :char, :eof
+    end
+    expect_raises(Exception, "invalid hex (exceeding 6 characters)") do
+      assert_tokens "'\\u{FFFFFFF}'", :char, :eof
+    end
+    expect_raises(Exception, "invalid hex (non hex character)") do
+      assert_tokens "'\\u{FFFZ}'", :char, :eof
+    end
+    expect_raises(Exception, "invalid hex (non hex character)") do
+      assert_tokens "'\\u{ZFFFZ}'", :char, :eof
+    end
+  end
+
   it "parses integer expressions" do
     assert_tokens "123_45", :integer, :eof
   end

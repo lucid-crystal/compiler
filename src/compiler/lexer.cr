@@ -600,7 +600,8 @@ module Lucid::Compiler
           if current_char.hex?
             3.times do
               next_char
-              raise "invalid hex (expected 4 character)" unless current_char.hex?
+              raise "invalid hex (expected 4 characters)" if current_char == '\'' 
+              raise "invalid hex (non hex character)" unless current_char.hex?
             end
           elsif current_char == '{'
             next_char
@@ -615,7 +616,7 @@ module Lucid::Compiler
               since += 1
             end
           else
-            raise "invalid hex (not in charset)" 
+            raise "invalid hex (non hex character)" 
           end
           next_char
           raise "unterminated hex" unless current_char == end_char
