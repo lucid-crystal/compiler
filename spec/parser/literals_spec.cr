@@ -14,6 +14,19 @@ describe LC::Parser do
       assert_node LC::FloatLiteral, "3.141_592"
     end
 
+    it "parses binary expressions" do
+      assert_node LC::IntLiteral, "0b001001"
+    end
+
+    it "parses hex expressions" do
+      assert_node LC::IntLiteral, "0xABCD"
+      assert_node LC::IntLiteral, "0xABCDF32" # Hex are always ints
+    end
+
+    it "parses octal expressions" do
+      assert_node LC::IntLiteral, "0o1234567"
+    end
+
     it "parses boolean expressions" do
       assert_node LC::BoolLiteral, "true"
       assert_node LC::BoolLiteral, "false"
