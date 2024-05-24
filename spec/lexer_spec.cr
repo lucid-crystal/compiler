@@ -18,7 +18,7 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens "'\\e'", :char, :eof
     assert_tokens "'\\f'", :char, :eof
     assert_tokens "'\\n'", :char, :eof
-    assert_tokens "'\r'", :char, :eof
+    assert_tokens "'\\r'", :char, :eof
     assert_tokens "'\\t'", :char, :eof
     assert_tokens "'\\v'", :char, :eof
   end

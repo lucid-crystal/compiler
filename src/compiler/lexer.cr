@@ -285,7 +285,7 @@ module Lucid::Compiler
       when '\''
         next_char
         @loc.increment_column_start
-        value = read_char_to '\''
+        value = read_char_to
         next_char
         Token.new :char, location, value
       when 'a'
@@ -590,9 +590,23 @@ module Lucid::Compiler
       read_string_from start
     end
 
-    private def read_char_to(end_char : Char) : String
+    ESCAPE_VALUES = {
+      'e' => '\e',
+      'f' => '\f',
+      'n' => '\n',
+      'r' => '\r',
+      't' => '\t',
+      'v' => '\v',
+      '\\' => '\\',
+      '\'' => '\\'
+    }
+
+    private def read_char_to : String
       start = current_pos
-      if current_char == '\\'
+      end_char = '\''
+      value = ""
+      case current_char
+      when '\\'
         next_char
         if current_char == 'u'
           next_char
@@ -622,15 +636,21 @@ module Lucid::Compiler
           raise "unterminated char literal" unless current_char == end_char
         else
           is_valid_escape = current_char.in?(end_char, '\\', 'e', 'f', 'n', 'r', 't', 'v') && @reader.peek_next_char == end_char
+          pp! current_char unless is_valid_escape
           raise "unterminated char literal" unless is_valid_escape
+          value = "'#{ESCAPE_VALUES[current_char]}'"
           next_char
         end
-      else
+      when .ascii_alphanumeric?
         raise "unterminated char literal" if @reader.peek_next_char != end_char
         next_char
+      when end_char
+        raise "invalid empty char literal"
+      else
+        raise "invalid character"
       end
-
-      read_string_from start
+      value ||= read_string_from(start)
+      return value
     end
   end
 end
