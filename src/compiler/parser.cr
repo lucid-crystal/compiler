@@ -131,6 +131,8 @@ module Lucid::Compiler
         parse_visibility_statement token.kind
       when .def?
         parse_def token
+      when .require?
+        parse_require token
         # when .class?, .struct? then parse_class token
       else
         parse_expression_statement token
@@ -303,6 +305,18 @@ module Lucid::Compiler
 
       skip_token
       Def.new(name, params, return_type, free_vars, body).at(start & token.loc)
+    end
+
+    private def parse_require(token : Token) : Statement
+      token = next_token_skip space: true
+      if !token.kind.string?
+        raise "require needs a string literal"
+      end
+
+      mod = parse_string(token)
+      next_token_skip space: true, newline: true
+
+      Require.new(mod)
     end
 
     private def parse_expression_statement(token : Token) : Statement

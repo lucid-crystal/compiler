@@ -208,4 +208,11 @@ describe LC::Lexer, tags: "lexer" do
       :enum, :space, :const, :newline, :end, :eof
     )
   end
+
+  it "parses require expressions" do
+    assert_tokens(
+      %q(require "json"),
+      :require, :space, :string, :eof
+    )
+  end
 end

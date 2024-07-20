@@ -99,6 +99,7 @@ module Lucid::Compiler
       RespondsTo
       Self
       Struct
+      Require
 
       # ameba:disable Naming/PredicateName
       def is_nil? : Bool

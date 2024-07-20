@@ -389,6 +389,13 @@ module Lucid::Compiler
         else
           lex_ident start
         end
+      when 'r'
+        start = current_pos
+        if next_sequence?('e', 'q', 'u', 'i', 'r', 'e')
+          lex_keyword_or_ident :require, start
+        else
+          lex_ident start
+        end
       when 's'
         start = current_pos
         case next_char
