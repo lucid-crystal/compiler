@@ -3,8 +3,8 @@ require "../src/compiler"
 
 alias LC = Lucid::Compiler
 
-def parse_expr(source : String) : LC::Expression
-  tokens = LC::Lexer.run source
+def parse_expr(source : String, file : String = "STDIN", dir : String = "") : LC::Expression
+  tokens = LC::Lexer.run source, filename: file, dirname: dir
   nodes = LC::Parser.parse tokens
 
   nodes.size.should eq 1

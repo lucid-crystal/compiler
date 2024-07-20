@@ -100,6 +100,12 @@ module Lucid::Compiler
       Self
       Struct
 
+      # Magic Constants
+      MagicLine    # __LINE__
+      MagicEndLine # __END_LINE__
+      MagicFile    # __FILE__
+      MagicDir     # __DIR__
+
       # ameba:disable Naming/PredicateName
       def is_nil? : Bool
         self == Kind::Nil
