@@ -141,6 +141,28 @@ module Lucid::Compiler
     end
   end
 
+  class Require < Statement
+    property mod : Node
+
+    def initialize(@mod : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "require " << mod
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Require("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "module: "
+        @mod.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class Parameter < Node
     property name : Node
     property internal_name : Node?
