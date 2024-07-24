@@ -41,16 +41,16 @@ describe LC::Parser do
     end
 
     pending "parses magic endline expressions" do
-      node = parse_expr <<-EXPR
-      def my_func(a = __END_LINE__)
-      end
-      EXPR
+      parse_expr <<-EXPR
+        def my_func(a = __END_LINE__)
+        end
+        EXPR
     end
 
     pending "fails to parse endline not as a default param value" do
       parse_expr <<-EXPR
-      a = __END_LINE__
-      EXPR
+        a = __END_LINE__
+        EXPR
     end
   end
 end
