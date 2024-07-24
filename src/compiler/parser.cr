@@ -358,6 +358,9 @@ module Lucid::Compiler
       when .is_nil?        then parse_nil token
       when .left_paren?    then parse_grouped_expression
       when .proc?          then parse_proc token
+      when .magic_line?    then parse_integer token
+      when .magic_dir?     then parse_string token
+      when .magic_file?    then parse_string token
       else
         return unless token.operator?
 

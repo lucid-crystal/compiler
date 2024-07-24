@@ -6,11 +6,11 @@ module Lucid::Compiler
     @column : Int32
     @loc : Location
 
-    def self.run(source : String) : Array(Token)
-      new(source).run
+    def self.run(source : String, filename : String = "STDIN", dirname : String = "") : Array(Token)
+      new(source, filename, dirname).run
     end
 
-    private def initialize(source : String)
+    private def initialize(source : String, @filename : String, @dirname : String)
       @reader = Char::Reader.new source
       @pool = StringPool.new
       @line = @column = 0
@@ -71,9 +71,46 @@ module Lucid::Compiler
         next_char
         Token.new :semicolon, location
       when '_'
-        char = next_char
-        if char == '_' || char.ascii_alphanumeric?
-          lex_ident current_pos - 1
+        start = current_pos - 1
+        case next_char
+        when '_'
+          case next_char
+          when 'F'
+            if next_sequence?('I', 'L', 'E', '_', '_')
+              next_char
+              Token.new :magic_file, location, @filename
+            else
+              lex_ident start
+            end
+          when 'E'
+            if next_sequence?('N', 'D', '_', 'L', 'I', 'N', 'E', '_', '_')
+              next_char
+              # TODO(nobody): assign this value later,
+              # it should be the corresponding `end`, and is
+              # only allowed as a default param value
+              Token.new :magic_end_line, location
+            else
+              lex_ident start
+            end
+          when 'D'
+            if next_sequence?('I', 'R', '_', '_')
+              next_char
+              Token.new :magic_dir, location, @dirname
+            else
+              lex_ident start
+            end
+          when 'L'
+            if next_sequence?('I', 'N', 'E', '_', '_')
+              next_char
+              Token.new :magic_line, location, (@line + 1).to_s
+            else
+              lex_ident start
+            end
+          else
+            lex_ident start
+          end
+        when .ascii_alphanumeric?
+          lex_ident start
         else
           Token.new :underscore, location
         end

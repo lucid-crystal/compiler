@@ -26,6 +26,14 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens "self", :self, :eof
   end
 
+  it "parses file magic expressions" do
+    assert_tokens "__FILE__", :magic_file, :eof
+  end
+
+  it "parses line magic expressions" do
+    assert_tokens "__LINE__", :magic_line, :eof
+  end
+
   it "parses the assignment operator" do
     assert_tokens "x = 7", :ident, :space, :assign, :Space, :integer, :eof
   end
