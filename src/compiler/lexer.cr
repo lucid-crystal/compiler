@@ -102,7 +102,7 @@ module Lucid::Compiler
           when 'L'
             if next_sequence?('I', 'N', 'E', '_', '_')
               next_char
-              Token.new :magic_line, location, @line.to_s
+              Token.new :magic_line, location, (@line + 1).to_s
             else
               lex_ident start
             end

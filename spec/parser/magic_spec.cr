@@ -13,7 +13,7 @@ describe LC::Parser do
       node = node.as(LC::Assign)
 
       node.value.should be_a LC::IntLiteral
-      node.value.as(LC::IntLiteral).value.should eq 2
+      node.value.as(LC::IntLiteral).value.should eq 3
     end
 
     it "parses magic file expressions" do
