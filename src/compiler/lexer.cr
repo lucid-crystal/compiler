@@ -102,7 +102,7 @@ module Lucid::Compiler
           when 'L'
             if next_sequence?('I', 'N', 'E', '_', '_')
               next_char
-              Token.new :magic_line, location, (@line + 1).to_s
+              Token.new :magic_line, location, (@line + 1).to_i64
             else
               lex_ident start
             end
@@ -564,7 +564,7 @@ module Lucid::Compiler
         end
       end
 
-      value = read_string_from(start).to_i64(base: 8).to_s
+      value = read_string_from(start).to_i64(base: 8)
       Token.new kind, location, value
     end
 
@@ -585,7 +585,7 @@ module Lucid::Compiler
         end
       end
 
-      value = read_string_from(start).to_i64(base: 16).to_s
+      value = read_string_from(start).to_i64(base: 16)
       Token.new kind, location, value
     end
 
@@ -606,7 +606,7 @@ module Lucid::Compiler
         end
       end
 
-      value = read_string_from(start).to_i64(base: 2).to_s
+      value = read_string_from(start).to_i64(base: 2)
       Token.new kind, location, value
     end
 
@@ -662,7 +662,13 @@ module Lucid::Compiler
         end
       end
 
-      Token.new kind, location, read_string_from start
+      if kind.integer?
+        value = read_string_from(start).to_i64(strict: false)
+      else
+        value = read_string_from(start).to_f64(strict: false)
+      end
+
+      Token.new kind, location, value
     end
 
     private def read_string_from(start : Int32) : String
