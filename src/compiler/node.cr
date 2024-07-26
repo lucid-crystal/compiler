@@ -683,12 +683,10 @@ module Lucid::Compiler
   end
 
   class IntLiteral < Expression
-    property raw : String
     property value : Int64
 
-    def initialize(@raw : String)
+    def initialize(@value : Int64)
       super()
-      @value = @raw.to_i64 strict: false
     end
 
     def to_s(io : IO) : Nil
@@ -703,12 +701,10 @@ module Lucid::Compiler
   end
 
   class FloatLiteral < Expression
-    property raw : String
     property value : Float64
 
-    def initialize(@raw : String)
+    def initialize(@value : Float64)
       super()
-      @value = @raw.to_f64 strict: false
     end
 
     def to_s(io : IO) : Nil
