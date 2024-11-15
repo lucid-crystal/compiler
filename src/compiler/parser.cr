@@ -472,7 +472,7 @@ module Lucid::Compiler
       if token.kind.self?
         names << Self.new("self", global).at(token.loc)
       else
-        names << Ident.new(token.value, global).at(token.loc)
+        names << Ident.new(token.str_value, global).at(token.loc)
       end
 
       while peek_token.kind.period?
@@ -480,7 +480,7 @@ module Lucid::Compiler
         token = next_token_skip space: true
 
         if token.kind.ident?
-          names << Ident.new(token.value, false).at(token.loc)
+          names << Ident.new(token.str_value, false).at(token.loc)
         else
           raise "unexpected token #{token}"
         end
@@ -495,7 +495,7 @@ module Lucid::Compiler
 
     # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Expression
-      names = [Const.new(token.value, global).at(token.loc)] of Ident
+      names = [Const.new(token.str_value, global).at(token.loc)] of Ident
       in_method = false
 
       while peek_token.kind.period? || peek_token.kind.double_colon?
@@ -507,10 +507,10 @@ module Lucid::Compiler
         case token.kind
         when .ident?
           in_method = true
-          names << Ident.new(token.value, global).at(token.loc)
+          names << Ident.new(token.str_value, global).at(token.loc)
         when .const?
           raise "unexpected token #{token}" if in_method
-          names << Const.new(token.value, global).at(token.loc)
+          names << Const.new(token.str_value, global).at(token.loc)
         else
           raise "unexpected token #{token}"
         end
@@ -604,15 +604,15 @@ module Lucid::Compiler
     end
 
     private def parse_integer(token : Token) : Expression
-      IntLiteral.new(token.value).at(token.loc)
+      IntLiteral.new(token.int_value).at(token.loc)
     end
 
     private def parse_float(token : Token) : Expression
-      FloatLiteral.new(token.value).at(token.loc)
+      FloatLiteral.new(token.float_value).at(token.loc)
     end
 
     private def parse_string(token : Token) : Expression
-      StringLiteral.new(token.value).at(token.loc)
+      StringLiteral.new(token.str_value).at(token.loc)
     end
 
     private def parse_bool(token : Token) : Expression
