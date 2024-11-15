@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "calls and paths", tags: %w[parser calls paths] do
     it "parses call expressions with no arguments" do
-      node = parse_expr "exit"
+      node = parse "exit"
       node.should be_a LC::Call
       node = node.as(LC::Call)
 
@@ -13,7 +13,7 @@ describe LC::Parser do
     end
 
     it "parses delimited call expressions" do
-      {parse_expr("puts;"), parse_expr("puts\n")}.each do |node|
+      {parse("puts;"), parse("puts\n")}.each do |node|
         node.should be_a LC::Call
         node = node.as(LC::Call)
 
@@ -23,7 +23,7 @@ describe LC::Parser do
     end
 
     it "parses path call expressions" do
-      node = parse_expr "foo.bar.baz"
+      node = parse "foo.bar.baz"
       node.should be_a LC::Call
       node = node.as(LC::Call)
 
@@ -42,7 +42,7 @@ describe LC::Parser do
     end
 
     it "parses constant path expressions" do
-      node = parse_expr "Foo::Bar"
+      node = parse "Foo::Bar"
       node.should be_a LC::Path
       node = node.as(LC::Path)
 
@@ -57,7 +57,7 @@ describe LC::Parser do
     end
 
     it "parses constant call expresions" do
-      node = parse_expr "::Foo.baz"
+      node = parse "::Foo.baz"
       node.should be_a LC::Call
       node = node.as(LC::Call)
 
@@ -75,7 +75,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with single arguments" do
-      node = parse_expr %(puts "hello world")
+      node = parse %(puts "hello world")
       node.should be_a LC::Call
       node = node.as(LC::Call)
 
@@ -88,7 +88,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with multiple arguments" do
-      node = parse_expr %(puts "foo", "bar", "baz")
+      node = parse %(puts "foo", "bar", "baz")
       node.should be_a LC::Call
       node = node.as(LC::Call)
 
@@ -107,7 +107,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions on multiple lines" do
-      node = parse_expr <<-CR
+      node = parse <<-CR
         puts(
           "hello from",
           "the other side",
@@ -129,7 +129,7 @@ describe LC::Parser do
     end
 
     it "parses nested call expressions" do
-      node = parse_expr <<-CR
+      node = parse <<-CR
         puts(
           "hello, ",
           your_name,
@@ -157,18 +157,18 @@ describe LC::Parser do
 
     it "raises on undelimited arguments for calls" do
       expect_raises(Exception, "expected a comma after the last argument") do
-        parse_expr %(puts "foo" "bar")
+        parse %(puts "foo" "bar")
       end
     end
 
     it "raises on unclosed parentheses for calls" do
       expect_raises(Exception, "expected closing parenthesis for call") do
-        parse_expr %[puts("foo", "bar"]
+        parse %[puts("foo", "bar"]
       end
     end
 
     it "parses call expressions with a single variable declaration" do
-      node = parse_expr "::property(name : String)"
+      node = parse "::property(name : String)"
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -190,7 +190,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with a single variable assignment" do
-      node = parse_expr %(::property(name = "dev"))
+      node = parse %(::property(name = "dev"))
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -211,7 +211,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with a single variable declaration and assignment" do
-      node = parse_expr %(::property(name : String = "dev"))
+      node = parse %(::property(name : String = "dev"))
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -235,7 +235,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with multiple variable declarations" do
-      node = parse_expr "record Foo, bar : Int32, baz : String"
+      node = parse "record Foo, bar : Int32, baz : String"
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -267,7 +267,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with multiple variable assignments" do
-      node = parse_expr %(record Foo, bar = 123, baz = "true")
+      node = parse %(record Foo, bar = 123, baz = "true")
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -297,7 +297,7 @@ describe LC::Parser do
     end
 
     it "parses call expressions with multiple variable declarations and assignments" do
-      node = parse_expr %(record Foo, bar : Int32 = 123, baz : String = "true")
+      node = parse %(record Foo, bar : Int32 = 123, baz : String = "true")
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -333,7 +333,7 @@ describe LC::Parser do
     end
 
     it "parses expressions ignoring semicolons" do
-      node = parse_expr %(;;;;;;;puts "hello world";;;;;;;)
+      node = parse %(;;;;;;;puts "hello world";;;;;;;)
 
       node.should be_a LC::Call
       node = node.as(LC::Call)

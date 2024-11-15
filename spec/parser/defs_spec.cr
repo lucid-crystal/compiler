@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "defs", tags: %w[parser defs] do
     it "parses method defs" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def foo
         end
         CR
@@ -18,7 +18,7 @@ describe LC::Parser do
       node.return_type.should be_nil
       node.body.should be_empty
 
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def foo; end
         CR
 
@@ -34,7 +34,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with a return type" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def foo() : Nil
         end
         CR
@@ -50,7 +50,7 @@ describe LC::Parser do
       node.return_type.as(LC::Const).value.should eq "Nil"
       node.body.should be_empty
 
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def foo : Nil; end
         CR
 
@@ -67,7 +67,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with a body (1)" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def foo() : Nil
           puts "bar"
           puts "baz"
@@ -105,7 +105,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with a body (2)" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def test : Nil
           foo
           bar
@@ -140,7 +140,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with a single line body" do
-      node = parse_stmt "def foo() puts end"
+      node = parse "def foo() puts end"
       node.should be_a LC::Def
       node = node.as(LC::Def)
 
@@ -158,7 +158,7 @@ describe LC::Parser do
       expr.receiver.as(LC::Ident).value.should eq "puts"
       expr.args.should be_empty
 
-      node = parse_stmt %(def foo() puts "bar" end)
+      node = parse %(def foo() puts "bar" end)
       node.should be_a LC::Def
       node = node.as(LC::Def)
 
@@ -181,12 +181,12 @@ describe LC::Parser do
 
     it "disallows method def single line body without parentheses, newline or semicolon" do
       expect_raises(Exception, "expected a newline or semicolon after def signature") do
-        parse_stmt %(def foo puts "bar" end)
+        parse %(def foo puts "bar" end)
       end
     end
 
     it "parses method defs with a single parameter" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def greet(name : String = "dev") : Nil
           puts "Hello, ", name
         end
@@ -233,7 +233,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with multiple parameters" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def add(a : Int32, b : Int32) : Int32
           a + b
         end
@@ -285,7 +285,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with external parameter names" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def write(to file : IO) : Nil
         end
         CR
@@ -312,14 +312,14 @@ describe LC::Parser do
 
     it "disallows method def external names for block parameters" do
       expect_raises(Exception, "block parameters cannot have external names") do
-        parse_stmt <<-CR
+        parse <<-CR
           def write(&to file : IO ->) : Nil
           end
           CR
       end
 
       expect_raises(Exception, "block parameters cannot have external names") do
-        parse_stmt <<-CR
+        parse <<-CR
           def write(to &file : IO ->) : Nil
           end
           CR
@@ -327,7 +327,7 @@ describe LC::Parser do
     end
 
     it "parses method defs with free variables" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         def foo(x : T, y : U) forall T, U
         end
         CR
@@ -359,7 +359,7 @@ describe LC::Parser do
     end
 
     it "parses abstract method defs" do
-      node = parse_stmt "abstract def read(slice : Bytes) : Int32"
+      node = parse "abstract def read(slice : Bytes) : Int32"
       node.should be_a LC::Def
       node = node.as(LC::Def)
 
@@ -384,7 +384,7 @@ describe LC::Parser do
     end
 
     it "parses private method defs" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         private def read_impl(slice : Bytes) : Int32
           does_something_cool
         end
@@ -420,7 +420,7 @@ describe LC::Parser do
     end
 
     it "parses protected method defs" do
-      node = parse_stmt <<-CR
+      node = parse <<-CR
         protected def does_something_cool : Nil
         end
         CR
@@ -442,7 +442,7 @@ describe LC::Parser do
     end
 
     it "parses private abstract method defs" do
-      node = parse_stmt "private abstract def select_impl : Nil"
+      node = parse "private abstract def select_impl : Nil"
 
       node.should be_a LC::Def
       node = node.as(LC::Def)
@@ -461,7 +461,7 @@ describe LC::Parser do
     end
 
     it "parses protected abstract method defs" do
-      node = parse_stmt "protected abstract def execute : Bool"
+      node = parse "protected abstract def execute : Bool"
 
       node.should be_a LC::Def
       node = node.as(LC::Def)
@@ -481,21 +481,21 @@ describe LC::Parser do
 
     it "disallows duplicate visibility keywords on method defs" do
       expect_raises(Exception, "unexpected token 'private'") do
-        parse_stmt "private private def foo"
+        parse "private private def foo"
       end
 
       expect_raises(Exception, "unexpected token 'protected'") do
-        parse_stmt "protected protected def foo"
+        parse "protected protected def foo"
       end
 
       expect_raises(Exception, "unexpected token 'abstract'") do
-        parse_stmt "abstract abstract def foo"
+        parse "abstract abstract def foo"
       end
     end
 
     it "disallows private-protected keywords on method defs" do
       expect_raises(Exception, "cannot apply private and protected visibility") do
-        parse_stmt "private protected def foo"
+        parse "private protected def foo"
       end
     end
   end

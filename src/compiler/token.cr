@@ -100,6 +100,13 @@ module Lucid::Compiler
       RespondsTo
       Self
       Struct
+      Require
+
+      # Magic Constants
+      MagicLine    # __LINE__
+      MagicEndLine # __END_LINE__
+      MagicFile    # __FILE__
+      MagicDir     # __DIR__
 
       # ameba:disable Naming/PredicateName
       def is_nil? : Bool
@@ -109,16 +116,24 @@ module Lucid::Compiler
 
     getter kind : Kind
     getter loc : Location
-    @value : String?
+    @value : String | Int64 | Float64 | Nil
 
-    def initialize(@kind : Kind, @loc : Location, @value : String? = nil)
+    def initialize(@kind : Kind, @loc : Location, @value : String | Int64 | Float64 | Nil = nil)
     end
 
-    def value : String
+    def str_value : String
       @value.as(String)
     end
 
-    def value=(@value : String?)
+    def int_value : Int64
+      @value.as(Int64)
+    end
+
+    def float_value : Float64
+      @value.as(Float64)
+    end
+
+    def value=(@value : String | Int | Nil)
     end
 
     def operator? : Bool
