@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "assign and vars", tags: %w[parser assign vars] do
     it "parses assignment expressions" do
-      node = parse_expr "x = 7"
+      node = parse "x = 7"
       node.should be_a LC::Assign
       node = node.as(LC::Assign)
 
@@ -15,7 +15,7 @@ describe LC::Parser do
     end
 
     it "parses uninitialized variable declaration expressions" do
-      node = parse_expr "x : Int32"
+      node = parse "x : Int32"
       node.should be_a LC::Var
       node = node.as(LC::Var)
 
@@ -30,7 +30,7 @@ describe LC::Parser do
     end
 
     it "parses initialized variable declaration expressions" do
-      node = parse_expr "y : Int32 = 123"
+      node = parse "y : Int32 = 123"
       node.should be_a LC::Var
       node = node.as(LC::Var)
 

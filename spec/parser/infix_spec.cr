@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "infix", tags: %w[parser infix] do
     it "parses infix operator expressions" do
-      node = parse_expr "1 + 1"
+      node = parse "1 + 1"
 
       node.should be_a LC::Infix
       node = node.as(LC::Infix)
@@ -15,7 +15,7 @@ describe LC::Parser do
       node.right.should be_a LC::IntLiteral
       node.right.as(LC::IntLiteral).value.should eq 1
 
-      node = parse_expr "false & true"
+      node = parse "false & true"
 
       node.should be_a LC::Infix
       node = node.as(LC::Infix)
@@ -29,7 +29,7 @@ describe LC::Parser do
     end
 
     it "parses grouped infix operator expressions" do
-      node = parse_expr "4 + (16 / 2)"
+      node = parse "4 + (16 / 2)"
 
       node.should be_a LC::Infix
       node = node.as(LC::Infix)
@@ -48,7 +48,7 @@ describe LC::Parser do
       expr.right.should be_a LC::IntLiteral
       expr.right.as(LC::IntLiteral).value.should eq 2
 
-      node = parse_expr "1 + (2 ** 3) - (20 // -4)"
+      node = parse "1 + (2 ** 3) - (20 // -4)"
 
       node.should be_a LC::Infix
       node = node.as(LC::Infix)
@@ -87,7 +87,7 @@ describe LC::Parser do
     end
 
     it "parses multiple ungrouped infix operator expressions" do
-      node = parse_expr "8 << 16 | 2 ^ 3"
+      node = parse "8 << 16 | 2 ^ 3"
 
       node.should be_a LC::Infix
       node = node.as(LC::Infix)
@@ -115,7 +115,7 @@ describe LC::Parser do
     end
 
     it "parses logic infix operator expressions" do
-      node = parse_expr "foo || bar && baz"
+      node = parse "foo || bar && baz"
       node.should be_a LC::Infix
       node = node.as(LC::Infix)
 

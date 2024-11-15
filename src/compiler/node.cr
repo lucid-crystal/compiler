@@ -14,24 +14,18 @@ module Lucid::Compiler
     abstract def pretty_print(pp : PrettyPrint) : Nil
   end
 
-  abstract class Statement < Node
-  end
-
-  abstract class Expression < Node
-  end
-
-  class Def < Statement
+  class Def < Node
     property name : Node
     property params : Array(Parameter)
     property return_type : Node?
     property free_vars : Array(Const)
-    property body : Array(Expression)
+    property body : Array(Node)
     property? abstract : Bool = false
     property? private : Bool = false
     property? protected : Bool = false
 
     def initialize(@name : Node, @params : Array(Parameter), @return_type : Node?,
-                   @free_vars : Array(Const), @body : Array(Expression))
+                   @free_vars : Array(Const), @body : Array(Node))
       super()
     end
 
@@ -141,7 +135,7 @@ module Lucid::Compiler
     end
   end
 
-  class Require < Statement
+  class Require < Node
     property mod : Node
 
     def initialize(@mod : Node)
@@ -216,30 +210,7 @@ module Lucid::Compiler
     end
   end
 
-  class ExpressionStatement < Statement
-    property value : Expression
-
-    def initialize(@value : Expression)
-      super()
-    end
-
-    def to_s(io : IO) : Nil
-      io << '('
-      @value.to_s io
-      io << ')'
-    end
-
-    def pretty_print(pp : PrettyPrint) : Nil
-      pp.text "ExpressionStatement("
-      pp.group 1 do
-        pp.breakable ""
-        pp.nest { @value.pretty_print pp }
-      end
-      pp.text ")"
-    end
-  end
-
-  class Path < Expression
+  class Path < Node
     property names : Array(Ident)
     property? global : Bool
 
@@ -287,7 +258,7 @@ module Lucid::Compiler
     end
   end
 
-  class Ident < Expression
+  class Ident < Node
     property value : String
     property? global : Bool
 
@@ -340,7 +311,7 @@ module Lucid::Compiler
     end
   end
 
-  class Underscore < Expression
+  class Underscore < Node
     def to_s(io : IO) : Nil
       io << '_'
     end
@@ -350,7 +321,7 @@ module Lucid::Compiler
     end
   end
 
-  class Var < Expression
+  class Var < Node
     property name : Node
     property type : Node?
     property value : Node?
@@ -399,7 +370,7 @@ module Lucid::Compiler
   class ClassVar < Var
   end
 
-  class Prefix < Expression
+  class Prefix < Node
     enum Operator
       Not         # !
       BitAnd      # &
@@ -462,7 +433,7 @@ module Lucid::Compiler
     end
   end
 
-  class Infix < Expression
+  class Infix < Node
     enum Operator
       NotEqual       # !=
       PatternUnmatch # !~
@@ -596,7 +567,7 @@ module Lucid::Compiler
     end
   end
 
-  class Assign < Expression
+  class Assign < Node
     property target : Node
     property value : Node
 
@@ -623,7 +594,7 @@ module Lucid::Compiler
     end
   end
 
-  class Call < Expression
+  class Call < Node
     property receiver : Node
     property args : Array(Node)
 
@@ -664,7 +635,7 @@ module Lucid::Compiler
     end
   end
 
-  class StringLiteral < Expression
+  class StringLiteral < Node
     property value : String
 
     def initialize(@value : String)
@@ -682,7 +653,7 @@ module Lucid::Compiler
     end
   end
 
-  class IntLiteral < Expression
+  class IntLiteral < Node
     property value : Int64
 
     def initialize(@value : Int64)
@@ -700,7 +671,7 @@ module Lucid::Compiler
     end
   end
 
-  class FloatLiteral < Expression
+  class FloatLiteral < Node
     property value : Float64
 
     def initialize(@value : Float64)
@@ -718,7 +689,7 @@ module Lucid::Compiler
     end
   end
 
-  class BoolLiteral < Expression
+  class BoolLiteral < Node
     # ameba:disable Naming/QueryBoolMethods
     property value : Bool
 
@@ -737,7 +708,7 @@ module Lucid::Compiler
     end
   end
 
-  class NilLiteral < Expression
+  class NilLiteral < Node
     def to_s(io : IO) : Nil
       io << "nil"
     end
@@ -747,11 +718,11 @@ module Lucid::Compiler
     end
   end
 
-  class ProcLiteral < Expression
+  class ProcLiteral < Node
     property params : Array(Parameter)
-    property body : Array(Expression)
+    property body : Array(Node)
 
-    def initialize(@params : Array(Parameter), @body : Array(Expression))
+    def initialize(@params : Array(Parameter), @body : Array(Node))
       super()
     end
 
