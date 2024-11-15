@@ -5,10 +5,33 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens %("hello world"), :string, :eof
   end
 
+  it "parses integer expressions" do
+    assert_tokens "123_45", :integer, :eof
+  end
+
+  it "parses float expressions" do
+    assert_tokens "3.141_592", :float, :eof
+  end
+
+  it "parses boolean expressions" do
+    assert_tokens "true", :true, :eof
+    assert_tokens "false", :false, :eof
+  end
+
   it "parses char literals" do
-    assert_tokens "'e'", :char, :eof
+    assert_tokens "'0'", :char, :eof
+    assert_tokens "'A'", :char, :eof
+    assert_tokens "'é'", :char, :eof
+    assert_tokens "'§'", :char, :eof
+    assert_tokens "'°'", :char, :eof
+    assert_tokens "'α'", :char, :eof
+
     expect_raises(Exception, "unterminated char literal") do
       assert_tokens "'e", :char, :eof
+    end
+
+    expect_raises(Exception, "invalid char literal (did you mean '\\''?)") do
+      assert_tokens "''", :char, :eof
     end
   end
 
@@ -24,46 +47,27 @@ describe LC::Lexer, tags: "lexer" do
   end
 
   it "parses hex in char" do
-    assert_tokens "'\\uFFFF'", :char, :eof
     assert_tokens "'\\u{F}'", :char, :eof
-    assert_tokens "'\\u{FFFFFF}'", :char, :eof
+    assert_tokens "'\\uFFFF'", :char, :eof
+    assert_tokens "'\\u{FFFFF}'", :char, :eof
   end
 
   it "parses hex in char properly" do
-    expect_raises(Exception, "invalid hex (expected 4 characters)") do
+    expect_raises(Exception, "expected hexadecimal character in unicode escape") do
       assert_tokens "'\\uFFF'", :char, :eof
     end
-    expect_raises(Exception, "invalid hex (non hex character)") do
+
+    expect_raises(Exception, "expected hexadecimal character in unicode escape") do
       assert_tokens "'\\uFFFZ'", :char, :eof
     end
-    expect_raises(Exception, "invalid hex (non hex character)") do
+
+    expect_raises(Exception, "expected hexadecimal character in unicode escape") do
       assert_tokens "'\\u{ZFFF}'", :char, :eof
     end
-    expect_raises(Exception, "invalid hex (exceeding 6 characters)") do
+
+    expect_raises(Exception, "invalid unicode codepoint (too large)") do
       assert_tokens "'\\u{FFFFFFF}'", :char, :eof
     end
-    expect_raises(Exception, "invalid hex (non hex character)") do
-      assert_tokens "'\\u{FFFZ}'", :char, :eof
-    end
-    expect_raises(Exception, "invalid hex (non hex character)") do
-      assert_tokens "'\\u{ZFFFZ}'", :char, :eof
-    end
-    expect_raises(Exception, "unterminated char literal") do
-      assert_tokens "'\\n", :char, :eof
-    end
-  end
-
-  it "parses integer expressions" do
-    assert_tokens "123_45", :integer, :eof
-  end
-
-  it "parses float expressions" do
-    assert_tokens "3.141_592", :float, :eof
-  end
-
-  it "parses boolean expressions" do
-    assert_tokens "true", :true, :eof
-    assert_tokens "false", :false, :eof
   end
 
   it "parses nil expressions" do

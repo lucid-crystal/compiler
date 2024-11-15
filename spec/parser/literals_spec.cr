@@ -32,6 +32,14 @@ describe LC::Parser do
       assert_node LC::BoolLiteral, "false"
     end
 
+    it "parses char expressions" do
+      assert_node LC::CharLiteral, "'\\0'"
+      assert_node LC::CharLiteral, "'9'"
+      assert_node LC::CharLiteral, "'@'"
+      assert_node LC::CharLiteral, "'Á'"
+      assert_node LC::CharLiteral, "'ǅ'"
+    end
+
     it "parses nil expressions" do
       assert_node LC::NilLiteral, "nil"
     end

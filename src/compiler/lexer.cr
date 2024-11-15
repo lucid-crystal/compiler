@@ -320,9 +320,51 @@ module Lucid::Compiler
         next_char
         Token.new :string, location, value
       when '\''
-        next_char
         @loc.increment_column_start
-        value = read_char_to
+        case next_char
+        when '\0'
+          raise "unterminated char literal"
+        when '\\'
+          case next_char
+          when '\0'
+            raise "unterminated char literal"
+          when '\\'
+            value = '\\'
+          when '\''
+            value = '\''
+          when 'a'
+            value = '\a'
+          when 'b'
+            value = '\b'
+          when 'e'
+            value = '\e'
+          when 'f'
+            value = '\f'
+          when 'n'
+            value = '\n'
+          when 'r'
+            value = '\r'
+          when 't'
+            value = '\t'
+          when 'u'
+            value = read_unicode_escape false
+          when 'v'
+            value = '\v'
+          when '0'
+            value = '\0'
+          else
+            raise "invalid char escape sequence '\\#{current_char}'"
+          end
+        when '\''
+          raise "invalid char literal (did you mean '\\''?)"
+        else
+          value = current_char
+        end
+
+        unless next_char == '\''
+          raise "unterminated char literal, use double quotes for strings"
+        end
+
         next_char
         Token.new :char, location, value
       when 'a'
@@ -699,67 +741,64 @@ module Lucid::Compiler
       read_string_from start
     end
 
-    ESCAPE_VALUES = {
-      'e' => '\e',
-      'f' => '\f',
-      'n' => '\n',
-      'r' => '\r',
-      't' => '\t',
-      'v' => '\v',
-      '\\' => '\\',
-      '\'' => '\\'
-    }
-
-    private def read_char_to : String
-      start = current_pos
-      end_char = '\''
-      value = ""
-      case current_char
-      when '\\'
+    private def read_unicode_escape(allow_spaces : Bool) : Char
+      if @reader.peek_next_char == '{'
         next_char
-        if current_char == 'u'
-          next_char
+        codepoint = 0
+        found_brace = found_space = found_digit = false
+        char = '\0'
 
-          if current_char.hex?
-            3.times do
-              next_char
-              raise "invalid hex (expected 4 characters)" if current_char == '\'' 
-              raise "invalid hex (non hex character)" unless current_char.hex?
-            end
-          elsif current_char == '{'
-            next_char
-            since = 0
-            loop do
-              invalid_end = since > 5 && current_char != '}'
-              raise "invalid hex (exceeding 6 characters)" if invalid_end
-              break if current_char == '}' && since >= 1
-              
-              raise "invalid hex (non hex character)" unless current_char.hex?
-              next_char
-              since += 1
+        6.times do
+          char = next_char
+          case char
+          when '}'
+            found_brace = true
+            break
+          when ' '
+            if allow_spaces
+              found_space = true
+              break
+            else
+              raise "expected hexadecimal character in unicode escape"
             end
           else
-            raise "invalid hex (non hex character)" 
+            hex = char.to_i?(16) || raise "expected hexadecimal character in unicode escape"
+            codepoint = 16 &* codepoint &+ hex
+            found_digit = true
           end
-          next_char
-          raise "unterminated char literal" unless current_char == end_char
-        else
-          is_valid_escape = current_char.in?(end_char, '\\', 'e', 'f', 'n', 'r', 't', 'v') && @reader.peek_next_char == end_char
-          pp! current_char unless is_valid_escape
-          raise "unterminated char literal" unless is_valid_escape
-          value = "'#{ESCAPE_VALUES[current_char]}'"
-          next_char
         end
-      when .ascii_alphanumeric?
-        raise "unterminated char literal" if @reader.peek_next_char != end_char
-        next_char
-      when end_char
-        raise "invalid empty char literal"
+
+        if !found_digit
+          raise "expected hexadecimal character in unicode escape"
+        elsif codepoint > 0x10FFFF
+          raise "invalid unicode codepoint (too large)"
+        elsif 0xD800 <= codepoint <= 0xDFFF
+          raise "invalid unicode codepoint (surrogate half)"
+        end
+
+        unless found_space
+          char = next_char unless found_brace
+
+          unless char == '}'
+            raise "expected '}' to close unicode escape"
+          end
+        end
+
+        codepoint.chr
       else
-        raise "invalid character"
+        codepoint = 0
+
+        4.times do
+          hex = next_char.to_i?(16) || raise "expected hexadecimal character in unicode escape"
+          codepoint = 16 &* codepoint &+ hex
+        end
+
+        if 0xD800 <= codepoint <= 0xDFFF
+          raise "invalid unicode codepoint (surrogate half)"
+        end
+
+        codepoint.chr
       end
-      value ||= read_string_from(start)
-      return value
     end
   end
 end
