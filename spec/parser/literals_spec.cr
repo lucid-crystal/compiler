@@ -42,12 +42,12 @@ describe LC::Parser do
 
     it "disallows calling underscore" do
       expect_raises(Exception, "underscore cannot be called as a method") do
-        parse_expr "_ foo"
+        parse "_ foo"
       end
     end
 
     it "parses empty proc expressions" do
-      {parse_expr("-> { }"), parse_expr("-> () { }")}.each do |node|
+      {parse("-> { }"), parse("-> () { }")}.each do |node|
         node.should be_a LC::ProcLiteral
         node = node.as(LC::ProcLiteral)
 
@@ -57,7 +57,7 @@ describe LC::Parser do
     end
 
     it "parses proc expressions with single arguments" do
-      node = parse_expr "-> (x : Int32) { }"
+      node = parse "-> (x : Int32) { }"
       node.should be_a LC::ProcLiteral
       node = node.as(LC::ProcLiteral)
 
@@ -73,7 +73,7 @@ describe LC::Parser do
     end
 
     it "parses proc expressions with multiple arguments" do
-      node = parse_expr "-> (a : Int32, b : Int32) { }"
+      node = parse "-> (a : Int32, b : Int32) { }"
       node.should be_a LC::ProcLiteral
       node = node.as(LC::ProcLiteral)
 
@@ -95,7 +95,7 @@ describe LC::Parser do
     end
 
     it "parses proc expressions with a body" do
-      node = parse_expr "-> do exit end"
+      node = parse "-> do exit end"
       node.should be_a LC::ProcLiteral
       node = node.as(LC::ProcLiteral)
 
@@ -112,7 +112,7 @@ describe LC::Parser do
     end
 
     it "parses multiline proc expressions" do
-      node = parse_expr <<-CR
+      node = parse <<-CR
         -> (
           a : Int32,
           b : Int32,

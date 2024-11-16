@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "requires" do
     it "parses require statements" do
-      node = parse_stmt %q(require "json")
+      node = parse %q(require "json")
       node.should be_a LC::Require
       node = node.as(LC::Require)
 

@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "magic vars" do
     it "parses magic line expressions" do
-      node = parse_expr <<-EXPR
+      node = parse <<-EXPR
 
 
       a = __LINE__
@@ -17,7 +17,7 @@ describe LC::Parser do
     end
 
     it "parses magic file expressions" do
-      node = parse_expr <<-EXPR, file: "my_file.cr"
+      node = parse <<-EXPR, file: "my_file.cr"
       a = __FILE__
       EXPR
 
@@ -29,7 +29,7 @@ describe LC::Parser do
     end
 
     it "parses magic dir expressions" do
-      node = parse_expr <<-EXPR, dir: "my_dir"
+      node = parse <<-EXPR, dir: "my_dir"
       a = __DIR__
       EXPR
 
@@ -41,14 +41,14 @@ describe LC::Parser do
     end
 
     pending "parses magic endline expressions" do
-      parse_expr <<-EXPR
+      parse <<-EXPR
         def my_func(a = __END_LINE__)
         end
         EXPR
     end
 
     pending "fails to parse endline not as a default param value" do
-      parse_expr <<-EXPR
+      parse <<-EXPR
         a = __END_LINE__
         EXPR
     end

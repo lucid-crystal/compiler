@@ -3,7 +3,7 @@ require "../spec_helper"
 describe LC::Parser do
   context "prefixes", tags: %w[parser prefix] do
     it "parses prefix operator expressions" do
-      node = parse_expr "!true"
+      node = parse "!true"
 
       node.should be_a LC::Prefix
       node = node.as(LC::Prefix)
@@ -14,7 +14,7 @@ describe LC::Parser do
     end
 
     it "parses double prefix operator expressions" do
-      node = parse_expr "!!false"
+      node = parse "!!false"
 
       node.should be_a LC::Prefix
       node = node.as(LC::Prefix)
@@ -29,7 +29,7 @@ describe LC::Parser do
     end
 
     it "parses prefix operator expressions in calls" do
-      node = parse_expr "puts !foo"
+      node = parse "puts !foo"
 
       node.should be_a LC::Call
       node = node.as(LC::Call)
@@ -49,7 +49,7 @@ describe LC::Parser do
 
     it "disallows prefix operators with incorrect syntax" do
       expect_raises(Exception) do
-        parse_expr "puts ! foo"
+        parse "puts ! foo"
       end
     end
   end
