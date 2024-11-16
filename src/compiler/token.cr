@@ -10,6 +10,7 @@ module Lucid::Compiler
       Const
 
       String
+      Char
       Integer
       Float
       True
@@ -115,9 +116,9 @@ module Lucid::Compiler
 
     getter kind : Kind
     getter loc : Location
-    @value : String | Int64 | Float64 | Nil
+    @value : String | Int64 | Float64 | Char | Nil
 
-    def initialize(@kind : Kind, @loc : Location, @value : String | Int64 | Float64 | Nil = nil)
+    def initialize(@kind : Kind, @loc : Location, @value : String | Int64 | Float64 | Char | Nil = nil)
     end
 
     def str_value : String
@@ -130,6 +131,10 @@ module Lucid::Compiler
 
     def float_value : Float64
       @value.as(Float64)
+    end
+
+    def char_value : Char
+      @value.as(Char)
     end
 
     def value=(@value : String | Int | Nil)

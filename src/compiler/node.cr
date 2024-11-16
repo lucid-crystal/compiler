@@ -708,6 +708,24 @@ module Lucid::Compiler
     end
   end
 
+  class CharLiteral < Node
+    property value : Char
+
+    def initialize(@value : Char)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      @value.inspect io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "CharLiteral("
+      @value.pretty_print pp
+      pp.text ")"
+    end
+  end
+
   class NilLiteral < Node
     def to_s(io : IO) : Nil
       io << "nil"
