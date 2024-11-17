@@ -357,6 +357,7 @@ module Lucid::Compiler
       when .float?         then parse_float token
       when .string?        then parse_string token
       when .true?, .false? then parse_bool token
+      when .char?          then parse_char token
       when .is_nil?        then parse_nil token
       when .left_paren?    then parse_grouped_expression
       when .proc?          then parse_proc token
@@ -617,6 +618,10 @@ module Lucid::Compiler
 
     private def parse_bool(token : Token) : Node
       BoolLiteral.new(token.kind.true?).at(token.loc)
+    end
+
+    private def parse_char(token : Token) : Node
+      CharLiteral.new(token.char_value).at(token.loc)
     end
 
     private def parse_nil(token : Token) : Node

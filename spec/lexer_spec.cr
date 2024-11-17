@@ -18,6 +18,58 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens "false", :false, :eof
   end
 
+  it "parses char literals" do
+    assert_tokens "'0'", :char, :eof
+    assert_tokens "'A'", :char, :eof
+    assert_tokens "'é'", :char, :eof
+    assert_tokens "'§'", :char, :eof
+    assert_tokens "'°'", :char, :eof
+    assert_tokens "'α'", :char, :eof
+
+    expect_raises(Exception, "unterminated char literal") do
+      assert_tokens "'e", :char, :eof
+    end
+
+    expect_raises(Exception, "invalid char literal (did you mean '\\''?)") do
+      assert_tokens "''", :char, :eof
+    end
+  end
+
+  it "parses char escape" do
+    assert_tokens "'\\''", :char, :eof
+    assert_tokens "'\\\\'", :char, :eof
+    assert_tokens "'\\e'", :char, :eof
+    assert_tokens "'\\f'", :char, :eof
+    assert_tokens "'\\n'", :char, :eof
+    assert_tokens "'\\r'", :char, :eof
+    assert_tokens "'\\t'", :char, :eof
+    assert_tokens "'\\v'", :char, :eof
+  end
+
+  it "parses hex in char" do
+    assert_tokens "'\\u{F}'", :char, :eof
+    assert_tokens "'\\uFFFF'", :char, :eof
+    assert_tokens "'\\u{FFFFF}'", :char, :eof
+  end
+
+  it "parses hex in char properly" do
+    expect_raises(Exception, "expected hexadecimal character in unicode escape") do
+      assert_tokens "'\\uFFF'", :char, :eof
+    end
+
+    expect_raises(Exception, "expected hexadecimal character in unicode escape") do
+      assert_tokens "'\\uFFFZ'", :char, :eof
+    end
+
+    expect_raises(Exception, "expected hexadecimal character in unicode escape") do
+      assert_tokens "'\\u{ZFFF}'", :char, :eof
+    end
+
+    expect_raises(Exception, "invalid unicode codepoint (too large)") do
+      assert_tokens "'\\u{FFFFFFF}'", :char, :eof
+    end
+  end
+
   it "parses nil expressions" do
     assert_tokens "nil", :nil, :eof
   end
