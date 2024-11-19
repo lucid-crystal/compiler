@@ -654,9 +654,40 @@ module Lucid::Compiler
   end
 
   class IntLiteral < Node
-    property value : Int64
+    enum Base
+      I8
+      I16
+      I32
+      I64
+      I128
+      U8
+      U16
+      U32
+      U64
+      U128
+      Dynamic
 
-    def initialize(@value : Int64)
+      def self.from(raw : String) : self
+        case raw
+        when "i8"   then I8
+        when "i16"  then I16
+        when "i32"  then I32
+        when "i64"  then I64
+        when "i128" then I128
+        when "u8"   then U8
+        when "u16"  then U16
+        when "u32"  then U32
+        when "u64"  then U64
+        when "u128" then U128
+        else             Dynamic
+        end
+      end
+    end
+
+    property value : Int64
+    property base : Base
+
+    def initialize(@value : Int64, @base : Base)
       super()
     end
 
@@ -667,14 +698,25 @@ module Lucid::Compiler
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "IntLiteral("
       pp.text @value.inspect
+
+      unless @base.dynamic?
+        pp.text "_#{@base.to_s.downcase}"
+      end
+
       pp.text ")"
     end
   end
 
   class FloatLiteral < Node
-    property value : Float64
+    enum Base
+      F32
+      F64
+    end
 
-    def initialize(@value : Float64)
+    property value : Float64
+    property base : Base
+
+    def initialize(@value : Float64, @base : Base)
       super()
     end
 
@@ -685,6 +727,7 @@ module Lucid::Compiler
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "FloatLiteral("
       pp.text @value.inspect
+      pp.text "_#{@base.to_s.downcase}"
       pp.text ")"
     end
   end

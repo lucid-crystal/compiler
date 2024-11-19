@@ -661,10 +661,13 @@ module Lucid::Compiler
     private def lex_raw_number : Token
       start = current_pos
       kind = Token::Kind::Integer
+      suffix = false
 
       loop do
         case next_char
         when 'f'
+          kind = Token::Kind::Float
+          suffix = true
           case next_char
           when '3'
             raise "invalid float literal" unless next_char == '2'
@@ -676,6 +679,7 @@ module Lucid::Compiler
             raise "invalid float literal"
           end
         when 'i', 'u'
+          suffix = true
           case next_char
           when '8'
             break
@@ -701,8 +705,17 @@ module Lucid::Compiler
         when '_'
           next
         when '.'
-          raise "invalid float literal" if kind.float?
-          kind = Token::Kind::Float
+          break if kind.float?
+          case @reader.peek_next_char
+          when .ascii_letter?, '.'
+            suffix = false
+            break
+          when .ascii_number?
+            next_char
+            kind = Token::Kind::Float
+          else
+            raise "unexpected token '#{next_char}'"
+          end
         when .ascii_number?
           next
         else
@@ -710,13 +723,13 @@ module Lucid::Compiler
         end
       end
 
-      if kind.integer?
-        value = read_string_from(start).to_i64(strict: false)
-      else
-        value = read_string_from(start).to_f64(strict: false)
+      if suffix
+        if next_char.ascii_alphanumeric?
+          raise "unexpected token '#{current_char}'"
+        end
       end
 
-      Token.new kind, location, value
+      Token.new kind, location, read_string_from start
     end
 
     private def read_string_from(start : Int32) : String

@@ -10,6 +10,26 @@ describe LC::Parser do
       assert_node LC::IntLiteral, "123_45"
     end
 
+    it "parses integer suffixes" do
+      node = parse("1234").should be_a LC::IntLiteral
+      node.base.dynamic?.should be_true
+
+      node = parse("123_i8").should be_a LC::IntLiteral
+      node.base.i8?.should be_true
+
+      node = parse("123_u32").should be_a LC::IntLiteral
+      node.base.u32?.should be_true
+
+      node = parse("123_i128").should be_a LC::IntLiteral
+      node.base.i128?.should be_true
+
+      node = parse("123_f32").should be_a LC::FloatLiteral
+      node.base.f32?.should be_true
+
+      node = parse("123_f64").should be_a LC::FloatLiteral
+      node.base.f64?.should be_true
+    end
+
     it "parses float expressions" do
       assert_node LC::FloatLiteral, "3.141_592"
     end
