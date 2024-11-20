@@ -125,19 +125,8 @@ module Lucid::Compiler
       @raw_value.as(String)
     end
 
-    def int_value : Int64
-      @raw_value.as(Int64)
-    end
-
-    def float_value : Float64
-      @raw_value.as(Float64)
-    end
-
     def char_value : Char
       @raw_value.as(Char)
-    end
-
-    def value=(@raw_value : String | Int | Nil)
     end
 
     def operator? : Bool
