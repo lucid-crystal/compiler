@@ -116,28 +116,28 @@ module Lucid::Compiler
 
     getter kind : Kind
     getter loc : Location
-    @value : String | Int64 | Float64 | Char | Nil
+    getter raw_value : String | Int64 | Float64 | Char | Nil
 
-    def initialize(@kind : Kind, @loc : Location, @value : String | Int64 | Float64 | Char | Nil = nil)
+    def initialize(@kind : Kind, @loc : Location, @raw_value : String | Int64 | Float64 | Char | Nil = nil)
     end
 
     def str_value : String
-      @value.as(String)
+      @raw_value.as(String)
     end
 
     def int_value : Int64
-      @value.as(Int64)
+      @raw_value.as(Int64)
     end
 
     def float_value : Float64
-      @value.as(Float64)
+      @raw_value.as(Float64)
     end
 
     def char_value : Char
-      @value.as(Char)
+      @raw_value.as(Char)
     end
 
-    def value=(@value : String | Int | Nil)
+    def value=(@raw_value : String | Int | Nil)
     end
 
     def operator? : Bool
@@ -145,8 +145,8 @@ module Lucid::Compiler
     end
 
     def to_s(io : IO) : Nil
-      if @value
-        @value.inspect io
+      if @raw_value
+        @raw_value.inspect io
       else
         io << '\'' << @kind.to_s.underscore << '\''
       end
@@ -163,9 +163,9 @@ module Lucid::Compiler
       col_start, col_end = @loc.column
       io << '-' << col_start << ':' << col_end
 
-      if @value
+      if @raw_value
         io << ", value: "
-        @value.inspect io
+        @raw_value.inspect io
       end
 
       io << ')'

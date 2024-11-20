@@ -605,11 +605,27 @@ module Lucid::Compiler
     end
 
     private def parse_integer(token : Token) : Node
-      IntLiteral.new(token.int_value).at(token.loc)
+      case value = token.raw_value
+      when String
+        if value =~ /[fiu]\d+/
+          IntLiteral
+            .new(value.rchop($0).to_i64(strict: false), IntLiteral::Base.from($0))
+            .at(token.loc)
+        else
+          IntLiteral.new(value.to_i64(strict: false), :dynamic).at(token.loc)
+        end
+      when Int64
+        IntLiteral.new(value, :dynamic).at(token.loc)
+      else
+        raise "BUG: type '#{value.class}' lexed for integer"
+      end
     end
 
     private def parse_float(token : Token) : Node
-      FloatLiteral.new(token.float_value).at(token.loc)
+      value = token.str_value
+      base = value.ends_with?("f64") ? FloatLiteral::Base::F64 : FloatLiteral::Base::F32
+
+      FloatLiteral.new(value.to_f64(strict: false), base).at(token.loc)
     end
 
     private def parse_string(token : Token) : Node
