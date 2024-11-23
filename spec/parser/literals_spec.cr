@@ -11,23 +11,23 @@ describe LC::Parser do
     end
 
     it "parses integer suffixes" do
-      node = parse("1234").should be_a LC::IntLiteral
-      node.base.dynamic?.should be_true
+      int = parse("1234").should be_a LC::IntLiteral
+      int.base.dynamic?.should be_true
 
-      node = parse("123_i8").should be_a LC::IntLiteral
-      node.base.i8?.should be_true
+      int = parse("123_i8").should be_a LC::IntLiteral
+      int.base.i8?.should be_true
 
-      node = parse("123_u32").should be_a LC::IntLiteral
-      node.base.u32?.should be_true
+      int = parse("123_u32").should be_a LC::IntLiteral
+      int.base.u32?.should be_true
 
-      node = parse("123_i128").should be_a LC::IntLiteral
-      node.base.i128?.should be_true
+      int = parse("123_i128").should be_a LC::IntLiteral
+      int.base.i128?.should be_true
 
-      node = parse("123_f32").should be_a LC::FloatLiteral
-      node.base.f32?.should be_true
+      float = parse("123_f32").should be_a LC::FloatLiteral
+      float.base.f32?.should be_true
 
-      node = parse("123_f64").should be_a LC::FloatLiteral
-      node.base.f64?.should be_true
+      float = parse("123_f64").should be_a LC::FloatLiteral
+      float.base.f64?.should be_true
     end
 
     it "parses float expressions" do

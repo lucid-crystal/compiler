@@ -3,18 +3,18 @@ require "../spec_helper"
 describe LC::Parser do
   context "prefixes", tags: %w[parser prefix] do
     it "parses prefix operator expressions" do
-      node = parse("!true").should be_a LC::Prefix
-      node.op.should eq LC::Prefix::Operator::Not
+      prefix = parse("!true").should be_a LC::Prefix
+      prefix.op.should eq LC::Prefix::Operator::Not
 
-      bool = node.value.should be_a LC::BoolLiteral
+      bool = prefix.value.should be_a LC::BoolLiteral
       bool.value.should be_true
     end
 
     it "parses double prefix operator expressions" do
-      node = parse("!!false").should be_a LC::Prefix
-      node.op.should eq LC::Prefix::Operator::Not
+      prefix = parse("!!false").should be_a LC::Prefix
+      prefix.op.should eq LC::Prefix::Operator::Not
 
-      prefix = node.value.should be_a LC::Prefix
+      prefix = prefix.value.should be_a LC::Prefix
       prefix.op.should eq LC::Prefix::Operator::Not
 
       bool = prefix.value.should be_a LC::BoolLiteral
@@ -22,12 +22,12 @@ describe LC::Parser do
     end
 
     it "parses prefix operator expressions in calls" do
-      node = parse("puts !foo").should be_a LC::Call
-      receiver = node.receiver.should be_a LC::Ident
+      call = parse("puts !foo").should be_a LC::Call
+      receiver = call.receiver.should be_a LC::Ident
       receiver.value.should eq "puts"
-      node.args.size.should eq 1
+      call.args.size.should eq 1
 
-      prefix = node.args[0].should be_a LC::Prefix
+      prefix = call.args[0].should be_a LC::Prefix
       prefix.op.should eq LC::Prefix::Operator::Not
 
       call = prefix.value.should be_a LC::Call
