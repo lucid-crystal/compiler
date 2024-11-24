@@ -76,71 +76,58 @@ describe LC::Parser do
 
     it "parses empty proc expressions" do
       {parse("-> { }"), parse("-> () { }")}.each do |node|
-        node.should be_a LC::ProcLiteral
-        node = node.as(LC::ProcLiteral)
-
-        node.params.should be_empty
-        node.body.should be_empty
+        proc = node.should be_a LC::ProcLiteral
+        proc.params.should be_empty
+        proc.body.should be_empty
       end
     end
 
     it "parses proc expressions with single arguments" do
-      node = parse "-> (x : Int32) { }"
-      node.should be_a LC::ProcLiteral
-      node = node.as(LC::ProcLiteral)
+      proc = parse("-> (x : Int32) { }").should be_a LC::ProcLiteral
+      proc.params.size.should eq 1
 
-      node.params.size.should eq 1
-      param = node.params[0]
+      param = proc.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "x"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "x"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
-
-      node.body.should be_empty
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
+      proc.body.should be_empty
     end
 
     it "parses proc expressions with multiple arguments" do
-      node = parse "-> (a : Int32, b : Int32) { }"
-      node.should be_a LC::ProcLiteral
-      node = node.as(LC::ProcLiteral)
+      proc = parse("-> (a : Int32, b : Int32) { }").should be_a LC::ProcLiteral
+      proc.params.size.should eq 2
 
-      node.params.size.should eq 2
-      param = node.params[0]
+      param = proc.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "a"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "a"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
-      param = node.params[1]
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "b"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
+      param = proc.params[1]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "b"
 
-      node.body.should be_empty
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
+      proc.body.should be_empty
     end
 
     it "parses proc expressions with a body" do
-      node = parse "-> do exit end"
-      node.should be_a LC::ProcLiteral
-      node = node.as(LC::ProcLiteral)
+      proc = parse("-> do exit end").should be_a LC::ProcLiteral
+      proc.params.should be_empty
+      proc.body.size.should eq 1
 
-      node.params.should be_empty
-      node.body.size.should eq 1
-      expr = node.body[0]
-
-      expr.should be_a LC::Call
-      expr = expr.as(LC::Call)
-
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "exit"
+      expr = proc.body[0].should be_a LC::Call
+      ident = expr.receiver.should be_a LC::Ident
+      ident.value.should eq "exit"
       expr.args.should be_empty
     end
 
     it "parses multiline proc expressions" do
-      node = parse <<-CR
+      proc = parse(<<-CR).should be_a LC::ProcLiteral
         -> (
           a : Int32,
           b : Int32,
@@ -150,41 +137,32 @@ describe LC::Parser do
         end
         CR
 
-      node.should be_a LC::ProcLiteral
-      node = node.as(LC::ProcLiteral)
+      proc.params.size.should eq 2
 
-      node.params.size.should eq 2
-      param = node.params[0]
+      param = proc.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "a"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "a"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
-      param = node.params[1]
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "b"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
+      param = proc.params[1]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "b"
 
-      node.body.size.should eq 1
-      expr = node.body[0]
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
+      proc.body.size.should eq 1
 
-      expr.should be_a LC::Infix
-      expr = expr.as(LC::Infix)
-
-      expr.left.should be_a LC::Call
-      node = expr.left.as(LC::Call)
-
-      node.receiver.should be_a LC::Ident
-      node.receiver.as(LC::Ident).value.should eq "a"
-
+      expr = proc.body[0].should be_a LC::Infix
+      left = expr.left.should be_a LC::Call
+      ident = left.receiver.should be_a LC::Ident
+      ident.value.should eq "a"
       expr.op.should eq LC::Infix::Operator::Add
-      expr.right.should be_a LC::Call
-      node = expr.right.as(LC::Call)
 
-      node.receiver.should be_a LC::Ident
-      node.receiver.as(LC::Ident).value.should eq "b"
+      node = expr.right.should be_a LC::Call
+      ident = node.receiver.should be_a LC::Ident
+      ident.value.should eq "b"
     end
   end
 end
