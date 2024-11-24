@@ -1,6 +1,16 @@
 require "./spec_helper"
 
 describe LC::Lexer, tags: "lexer" do
+  it "formats tokens" do
+    tokens = LC::Lexer.run ""
+    tokens.size.should eq 1
+
+    token = tokens[0]
+    token.kind.should eq LC::Token::Kind::EOF
+    token.raw_value.should be_nil
+    token.inspect.should eq "Token(kind: Lucid::Compiler::Token::Kind::EOF, loc: 0:0-0:0)"
+  end
+
   it "parses string expressions" do
     assert_tokens %("hello world"), :string, :eof
   end
