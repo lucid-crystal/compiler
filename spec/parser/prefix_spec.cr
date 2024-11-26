@@ -3,48 +3,36 @@ require "../spec_helper"
 describe LC::Parser do
   context "prefixes", tags: %w[parser prefix] do
     it "parses prefix operator expressions" do
-      node = parse "!true"
+      prefix = parse("!true").should be_a LC::Prefix
+      prefix.op.should eq LC::Prefix::Operator::Not
 
-      node.should be_a LC::Prefix
-      node = node.as(LC::Prefix)
-
-      node.op.should eq LC::Prefix::Operator::Not
-      node.value.should be_a LC::BoolLiteral
-      node.value.as(LC::BoolLiteral).value.should be_true
+      bool = prefix.value.should be_a LC::BoolLiteral
+      bool.value.should be_true
     end
 
     it "parses double prefix operator expressions" do
-      node = parse "!!false"
+      prefix = parse("!!false").should be_a LC::Prefix
+      prefix.op.should eq LC::Prefix::Operator::Not
 
-      node.should be_a LC::Prefix
-      node = node.as(LC::Prefix)
+      prefix = prefix.value.should be_a LC::Prefix
+      prefix.op.should eq LC::Prefix::Operator::Not
 
-      node.op.should eq LC::Prefix::Operator::Not
-      node.value.should be_a LC::Prefix
-      value = node.value.as(LC::Prefix)
-
-      value.op.should eq LC::Prefix::Operator::Not
-      value.value.should be_a LC::BoolLiteral
-      value.value.as(LC::BoolLiteral).value.should be_false
+      bool = prefix.value.should be_a LC::BoolLiteral
+      bool.value.should be_false
     end
 
     it "parses prefix operator expressions in calls" do
-      node = parse "puts !foo"
+      call = parse("puts !foo").should be_a LC::Call
+      receiver = call.receiver.should be_a LC::Ident
+      receiver.value.should eq "puts"
+      call.args.size.should eq 1
 
-      node.should be_a LC::Call
-      node = node.as(LC::Call)
+      prefix = call.args[0].should be_a LC::Prefix
+      prefix.op.should eq LC::Prefix::Operator::Not
 
-      node.receiver.should be_a LC::Ident
-      node.receiver.as(LC::Ident).value.should eq "puts"
-
-      node.args.size.should eq 1
-      node.args[0].should be_a LC::Prefix
-      arg = node.args[0].as(LC::Prefix)
-
-      arg.op.should eq LC::Prefix::Operator::Not
-      arg.value.should be_a LC::Call
-      arg.value.as(LC::Call).receiver.should be_a LC::Ident
-      arg.value.as(LC::Call).receiver.as(LC::Ident).value.should eq "foo"
+      call = prefix.value.should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
     end
 
     it "disallows prefix operators with incorrect syntax" do

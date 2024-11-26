@@ -600,10 +600,6 @@ module Lucid::Compiler
       Call.new(receiver, args).at(receiver.loc)
     end
 
-    private def parse_underscore(token : Token) : Node
-      Underscore.new.at(token.loc)
-    end
-
     private def parse_integer(token : Token) : Node
       case value = token.raw_value
       when String

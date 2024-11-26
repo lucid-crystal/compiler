@@ -12,15 +12,6 @@ def assert_node(cls : LC::Node.class, for input : String) : Nil
   parse(input).class.should eq cls
 end
 
-def assert_node_sequence(sequence : Array(LC::Node.class), for input : String) : Nil
-  tokens = LC::Lexer.run source
-  nodes = LC::Parser.parse tokens
-
-  sequence.each_with_index do |cls, index|
-    nodes[index].class.should eq cls
-  end
-end
-
 def assert_tokens(source : String, *kinds : LC::Token::Kind) : Nil
   LC::Lexer.run(source).map(&.kind).should eq kinds.to_a
 end
