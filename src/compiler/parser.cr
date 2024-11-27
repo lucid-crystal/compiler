@@ -489,20 +489,28 @@ module Lucid::Compiler
     # IDENT ::= ('a'..'z' | '_') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_ident_or_path(token : Token, global : Bool) : Node
       names = [] of Ident
-      if token.kind.self?
+      case token.kind
+      when .self?
         names << Self.new("self", global).at(token.loc)
-      elsif token.kind.ident?
+      when .ident?
         names << Ident.new(token.str_value, global).at(token.loc)
-      else
+      when Token::Kind::Abstract..Token::Kind::Require
         names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
+      else
+        raise "unexpected token #{token}"
       end
 
       while peek_token.kind.period?
         skip_token
         token = next_token_skip space: true
 
-        if token.kind.ident?
+        case token.kind
+        when .self?
+          names << Self.new("self", false).at(token.loc)
+        when .ident?
           names << Ident.new(token.str_value, false).at(token.loc)
+        when Token::Kind::Abstract..Token::Kind::Require
+          names << Ident.new(token.kind.to_s.downcase, false).at(token.loc)
         else
           raise "unexpected token #{token}"
         end
@@ -527,9 +535,15 @@ module Lucid::Compiler
         token = next_token_skip space: true
 
         case token.kind
+        when .self?
+          in_method = true
+          names << Self.new("self", global).at(token.loc)
         when .ident?
           in_method = true
           names << Ident.new(token.str_value, global).at(token.loc)
+        when Token::Kind::Abstract..Token::Kind::Require
+          in_method = true
+          names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
         when .const?
           raise "unexpected token #{token}" if in_method
           names << Const.new(token.str_value, global).at(token.loc)
