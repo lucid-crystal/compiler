@@ -131,6 +131,8 @@ module Lucid::Compiler
         parse_visibility_expression token.kind
       when .def?
         parse_def token
+      when .alias?
+        parse_alias token
       when .require?
         parse_require token
         # when .class?, .struct? then parse_class token
@@ -305,6 +307,21 @@ module Lucid::Compiler
 
       skip_token
       Def.new(name, params, return_type, free_vars, body).at(start & token.loc)
+    end
+
+    private def parse_alias(token : Token) : Node
+      name = parse_const_or_path next_token_skip(space: true), true
+      case next_token_skip(space: true).kind
+      when .eof?
+        raise "unexpected end of file"
+      when .assign?
+        type = parse_const_or_path(next_token_skip(space: true), true)
+        next_token_skip space: true, newline: true
+
+        Alias.new(name, type).at(token.loc & type.loc)
+      else
+        raise "unexpected token #{token}"
+      end
     end
 
     private def parse_require(token : Token) : Node

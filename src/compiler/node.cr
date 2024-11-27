@@ -135,6 +135,33 @@ module Lucid::Compiler
     end
   end
 
+  class Alias < Node
+    property name : Node
+    property type : Node
+
+    def initialize(@name : Node, @type : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "alias " << @name << " = " << @type
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Alias("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "name: "
+        @name.pretty_print pp
+        pp.comma
+
+        pp.text "type: "
+        @type.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class Require < Node
     property mod : Node
 

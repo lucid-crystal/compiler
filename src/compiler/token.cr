@@ -85,7 +85,7 @@ module Lucid::Compiler
       OrAssign          # ||=
 
       Abstract
-      # Alias
+      Alias
       Class
       Def
       Do
