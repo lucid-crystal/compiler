@@ -369,8 +369,19 @@ module Lucid::Compiler
         Token.new :char, location, value
       when 'a'
         start = current_pos
-        if next_sequence?('b', 's', 't', 'r', 'a', 'c', 't')
-          lex_keyword_or_ident :abstract, start
+        case next_char
+        when 'b'
+          if next_sequence?('s', 't', 'r', 'a', 'c', 't')
+            lex_keyword_or_ident :abstract, start
+          else
+            lex_ident start
+          end
+        when 'l'
+          if next_sequence?('i', 'a', 's')
+            lex_keyword_or_ident :alias, start
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end
