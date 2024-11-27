@@ -10,6 +10,21 @@ describe LC::Parser do
       call.args.size.should eq 0
     end
 
+    it "parses call expressions with keyword names" do
+      call = parse("::alias").should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "alias"
+      call.args.should be_empty
+
+      call = parse(%(::require("my_file.cr"))).should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "require"
+      call.args.size.should eq 1
+
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "my_file.cr"
+    end
+
     it "parses delimited call expressions" do
       {parse("puts;"), parse("puts\n")}.each do |node|
         call = node.should be_a LC::Call

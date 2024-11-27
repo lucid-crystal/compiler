@@ -409,12 +409,14 @@ module Lucid::Compiler
     # PATH ::= [(['::'] CONST)+ '.'] IDENT ('.' IDENT)*
     private def parse_var_or_call(token : Token, global : Bool) : Node
       case token.kind
-      when .ident?, .self?
+      when .ident?, .self?, Token::Kind::Abstract..Token::Kind::Require
         receiver = parse_ident_or_path token, global
       when .const?
         receiver = parse_const_or_path token, global
-      else
+      when .underscore?
         receiver = Underscore.new.at(token.loc)
+      else
+        raise "unexpected token #{token}"
       end
 
       peek = peek_token_skip space: true
@@ -489,8 +491,10 @@ module Lucid::Compiler
       names = [] of Ident
       if token.kind.self?
         names << Self.new("self", global).at(token.loc)
-      else
+      elsif token.kind.ident?
         names << Ident.new(token.str_value, global).at(token.loc)
+      else
+        names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
       end
 
       while peek_token.kind.period?
