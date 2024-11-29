@@ -10,6 +10,21 @@ describe LC::Parser do
       call.args.size.should eq 0
     end
 
+    it "parses call expressions with keyword names" do
+      call = parse("::alias").should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "alias"
+      call.args.should be_empty
+
+      call = parse(%(::require("my_file.cr"))).should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "require"
+      call.args.size.should eq 1
+
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "my_file.cr"
+    end
+
     it "parses delimited call expressions" do
       {parse("puts;"), parse("puts\n")}.each do |node|
         call = node.should be_a LC::Call
@@ -31,6 +46,29 @@ describe LC::Parser do
 
       ident = path.names[2].should be_a LC::Ident
       ident.value.should eq "baz"
+    end
+
+    it "parses path call expressions with keyword names" do
+      call = parse("self.self.self").should be_a LC::Call
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 3
+
+      3.times do |i|
+        path.names[i - 1].should be_a LC::Self
+      end
+
+      call = parse("this.abstract.type").should be_a LC::Call
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 3
+
+      ident = path.names[0].should be_a LC::Ident
+      ident.value.should eq "this"
+
+      ident = path.names[1].should be_a LC::Ident
+      ident.value.should eq "abstract"
+
+      ident = path.names[2].should be_a LC::Ident
+      ident.value.should eq "type"
     end
 
     it "parses constant path expressions" do
@@ -58,6 +96,31 @@ describe LC::Parser do
       ident = path.names[1].should be_a LC::Ident
       ident.value.should eq "baz"
       ident.global?.should be_false
+    end
+
+    it "parses constant call expressions with keyword names" do
+      call = parse("Foo.class").should be_a LC::Call
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 2
+
+      const = path.names[0].should be_a LC::Const
+      const.value.should eq "Foo"
+
+      ident = path.names[1].should be_a LC::Ident
+      ident.value.should eq "class"
+
+      call = parse("::Bar::Baz.end").should be_a LC::Call
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 3
+
+      const = path.names[0].should be_a LC::Const
+      const.value.should eq "Bar"
+
+      const = path.names[1].should be_a LC::Const
+      const.value.should eq "Baz"
+
+      ident = path.names[2].should be_a LC::Ident
+      ident.value.should eq "end"
     end
 
     it "parses call expressions with single arguments" do
