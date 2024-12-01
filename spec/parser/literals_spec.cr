@@ -68,10 +68,17 @@ describe LC::Parser do
       assert_node LC::Underscore, "_"
     end
 
-    it "disallows calling underscore" do
-      expect_raises(Exception, "underscore cannot be called as a method") do
-        parse "_ foo"
-      end
+    it "errors on calling underscore" do
+      call = parse("_ foo").should be_a LC::Call
+      error = call.receiver.should be_a LC::Error
+
+      error.target.should be_a LC::Underscore
+      error.message.should eq "underscore cannot be called as a method"
+      call.args.size.should eq 1
+
+      call = call.args[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
     end
 
     it "parses empty proc expressions" do

@@ -461,7 +461,7 @@ module Lucid::Compiler
                 end
 
       if !is_call && receiver.is_a?(Underscore)
-        raise "underscore cannot be called as a method"
+        receiver = raise receiver, "underscore cannot be called as a method"
       end
 
       if is_call
