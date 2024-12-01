@@ -548,7 +548,12 @@ module Lucid::Compiler
 
     # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Node
-      names = [Const.new(token.str_value, global).at(token.loc)] of Node
+      names = [] of Node
+      if token.kind.const?
+        names << Const.new(token.str_value, global).at(token.loc)
+      else
+        names << raise token, "expected token 'const', not '#{token.kind.to_s.downcase}'"
+      end
       in_method = false
 
       while peek_token.kind.period? || peek_token.kind.double_colon?
