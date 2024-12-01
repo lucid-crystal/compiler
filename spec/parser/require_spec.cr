@@ -7,5 +7,15 @@ describe LC::Parser do
       mod = req.mod.should be_a LC::StringLiteral
       mod.value.should eq "json"
     end
+
+    it "parses invalid require statements" do
+      req = parse("require class").should be_a LC::Require
+      error = req.mod.should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.class?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "require needs a string literal"
+    end
   end
 end

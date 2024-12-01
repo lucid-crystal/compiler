@@ -346,17 +346,18 @@ module Lucid::Compiler
     end
 
     private def parse_require(token : Token) : Node
-      # TODO: not sure why ameba is flagging this
-      # ameba:disable Lint/ShadowedArgument
+      start = token.loc
       token = next_token_skip space: true
-      if !token.kind.string?
-        raise "require needs a string literal"
+
+      if token.kind.string?
+        mod = parse_string token
+      else
+        mod = raise token, "require needs a string literal"
       end
 
-      mod = parse_string(token)
       next_token_skip space: true, newline: true
 
-      Require.new(mod)
+      Require.new(mod).at(start & mod.loc)
     end
 
     private def parse_expression(token : Token) : Node
