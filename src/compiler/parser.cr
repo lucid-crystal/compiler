@@ -1,5 +1,17 @@
 module Lucid::Compiler
   class Parser
+    class Exception < Exception
+      getter target : Token | Node
+
+      def initialize(@target : Token | Node, message : String)
+        super message
+      end
+
+      def mesasge : String
+        super.as(String)
+      end
+    end
+
     # https://crystal-lang.org/reference/1.12/syntax_and_semantics/operators.html#operator-precedence
     private enum Precedence
       Lowest
@@ -59,13 +71,14 @@ module Lucid::Compiler
     end
 
     @tokens : Array(Token)
+    @fail_first : Bool
     @pos : Int32 = 0
 
-    def self.parse(tokens : Array(Token)) : Array(Node)
-      new(tokens).parse
+    def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Array(Node)
+      new(tokens, fail_first).parse
     end
 
-    private def initialize(@tokens : Array(Token))
+    private def initialize(@tokens : Array(Token), @fail_first : Bool)
     end
 
     def parse : Array(Node)
@@ -118,6 +131,14 @@ module Lucid::Compiler
         end
       else
         @tokens[offset]
+      end
+    end
+
+    private def raise(target : Token | Node, message : String) : Node | NoReturn
+      if @fail_first
+        raise Parser::Exception.new target, message
+      else
+        Error.new target, message
       end
     end
 
@@ -488,7 +509,8 @@ module Lucid::Compiler
 
     # IDENT ::= ('a'..'z' | '_') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_ident_or_path(token : Token, global : Bool) : Node
-      names = [] of Ident
+      names = [] of Node
+
       case token.kind
       when .self?
         names << Self.new("self", global).at(token.loc)
@@ -497,7 +519,7 @@ module Lucid::Compiler
       when Token::Kind::Abstract..Token::Kind::Require
         names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
       else
-        raise "unexpected token #{token}"
+        names << raise token, "unexpected token #{token}"
       end
 
       while peek_token.kind.period?
@@ -512,12 +534,12 @@ module Lucid::Compiler
         when Token::Kind::Abstract..Token::Kind::Require
           names << Ident.new(token.kind.to_s.downcase, false).at(token.loc)
         else
-          raise "unexpected token #{token}"
+          names << raise token, "unexpected token #{token}"
         end
       end
 
       if names.size > 1
-        Path.new(names, names[0].global?)
+        Path.new names, names[0].as?(Ident).try(&.global?) || false
       else
         names[0]
       end
@@ -525,12 +547,12 @@ module Lucid::Compiler
 
     # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Node
-      names = [Const.new(token.str_value, global).at(token.loc)] of Ident
+      names = [Const.new(token.str_value, global).at(token.loc)] of Node
       in_method = false
 
       while peek_token.kind.period? || peek_token.kind.double_colon?
         global = peek_token.kind.double_colon?
-        raise "unexpected token #{peek_token}" if global && in_method
+        names << raise peek_token, "unexpected token #{peek_token}" if global && in_method
         skip_token
         token = next_token_skip space: true
 
@@ -545,15 +567,19 @@ module Lucid::Compiler
           in_method = true
           names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
         when .const?
-          raise "unexpected token #{token}" if in_method
-          names << Const.new(token.str_value, global).at(token.loc)
+          node = Const.new(token.str_value, global).at(token.loc)
+          if in_method
+            names << raise node, "unexpected token #{token}"
+          else
+            names << node
+          end
         else
-          raise "unexpected token #{token}"
+          names << raise token, "unexpected token #{token}"
         end
       end
 
       if names.size > 1
-        Path.new(names, names[0].global?)
+        Path.new names, names[0].as?(Ident).try(&.global?) || false
       else
         names[0]
       end
@@ -579,9 +605,13 @@ module Lucid::Compiler
           delimited = true
           received = false
         else
-          raise "expected a comma after the last argument" if received
+          node = parse_expression next_token_skip(space: true), :lowest
+          if received
+            args << raise node, "expected a comma after the last argument"
+          else
+            args << node
+          end
 
-          args << parse_expression next_token_skip(space: true), :lowest
           delimited = false
           received = true
         end
