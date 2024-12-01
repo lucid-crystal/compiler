@@ -137,8 +137,7 @@ describe LC::Parser do
       token.raw_value.should eq "bar"
       error.message.should eq %(unexpected token "bar")
 
-      call = parse("Foo::'a'::Bar").should be_a LC::Call
-      path = call.receiver.should be_a LC::Path
+      path = parse("Foo::'a'::Bar").should be_a LC::Path
       path.names.size.should eq 3
 
       const = path.names[0].should be_a LC::Const
@@ -155,7 +154,7 @@ describe LC::Parser do
 
       call = parse("Foo.bar::Baz").should be_a LC::Call
       path = call.receiver.should be_a LC::Path
-      path.names.size.should eq 3
+      path.names.size.should eq 4
 
       const = path.names[0].should be_a LC::Const
       const.value.should eq "Foo"
