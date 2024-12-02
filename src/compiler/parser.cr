@@ -332,11 +332,18 @@ module Lucid::Compiler
 
     private def parse_alias(token : Token) : Node
       name = parse_const_or_path next_token_skip(space: true), true
+
+      if name.is_a?(Error) && current_token.kind.eof?
+        return Alias.new(name, name).at(token.loc & name.loc)
+      end
+
       case next_token_skip(space: true).kind
       when .eof?
-        raise "unexpected end of file"
+        node = raise current_token, "unexpected end of file"
+
+        Alias.new(name, node).at(token.loc & node.loc)
       when .assign?
-        type = parse_const_or_path(next_token_skip(space: true), true)
+        type = parse_const_or_path next_token_skip(space: true), true
         next_token_skip space: true, newline: true
 
         Alias.new(name, type).at(token.loc & type.loc)
@@ -349,15 +356,18 @@ module Lucid::Compiler
       start = token.loc
       token = next_token_skip space: true
 
-      if token.kind.string?
-        mod = parse_string token
+      case token.kind
+      when .eof?
+        node = raise token, "unexpected end of file"
+      when .string?
+        node = parse_string token
+        next_token_skip space: true, newline: true
       else
-        mod = raise token, "require needs a string literal"
+        node = raise token, "require needs a string literal"
+        next_token_skip space: true, newline: true
       end
 
-      next_token_skip space: true, newline: true
-
-      Require.new(mod).at(start & mod.loc)
+      Require.new(node).at(start & node.loc)
     end
 
     private def parse_expression(token : Token) : Node
@@ -548,6 +558,8 @@ module Lucid::Compiler
 
     # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Node
+      return raise token, "unexpected end of file" if token.kind.eof?
+
       names = [] of Node
       if token.kind.const?
         names << Const.new(token.str_value, global).at(token.loc)
