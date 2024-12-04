@@ -339,17 +339,16 @@ module Lucid::Compiler
 
       case next_token_skip(space: true).kind
       when .eof?
-        node = raise current_token, "unexpected end of file"
-
-        Alias.new(name, node).at(token.loc & node.loc)
+        type = raise current_token, "unexpected end of file"
       when .assign?
         type = parse_const_or_path next_token_skip(space: true), true
-        next_token_skip space: true, newline: true
-
-        Alias.new(name, type).at(token.loc & type.loc)
+        next_token_skip(space: true, newline: true) unless current_token.kind.eof?
       else
-        raise "unexpected token #{token}"
+        type = raise current_token, "unexpected token #{current_token}"
+        next_token_skip space: true, newline: true
       end
+
+      Alias.new(name, type).at(token.loc & type.loc)
     end
 
     private def parse_require(token : Token) : Node
