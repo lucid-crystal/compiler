@@ -149,7 +149,7 @@ module Lucid::Compiler
       when .space?, .newline?, .semicolon?
         parse next_token_skip space: true, newline: true, semicolon: true
       when .abstract?, .private?, .protected?
-        parse_visibility_expression token.kind
+        parse_visibility_expression token
       when .def?
         parse_def token
       when .alias?
@@ -162,33 +162,40 @@ module Lucid::Compiler
       end
     end
 
-    private def parse_visibility_expression(kind : Token::Kind) : Node
-      _abstract = kind.abstract?
-      _private = kind.private?
-      _protected = kind.protected?
+    private def parse_visibility_expression(token : Token) : Node
+      is_private = token.kind.private?
+      is_protected = token.kind.protected?
+      is_abstract = token.kind.abstract?
 
-      token = next_token_skip space: true
-      if token.kind.abstract?
-        raise "unexpected token 'abstract'" if _abstract
-        _abstract = true
-        token = next_token_skip space: true
+      loop do
+        inner = next_token_skip space: true
+        case inner.kind
+        when .eof?
+          return raise inner, "unexpected end of file"
+        when .private?
+          next_token_skip space: true
+          return raise inner, "unexpected token 'private'" if is_private
+          return raise inner, "cannot apply protected and private visibility" if is_protected
+
+          is_private = true
+        when .protected?
+          next_token_skip space: true
+          return raise inner, "unexpected token 'protected'" if is_protected
+          return raise inner, "cannot apply private and protected visibility" if is_private
+
+          is_protected = true
+        when .abstract?
+          next_token_skip space: true
+          return raise inner, "unexpected token 'abstract'" if is_abstract
+
+          is_abstract = true
+        else
+          break
+        end
       end
 
-      if token.kind.private?
-        raise "unexpected token 'private'" if _private
-        raise "cannot apply private and protected visibility" if _protected
-        _private = true
-        token = next_token_skip space: true
-      end
-
-      if token.kind.protected?
-        raise "unexpected token 'protected'" if _protected
-        raise "cannot apply private and protected visibility" if _private
-        _protected = true
-        token = next_token_skip space: true
-      end
-
-      if token.kind.def? && _abstract
+      pp token
+      if token.kind.def? && is_abstract
         node = parse_def token, true
       else
         node = parse token
@@ -196,8 +203,8 @@ module Lucid::Compiler
 
       case node
       when Def
-        node.private = _private
-        node.protected = _protected
+        node.private = is_private
+        node.protected = is_protected
       else
         raise "visibility modifier cannot be applied to #{node}"
       end
