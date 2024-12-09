@@ -479,24 +479,80 @@ describe LC::Parser do
       node.abstract?.should be_true
     end
 
-    it "disallows duplicate visibility keywords on method defs" do
-      expect_raises(Exception, "unexpected token 'private'") do
-        parse "private private def foo"
-      end
+    it "errors on duplicate visibility keywords on method defs" do
+      nodes = parse_all "private private def foo; end"
+      nodes.size.should eq 2
 
-      expect_raises(Exception, "unexpected token 'protected'") do
-        parse "protected protected def foo"
-      end
+      error = nodes[0].should be_a LC::Error
+      token = error.target.should be_a LC::Token
 
-      expect_raises(Exception, "unexpected token 'abstract'") do
-        parse "abstract abstract def foo"
-      end
+      token.kind.private?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "unexpected token 'private'"
+
+      method = nodes[1].should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      method.private?.should be_true
+      method.protected?.should be_false
+      method.abstract?.should be_false
+
+      nodes = parse_all "protected protected def bar; end"
+      nodes.size.should eq 2
+
+      error = nodes[0].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.protected?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "unexpected token 'protected'"
+
+      method = nodes[1].should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "bar"
+      method.private?.should be_false
+      method.protected?.should be_true
+      method.abstract?.should be_false
+
+      nodes = parse_all "abstract abstract def baz"
+      nodes.size.should eq 2
+
+      error = nodes[0].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.abstract?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "unexpected token 'abstract'"
+
+      method = nodes[1].should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "baz"
+      method.private?.should be_false
+      method.protected?.should be_false
+      method.abstract?.should be_true
     end
 
-    it "disallows private-protected keywords on method defs" do
-      expect_raises(Exception, "cannot apply private and protected visibility") do
-        parse "private protected def foo"
-      end
+    it "errors on private-protected keywords on method defs" do
+      nodes = parse_all "private protected def foo; end"
+      nodes.size.should eq 2
+
+      error = nodes[0].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.protected?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "cannot apply private and protected visibility"
+
+      method = nodes[1].should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      method.private?.should be_false
+      method.protected?.should be_true
+      method.abstract?.should be_false
     end
   end
 end
