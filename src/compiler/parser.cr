@@ -163,30 +163,28 @@ module Lucid::Compiler
     end
 
     private def parse_visibility_expression(token : Token) : Node
+      # start = token.loc # TODO: merge start loc into result node
       is_private = token.kind.private?
       is_protected = token.kind.protected?
       is_abstract = token.kind.abstract?
 
       loop do
-        inner = next_token_skip space: true
-        case inner.kind
+        token = next_token_skip space: true
+        case token.kind
         when .eof?
-          return raise inner, "unexpected end of file"
+          return raise token, "unexpected end of file"
         when .private?
-          next_token_skip space: true
-          return raise inner, "unexpected token 'private'" if is_private
-          return raise inner, "cannot apply protected and private visibility" if is_protected
+          return raise token, "unexpected token 'private'" if is_private
+          return raise token, "cannot apply protected and private visibility" if is_protected
 
           is_private = true
         when .protected?
-          next_token_skip space: true
-          return raise inner, "unexpected token 'protected'" if is_protected
-          return raise inner, "cannot apply private and protected visibility" if is_private
+          return raise token, "unexpected token 'protected'" if is_protected
+          return raise token, "cannot apply private and protected visibility" if is_private
 
           is_protected = true
         when .abstract?
-          next_token_skip space: true
-          return raise inner, "unexpected token 'abstract'" if is_abstract
+          return raise token, "unexpected token 'abstract'" if is_abstract
 
           is_abstract = true
         else
@@ -194,7 +192,6 @@ module Lucid::Compiler
         end
       end
 
-      pp token
       if token.kind.def? && is_abstract
         node = parse_def token, true
       else
