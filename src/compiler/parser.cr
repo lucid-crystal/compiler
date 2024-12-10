@@ -254,12 +254,15 @@ module Lucid::Compiler
               token = next_token_skip space: true
             end
 
+            # TODO: not sure how to handle this one
             if token.kind.bit_and? && !pname.is_a?(NilLiteral)
               raise "block parameters cannot have external names"
             end
 
             if token.kind.ident?
-              raise "block parameters cannot have external names" if block
+              if block
+                pname = raise pname, "block parameters cannot have external names"
+              end
               internal = parse_ident_or_path token, false
               token = next_token_skip space: true
             end

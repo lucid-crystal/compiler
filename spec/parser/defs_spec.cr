@@ -310,20 +310,21 @@ describe LC::Parser do
       node.return_type.as(LC::Const).value.should eq "Nil"
     end
 
-    it "disallows method def external names for block parameters" do
-      expect_raises(Exception, "block parameters cannot have external names") do
-        parse <<-CR
-          def write(&to file : IO ->) : Nil
-          end
-          CR
-      end
+    it "errors on method def external names for block parameters" do
+      method = parse("def write(&to file); end").should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+      ident.value.should eq "write"
+      method.params.size.should eq 1
 
-      expect_raises(Exception, "block parameters cannot have external names") do
-        parse <<-CR
-          def write(to &file : IO ->) : Nil
-          end
-          CR
-      end
+      param = method.params[0]
+      error = param.name.should be_a LC::Error
+      ident = error.target.should be_a LC::Ident
+      ident.value.should eq "to"
+      error.message.should eq "block parameters cannot have external names"
+
+      ident = param.internal_name.should be_a LC::Ident
+      ident.value.should eq "file"
+      param.block?.should be_true
     end
 
     it "parses method defs with free variables" do
