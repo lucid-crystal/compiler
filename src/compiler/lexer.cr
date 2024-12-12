@@ -571,8 +571,19 @@ module Lucid::Compiler
     private def lex_ident(start : Int32 = current_pos) : Token
       kind = current_char.uppercase? ? Token::Kind::Const : Token::Kind::Ident
 
-      while current_char.ascii_alphanumeric? || current_char.in?('_', '[', ']', '!', '?', '=')
-        next_char
+      loop do
+        case current_char
+        when .ascii_alphanumeric?, '_'
+          next_char
+        when '?'
+          next_char
+          break
+        when '!', '='
+          next_char unless @reader.peek_next_char == '='
+          break
+        else
+          break
+        end
       end
 
       Token.new kind, location, read_string_from start

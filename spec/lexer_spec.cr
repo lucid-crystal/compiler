@@ -130,6 +130,17 @@ describe LC::Lexer, tags: "lexer" do
     )
   end
 
+  it "parses identifiers" do
+    assert_tokens "foo", :ident, :eof
+    assert_tokens "foo=", :ident, :eof
+    assert_tokens "foo!", :ident, :eof
+    assert_tokens "foo!!", :ident, :bang, :eof
+    assert_tokens "foo!=", :ident, :not_equal, :eof
+    assert_tokens "foo?", :ident, :eof
+    assert_tokens "foo??", :ident, :question, :eof
+    assert_tokens "foo?!", :ident, :bang, :eof
+  end
+
   it "parses comments" do
     assert_tokens(
       <<-CR,
