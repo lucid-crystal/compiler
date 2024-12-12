@@ -123,6 +123,21 @@ describe LC::Parser do
       ident.value.should eq "end"
     end
 
+    it "parses call expressions ending with special tokens" do
+      infix = parse("call==").should be_a LC::Infix
+      call = infix.left.should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+
+      ident.value.should eq "call"
+      infix.op.equal?.should be_true
+      error = infix.right.should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.eof?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "cannot parse expression 'eof'"
+    end
+
     it "parses invalid calls as errors" do
       call = parse(%(foo."bar")).should be_a LC::Call
       path = call.receiver.should be_a LC::Path

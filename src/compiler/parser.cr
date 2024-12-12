@@ -394,7 +394,8 @@ module Lucid::Compiler
     # EXPRESSION ::= PREFIX_EXPR | INFIX_EXPR
     private def parse_expression(token : Token, prec : Precedence) : Node
       left = parse_prefix_expression token
-      raise "cannot parse expression #{token}" if left.nil?
+      # TODO: should this error message change?
+      return raise token, "cannot parse expression #{token}" if left.nil?
 
       loop do
         token = peek_token_skip space: true, newline: true
@@ -460,7 +461,7 @@ module Lucid::Compiler
       when .underscore?
         receiver = Underscore.new.at(token.loc)
       else
-        raise "unexpected token #{token}"
+        receiver = raise token, "unexpected token #{token}"
       end
 
       peek = peek_token_skip space: true
@@ -500,14 +501,12 @@ module Lucid::Compiler
         end
       end
 
-      skip_token
-      case current_token.kind
+      case peek_token.kind
       when .space?
         token = next_token_skip space: true
         case token.kind
         when .colon?
-          node = parse_var_or_call next_token_skip(space: true), false
-          case node
+          case node = parse_var_or_call next_token_skip(space: true), false
           when Assign
             Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
           when Ident
@@ -524,9 +523,10 @@ module Lucid::Compiler
           parse_open_call receiver
         end
       when .left_paren?
+        skip_token
         parse_closed_call receiver
       else
-        raise "unexpected token #{current_token}"
+        Call.new(receiver, [] of Node).at(receiver.loc)
       end
     end
 
