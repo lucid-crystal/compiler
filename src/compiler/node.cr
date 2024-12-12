@@ -50,14 +50,14 @@ module Lucid::Compiler
     property name : Node
     property params : Array(Parameter)
     property return_type : Node?
-    property free_vars : Array(Const)
+    property free_vars : Array(Node)
     property body : Array(Node)
     property? abstract : Bool = false
     property? private : Bool = false
     property? protected : Bool = false
 
     def initialize(@name : Node, @params : Array(Parameter), @return_type : Node?,
-                   @free_vars : Array(Const), @body : Array(Node))
+                   @free_vars : Array(Node), @body : Array(Node))
       super()
     end
 

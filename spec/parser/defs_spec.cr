@@ -179,10 +179,48 @@ describe LC::Parser do
       expr.args[0].as(LC::StringLiteral).value.should eq "bar"
     end
 
-    it "disallows method def single line body without parentheses, newline or semicolon" do
-      expect_raises(Exception, "expected a newline or semicolon after def signature") do
-        parse %(def foo puts "bar" end)
-      end
+    it "errors on method def single line body without parentheses, newline or semicolon" do
+      method = parse(%(def foo puts "bar" end)).should be_a LC::Def
+      error = method.name.should be_a LC::Error
+      ident = error.target.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      error.message.should eq %(expected a newline or semicolon after def signature; got "puts")
+
+      method.return_type.should be_nil
+      method.body.size.should eq 1
+      call = method.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+
+      ident.value.should eq "puts"
+      call.args.size.should eq 1
+      str = call.args[0].should be_a LC::StringLiteral
+
+      str.value.should eq "bar"
+    end
+
+    it "errors on method defs with undelimited parameters" do
+      method = parse("def foo(bar baz qux); end").should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      method.params.size.should eq 2
+      param = method.params[0]
+      ident = param.name.should be_a LC::Ident
+
+      ident.value.should eq "bar"
+      ident = param.internal_name.should be_a LC::Ident
+
+      ident.value.should eq "baz"
+      param.type.should be_nil
+      param.default_value.should be_nil
+      param = method.params[1]
+      error = param.name.should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.ident?.should be_true
+      token.raw_value.should eq "qux"
+      error.message.should eq %(expected a comma or right parenthesis; got "qux")
     end
 
     it "parses method defs with a single parameter" do
@@ -355,8 +393,49 @@ describe LC::Parser do
 
       node.return_type.should be_nil
       node.free_vars.size.should eq 2
-      node.free_vars[0].value.should eq "T"
-      node.free_vars[1].value.should eq "U"
+
+      const = node.free_vars[0].should be_a LC::Const
+      const.value.should eq "T"
+
+      const = node.free_vars[1].should be_a LC::Const
+      const.value.should eq "U"
+    end
+
+    it "errors on method defs with invalid free variables" do
+      method = parse("def foo : T forall 3; end").should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      const = method.return_type.should be_a LC::Const
+
+      const.value.should eq "T"
+      method.free_vars.size.should eq 1
+      error = method.free_vars[0].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.integer?.should be_true
+      token.raw_value.should eq "3"
+      error.message.should eq "expected token 'const', not 'integer'"
+
+      method = parse("def foo : U forall T::U; end").should be_a LC::Def
+      ident = method.name.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      const = method.return_type.should be_a LC::Const
+
+      const.value.should eq "U"
+      method.free_vars.size.should eq 1
+      error = method.free_vars[0].should be_a LC::Error
+      path = error.target.should be_a LC::Path
+
+      path.names.size.should eq 2
+      const = path.names[0].should be_a LC::Const
+
+      const.value.should eq "T"
+      const = path.names[1].should be_a LC::Const
+
+      const.value.should eq "U"
+      error.message.should eq "free variables cannot be paths"
     end
 
     it "parses abstract method defs" do

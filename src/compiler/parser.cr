@@ -203,7 +203,7 @@ module Lucid::Compiler
         node.private = is_private
         node.protected = is_protected
       else
-        raise "visibility modifier cannot be applied to #{node}"
+        return raise node.as(Node), "visibility modifier cannot be applied to #{node.class}"
       end
 
       node
@@ -225,7 +225,7 @@ module Lucid::Compiler
       token = next_token_skip space: true
       params = [] of Parameter
       empty_parens = false
-      free_vars = [] of Const
+      free_vars = [] of Node
 
       if token.kind.left_paren?
         token = next_token_skip space: true
@@ -279,13 +279,17 @@ module Lucid::Compiler
 
             params << Parameter.new(pname, internal, type, value, block)
 
+            unless token.kind.right_paren? || token.kind.comma?
+              node = raise token, "expected a comma or right parenthesis; got #{token}"
+              params << Parameter.new(node, nil, nil, nil, false)
+              token = next_token_skip space: true
+            end
+
             if token.kind.right_paren?
               token = next_token_skip space: true
               break
             elsif token.kind.comma?
               token = next_token_skip space: true
-            else
-              raise "expected a comma or right parenthesis; got #{token}"
             end
           end
         end
@@ -299,11 +303,12 @@ module Lucid::Compiler
       if token.kind.forall?
         loop do
           token = next_token_skip space: true
-          raise "expected token const; got #{token}" unless token.kind.const?
+          node = parse_const_or_path token, false
 
-          case node = parse_const_or_path token, false
-          when Const then free_vars << node
-          else            raise "free variables cannot be paths"
+          if node.is_a? Path
+            free_vars << raise node, "free variables cannot be paths"
+          else
+            free_vars << node
           end
 
           token = next_token_skip space: true
@@ -318,16 +323,17 @@ module Lucid::Compiler
       end
 
       unless empty_parens && return_type.nil?
-        unless token.kind.newline? || token.kind.semicolon?
-          raise "expected a newline or semicolon after def signature; got #{token}"
+        if token.kind.newline? || token.kind.semicolon?
+          token = next_token_skip space: true, newline: true, semicolon: true
+        else
+          name = raise name.at(name.loc & token.loc), "expected a newline or semicolon after def signature; got #{token}"
         end
-        token = next_token_skip space: true, newline: true, semicolon: true
       end
 
       body = [] of Node
       loop do
         break if token.kind.end?
-        raise "unexpected end of file" if token.kind.eof?
+        return raise token, "unexpected end of file" if token.kind.eof?
 
         body << parse_expression token
         token = current_token
