@@ -16,11 +16,29 @@ describe LC::Lexer, tags: "lexer" do
   end
 
   it "parses integer expressions" do
+    assert_tokens "123", :integer, :eof
     assert_tokens "123_45", :integer, :eof
+    assert_tokens "123_i64", :integer, :eof
+  end
+
+  it "parses invalid integer expressions" do
+    assert_tokens "123i88", :integer_bad_suffix, :eof
+    assert_tokens "123i162", :integer_bad_suffix, :eof
+    assert_tokens "123i345", :integer_bad_suffix, :eof
+    assert_tokens "123u654", :integer_bad_suffix, :eof
+    assert_tokens "123u123", :integer_bad_suffix, :eof
   end
 
   it "parses float expressions" do
     assert_tokens "3.141_592", :float, :eof
+    assert_tokens "2.468f64", :float, :eof
+    assert_tokens "468f32", :float, :eof
+  end
+
+  it "parses invalid float expressions" do
+    assert_tokens "2.46f8", :float_bad_suffix, :eof
+    assert_tokens "1.2f34", :float_bad_suffix, :eof
+    assert_tokens "23.45f67", :float_bad_suffix, :eof
   end
 
   it "parses boolean expressions" do
