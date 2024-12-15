@@ -727,6 +727,7 @@ module Lucid::Compiler
       U64
       U128
       Dynamic
+      Invalid
 
       def self.from(raw : String) : self
         case raw
@@ -760,7 +761,7 @@ module Lucid::Compiler
       pp.text "IntLiteral("
       pp.text @value.inspect
 
-      unless @base.dynamic?
+      unless @base.dynamic? || @base.invalid?
         pp.text "_#{@base.to_s.downcase}"
       end
 
@@ -772,6 +773,7 @@ module Lucid::Compiler
     enum Base
       F32
       F64
+      Invalid
     end
 
     property value : Float64
@@ -788,7 +790,7 @@ module Lucid::Compiler
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "FloatLiteral("
       pp.text @value.inspect
-      pp.text "_#{@base.to_s.downcase}"
+      pp.text "_#{@base.to_s.downcase}" unless @base.invalid?
       pp.text ")"
     end
   end
