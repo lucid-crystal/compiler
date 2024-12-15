@@ -415,17 +415,19 @@ module Lucid::Compiler
         parse_var_or_call next_token_skip(space: true), true
       when .ident?, .const?, .self?, .underscore?
         parse_var_or_call token, false
-      when .integer?       then parse_integer token
-      when .float?         then parse_float token
-      when .string?        then parse_string token
-      when .true?, .false? then parse_bool token
-      when .char?          then parse_char token
-      when .is_nil?        then parse_nil token
-      when .left_paren?    then parse_grouped_expression
-      when .proc?          then parse_proc token
-      when .magic_line?    then parse_integer token
-      when .magic_dir?     then parse_string token
-      when .magic_file?    then parse_string token
+      when .integer?            then parse_integer token
+      when .integer_bad_suffix? then parse_invalid_integer token
+      when .float?              then parse_float token
+      when .float_bad_suffix?   then parse_invalid_float token
+      when .string?             then parse_string token
+      when .true?, .false?      then parse_bool token
+      when .char?               then parse_char token
+      when .is_nil?             then parse_nil token
+      when .left_paren?         then parse_grouped_expression
+      when .proc?               then parse_proc token
+      when .magic_line?         then parse_integer token
+      when .magic_dir?          then parse_string token
+      when .magic_file?         then parse_string token
       else
         return unless token.operator?
 
@@ -712,11 +714,21 @@ module Lucid::Compiler
       end
     end
 
+    private def parse_invalid_integer(token : Token) : Node
+      raise IntLiteral.new(token.str_value.split(/i|u/)[0].to_i64, :invalid).at(token.loc),
+        "invalid integer literal suffix"
+    end
+
     private def parse_float(token : Token) : Node
       value = token.str_value
       base = value.ends_with?("f64") ? FloatLiteral::Base::F64 : FloatLiteral::Base::F32
 
       FloatLiteral.new(value.to_f64(strict: false), base).at(token.loc)
+    end
+
+    private def parse_invalid_float(token : Token) : Node
+      raise FloatLiteral.new(token.str_value.split('f')[0].to_f64, :invalid).at(token.loc),
+        "invalid float literal suffix"
     end
 
     private def parse_string(token : Token) : Node
