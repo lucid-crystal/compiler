@@ -496,6 +496,7 @@ module Lucid::Compiler
 
   class Infix < Node
     enum Operator
+      Invalid
       NotEqual       # !=
       PatternUnmatch # !~
       Modulo         # %
@@ -558,12 +559,13 @@ module Lucid::Compiler
         when .bit_or?          then BitOr
         when .or?              then Or
         else
-          raise "invalid infix operator '#{kind}'"
+          Invalid
         end
       end
 
       def to_s : String
         case self
+        in Invalid        then "invalid"
         in NotEqual       then "!="
         in PatternUnmatch then "!~"
         in Modulo         then "%"

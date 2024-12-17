@@ -443,10 +443,13 @@ module Lucid::Compiler
     # INFIX_EXPR ::= (['('] EXPRESSION OP EXPRESSION [')'])+
     private def parse_infix_expression(token : Token, left : Node) : Node
       op = Infix::Operator.from token.kind
+      error = "invalid infix operator '#{token.kind}'" if op.invalid?
       token = next_token_skip space: true
       right = parse_expression token, Precedence.from(token.kind)
 
-      Infix.new(op, left, right).at(left.loc & right.loc)
+      infix = Infix.new(op, left, right).at(left.loc & right.loc)
+      infix = raise infix, error if error
+      infix
     end
 
     # VAR ::= (IDENT | PATH) [':' (CONST | PATH)] ['=' EXPRESSION]
