@@ -7,7 +7,7 @@ module Lucid::Compiler
         super message
       end
 
-      def mesasge : String
+      def message : String
         super.as(String)
       end
     end
