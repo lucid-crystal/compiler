@@ -271,10 +271,54 @@ describe LC::Parser do
       error.message.should eq "expected a comma after the last argument"
     end
 
-    it "raises on unclosed parentheses for calls" do
-      expect_raises(Exception, "expected closing parenthesis for call") do
-        parse %[puts("foo", "bar"]
-      end
+    it "parses trailing commas in call arguments as errors" do
+      call = parse("puts foo,").should be_a LC::Call
+      call.args.size.should eq 2
+
+      inner = call.args[0].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      inner.args.should be_empty
+
+      error = call.args[1].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.comma?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "invalid trailing comma in call"
+    end
+
+    it "parses duplicate commas in call arguments as errors" do
+      call = parse("puts foo,,").should be_a LC::Call
+      call.args.size.should eq 2
+
+      inner = call.args[0].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      inner.args.should be_empty
+
+      error = call.args[1].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.comma?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "unexpected token ','"
+    end
+
+    it "parses unclosed parenthesis calls as errors" do
+      error = parse(%[puts("foo", "bar"]).should be_a LC::Error
+      call = error.target.should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+
+      ident.value.should eq "puts"
+      call.args.size.should eq 2
+      str = call.args[0].should be_a LC::StringLiteral
+
+      str.value.should eq "foo"
+      str = call.args[1].should be_a LC::StringLiteral
+
+      str.value.should eq "bar"
+      error.message.should eq "expected closing parenthesis for call"
     end
 
     it "parses call expressions with a single variable declaration" do

@@ -632,7 +632,7 @@ module Lucid::Compiler
           break unless delimited
           next_token_skip space: true
         when .comma?
-          raise "unexpected token ','" if delimited
+          args << raise token, "unexpected token ','" if delimited
           next_token_skip space: true
           delimited = true
           received = false
@@ -649,7 +649,9 @@ module Lucid::Compiler
         end
       end
 
-      raise "invalid trailing comma in call" if delimited
+      if delimited && !args.last.is_a?(Error)
+        args << raise current_token, "invalid trailing comma in call"
+      end
 
       Call.new(receiver, args).at(receiver.loc)
     end
@@ -671,7 +673,7 @@ module Lucid::Compiler
           closed = true
           break
         when .comma?
-          raise "unexpected token ','" unless delimited
+          args << raise current_token, "unexpected token ','" unless delimited
           delimited = false
           skip_token
         else
@@ -692,9 +694,9 @@ module Lucid::Compiler
         end
       end
 
-      raise "expected closing parenthesis for call" unless closed
-
-      Call.new(receiver, args).at(receiver.loc)
+      call = Call.new(receiver, args).at(receiver.loc)
+      call = raise call, "expected closing parenthesis for call" unless closed
+      call
     end
 
     private def parse_integer(token : Token) : Node
