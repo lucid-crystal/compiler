@@ -14,18 +14,50 @@ module Lucid::Compiler
     abstract def pretty_print(pp : PrettyPrint) : Nil
   end
 
+  class Error < Node
+    getter target : Token | Node
+    getter message : String
+
+    def initialize(@target : Token | Node, @message : String)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "error: " << @message << '\n'
+      @target.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Error("
+      pp.group 1 do
+        pp.breakable ""
+        if @target.is_a?(Token)
+          pp.text "token: "
+        else
+          pp.text "node: "
+        end
+        @target.pretty_print pp
+        pp.comma
+
+        pp.text "message: "
+        @message.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class Def < Node
     property name : Node
     property params : Array(Parameter)
     property return_type : Node?
-    property free_vars : Array(Const)
+    property free_vars : Array(Node)
     property body : Array(Node)
     property? abstract : Bool = false
     property? private : Bool = false
     property? protected : Bool = false
 
     def initialize(@name : Node, @params : Array(Parameter), @return_type : Node?,
-                   @free_vars : Array(Const), @body : Array(Node))
+                   @free_vars : Array(Node), @body : Array(Node))
       super()
     end
 
@@ -238,21 +270,23 @@ module Lucid::Compiler
   end
 
   class Path < Node
-    property names : Array(Ident)
+    property names : Array(Node)
     property? global : Bool
 
-    def initialize(@names : Array(Ident), @global : Bool)
+    def initialize(@names : Array(Node), @global : Bool)
       super()
     end
 
     def to_s(io : IO) : Nil
       @names.each do |name|
         case name
-        in Const
+        when Const
           io << "::" if name.global?
           io << name
-        in Ident
+        when Ident
           io << "::" if name.global?
+          io << '.' << name
+        else
           io << '.' << name
         end
       end
@@ -462,6 +496,7 @@ module Lucid::Compiler
 
   class Infix < Node
     enum Operator
+      Invalid
       NotEqual       # !=
       PatternUnmatch # !~
       Modulo         # %
@@ -524,12 +559,13 @@ module Lucid::Compiler
         when .bit_or?          then BitOr
         when .or?              then Or
         else
-          raise "invalid infix operator '#{kind}'"
+          Invalid
         end
       end
 
       def to_s : String
         case self
+        in Invalid        then "invalid"
         in NotEqual       then "!="
         in PatternUnmatch then "!~"
         in Modulo         then "%"
@@ -693,6 +729,7 @@ module Lucid::Compiler
       U64
       U128
       Dynamic
+      Invalid
 
       def self.from(raw : String) : self
         case raw
@@ -726,7 +763,7 @@ module Lucid::Compiler
       pp.text "IntLiteral("
       pp.text @value.inspect
 
-      unless @base.dynamic?
+      unless @base.dynamic? || @base.invalid?
         pp.text "_#{@base.to_s.downcase}"
       end
 
@@ -738,6 +775,7 @@ module Lucid::Compiler
     enum Base
       F32
       F64
+      Invalid
     end
 
     property value : Float64
@@ -754,7 +792,7 @@ module Lucid::Compiler
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "FloatLiteral("
       pp.text @value.inspect
-      pp.text "_#{@base.to_s.downcase}"
+      pp.text "_#{@base.to_s.downcase}" unless @base.invalid?
       pp.text ")"
     end
   end

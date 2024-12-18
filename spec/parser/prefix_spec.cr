@@ -35,10 +35,19 @@ describe LC::Parser do
       ident.value.should eq "foo"
     end
 
-    it "disallows prefix operators with incorrect syntax" do
-      expect_raises(Exception) do
-        parse "puts ! foo"
-      end
+    it "parses prefix operators with incorrect syntax as errors" do
+      error = parse("puts ! foo").should be_a LC::Error
+      infix = error.target.should be_a LC::Infix
+      left = infix.left.should be_a LC::Call
+      ident = left.receiver.should be_a LC::Ident
+
+      ident.value.should eq "puts"
+      infix.op.invalid?.should be_true
+      right = infix.right.should be_a LC::Call
+      ident = right.receiver.should be_a LC::Ident
+
+      ident.value.should eq "foo"
+      error.message.should eq "invalid infix operator 'Bang'"
     end
   end
 end

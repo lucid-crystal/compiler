@@ -13,6 +13,8 @@ module Lucid::Compiler
       Char
       Integer
       Float
+      IntegerBadSuffix
+      FloatBadSuffix
       True
       False
       Nil

@@ -123,6 +123,73 @@ describe LC::Parser do
       ident.value.should eq "end"
     end
 
+    it "parses call expressions ending with special tokens" do
+      infix = parse("call==").should be_a LC::Infix
+      call = infix.left.should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+
+      ident.value.should eq "call"
+      infix.op.equal?.should be_true
+      error = infix.right.should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.eof?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "cannot parse expression 'eof'"
+    end
+
+    it "parses invalid calls as errors" do
+      call = parse(%(foo."bar")).should be_a LC::Call
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 2
+
+      ident = path.names[0].should be_a LC::Ident
+      ident.value.should eq "foo"
+
+      error = path.names[1].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+      token.kind.string?.should be_true
+      token.raw_value.should eq "bar"
+      error.message.should eq %(unexpected token "bar")
+
+      path = parse("Foo::'a'::Bar").should be_a LC::Path
+      path.names.size.should eq 3
+
+      const = path.names[0].should be_a LC::Const
+      const.value.should eq "Foo"
+
+      error = path.names[1].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+      token.kind.char?.should be_true
+      token.raw_value.should eq 'a'
+      error.message.should eq %(unexpected token 'a')
+
+      const = path.names[2].should be_a LC::Const
+      const.value.should eq "Bar"
+
+      call = parse("Foo.bar::Baz").should be_a LC::Call
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 4
+
+      const = path.names[0].should be_a LC::Const
+      const.value.should eq "Foo"
+
+      ident = path.names[1].should be_a LC::Ident
+      ident.value.should eq "bar"
+
+      error = path.names[2].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+      token.kind.double_colon?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "unexpected token 'double_colon'"
+
+      error = path.names[3].should be_a LC::Error
+      const = error.target.should be_a LC::Const
+      const.value.should eq "Baz"
+      const.global?.should be_true
+      error.message.should eq %(unexpected token "Baz")
+    end
+
     it "parses call expressions with single arguments" do
       call = parse(%(puts "hello world")).should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
@@ -189,18 +256,69 @@ describe LC::Parser do
       ident.value.should eq "your_name"
     end
 
-    # TODO: use refined exceptions for these
+    # TODO: also test fail-first exceptions here
 
-    it "raises on undelimited arguments for calls" do
-      expect_raises(Exception, "expected a comma after the last argument") do
-        parse %(puts "foo" "bar")
-      end
+    it "parses undelimited call arguments" do
+      call = parse(%(puts "foo" "bar")).should be_a LC::Call
+      call.args.size.should eq 2
+
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "foo"
+
+      error = call.args[1].should be_a LC::Error
+      str = error.target.should be_a LC::StringLiteral
+      str.value.should eq "bar"
+      error.message.should eq "expected a comma after the last argument"
     end
 
-    it "raises on unclosed parentheses for calls" do
-      expect_raises(Exception, "expected closing parenthesis for call") do
-        parse %[puts("foo", "bar"]
-      end
+    it "parses trailing commas in call arguments as errors" do
+      call = parse("puts foo,").should be_a LC::Call
+      call.args.size.should eq 2
+
+      inner = call.args[0].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      inner.args.should be_empty
+
+      error = call.args[1].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.comma?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "invalid trailing comma in call"
+    end
+
+    it "parses duplicate commas in call arguments as errors" do
+      call = parse("puts foo,,").should be_a LC::Call
+      call.args.size.should eq 2
+
+      inner = call.args[0].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      inner.args.should be_empty
+
+      error = call.args[1].should be_a LC::Error
+      token = error.target.should be_a LC::Token
+
+      token.kind.comma?.should be_true
+      token.raw_value.should be_nil
+      error.message.should eq "unexpected token ','"
+    end
+
+    it "parses unclosed parenthesis calls as errors" do
+      error = parse(%[puts("foo", "bar"]).should be_a LC::Error
+      call = error.target.should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+
+      ident.value.should eq "puts"
+      call.args.size.should eq 2
+      str = call.args[0].should be_a LC::StringLiteral
+
+      str.value.should eq "foo"
+      str = call.args[1].should be_a LC::StringLiteral
+
+      str.value.should eq "bar"
+      error.message.should eq "expected closing parenthesis for call"
     end
 
     it "parses call expressions with a single variable declaration" do

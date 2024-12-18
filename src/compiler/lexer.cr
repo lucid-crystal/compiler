@@ -571,8 +571,19 @@ module Lucid::Compiler
     private def lex_ident(start : Int32 = current_pos) : Token
       kind = current_char.uppercase? ? Token::Kind::Const : Token::Kind::Ident
 
-      while current_char.ascii_alphanumeric? || current_char.in?('_', '[', ']', '!', '?', '=')
-        next_char
+      loop do
+        case current_char
+        when .ascii_alphanumeric?, '_'
+          next_char
+        when '?'
+          next_char
+          break
+        when '!', '='
+          next_char unless @reader.peek_next_char == '='
+          break
+        else
+          break
+        end
       end
 
       Token.new kind, location, read_string_from start
@@ -672,46 +683,106 @@ module Lucid::Compiler
     private def lex_raw_number : Token
       start = current_pos
       kind = Token::Kind::Integer
-      suffix = false
 
       loop do
         case next_char
         when 'f'
           kind = Token::Kind::Float
-          suffix = true
           case next_char
           when '3'
-            raise "invalid float literal" unless next_char == '2'
+            if next_char == '2' && !@reader.peek_next_char.ascii_number?
+              next_char
+            else
+              kind = Token::Kind::FloatBadSuffix
+              while next_char.ascii_number?
+                # skip
+              end
+            end
             break
           when '6'
-            raise "invalid float literal" unless next_char == '4'
+            if next_char == '4' && !@reader.peek_next_char.ascii_number?
+              next_char
+            else
+              kind = Token::Kind::FloatBadSuffix
+              while next_char.ascii_number?
+                # skip
+              end
+            end
             break
           else
-            raise "invalid float literal"
+            kind = Token::Kind::FloatBadSuffix
+            while next_char.ascii_number?
+              # skip
+            end
+            break
           end
         when 'i', 'u'
-          suffix = true
           case next_char
           when '8'
+            if @reader.peek_next_char.ascii_number?
+              kind = Token::Kind::IntegerBadSuffix
+              while next_char.ascii_number?
+                # skip
+              end
+            else
+              next_char
+            end
             break
           when '1'
             case next_char
             when '2'
-              raise "invalid integer literal" unless next_char == '8'
+              if next_char == '8' && !@reader.peek_next_char.ascii_number?
+                next_char
+              else
+                kind = Token::Kind::IntegerBadSuffix
+                while next_char.ascii_number?
+                  # skip
+                end
+              end
               break
             when '6'
+              if @reader.peek_next_char.ascii_number?
+                kind = Token::Kind::IntegerBadSuffix
+                while next_char.ascii_number?
+                  # skip
+                end
+              else
+                next_char
+              end
               break
             else
-              raise "invalid integer literal"
+              kind = Token::Kind::FloatBadSuffix
+              while next_char.ascii_number?
+                # skip
+              end
+              break
             end
           when '3'
-            raise "invalid integer literal" unless next_char == '2'
+            if next_char == '2' && !@reader.peek_next_char.ascii_number?
+              next_char
+            else
+              kind = Token::Kind::IntegerBadSuffix
+              while next_char.ascii_number?
+                # skip
+              end
+            end
             break
           when '6'
-            raise "invalid integer literal" unless next_char == '4'
+            if next_char == '4' && !@reader.peek_next_char.ascii_number?
+              next_char
+            else
+              kind = Token::Kind::IntegerBadSuffix
+              while next_char.ascii_number?
+                # skip
+              end
+            end
             break
           else
-            raise "invalid integer literal"
+            kind = Token::Kind::FloatBadSuffix
+            while next_char.ascii_number?
+              # skip
+            end
+            break
           end
         when '_'
           next
@@ -731,12 +802,6 @@ module Lucid::Compiler
           next
         else
           break
-        end
-      end
-
-      if suffix
-        if next_char.ascii_alphanumeric?
-          raise "unexpected token '#{current_char}'"
         end
       end
 

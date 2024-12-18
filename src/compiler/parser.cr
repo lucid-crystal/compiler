@@ -1,5 +1,17 @@
 module Lucid::Compiler
   class Parser
+    class Exception < Exception
+      getter target : Token | Node
+
+      def initialize(@target : Token | Node, message : String)
+        super message
+      end
+
+      def message : String
+        super.as(String)
+      end
+    end
+
     # https://crystal-lang.org/reference/1.12/syntax_and_semantics/operators.html#operator-precedence
     private enum Precedence
       Lowest
@@ -59,13 +71,14 @@ module Lucid::Compiler
     end
 
     @tokens : Array(Token)
+    @fail_first : Bool
     @pos : Int32 = 0
 
-    def self.parse(tokens : Array(Token)) : Array(Node)
-      new(tokens).parse
+    def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Array(Node)
+      new(tokens, fail_first).parse
     end
 
-    private def initialize(@tokens : Array(Token))
+    private def initialize(@tokens : Array(Token), @fail_first : Bool)
     end
 
     def parse : Array(Node)
@@ -121,6 +134,14 @@ module Lucid::Compiler
       end
     end
 
+    private def raise(target : Token | Node, message : String) : Node | NoReturn
+      if @fail_first
+        raise Parser::Exception.new target, message
+      else
+        Error.new target, message
+      end
+    end
+
     private def parse(token : Token) : Node?
       case token.kind
       when .eof?
@@ -128,7 +149,7 @@ module Lucid::Compiler
       when .space?, .newline?, .semicolon?
         parse next_token_skip space: true, newline: true, semicolon: true
       when .abstract?, .private?, .protected?
-        parse_visibility_expression token.kind
+        parse_visibility_expression token
       when .def?
         parse_def token
       when .alias?
@@ -141,33 +162,37 @@ module Lucid::Compiler
       end
     end
 
-    private def parse_visibility_expression(kind : Token::Kind) : Node
-      _abstract = kind.abstract?
-      _private = kind.private?
-      _protected = kind.protected?
+    private def parse_visibility_expression(token : Token) : Node
+      # start = token.loc # TODO: merge start loc into result node
+      is_private = token.kind.private?
+      is_protected = token.kind.protected?
+      is_abstract = token.kind.abstract?
 
-      token = next_token_skip space: true
-      if token.kind.abstract?
-        raise "unexpected token 'abstract'" if _abstract
-        _abstract = true
+      loop do
         token = next_token_skip space: true
+        case token.kind
+        when .eof?
+          return raise token, "unexpected end of file"
+        when .private?
+          return raise token, "unexpected token 'private'" if is_private
+          return raise token, "cannot apply protected and private visibility" if is_protected
+
+          is_private = true
+        when .protected?
+          return raise token, "unexpected token 'protected'" if is_protected
+          return raise token, "cannot apply private and protected visibility" if is_private
+
+          is_protected = true
+        when .abstract?
+          return raise token, "unexpected token 'abstract'" if is_abstract
+
+          is_abstract = true
+        else
+          break
+        end
       end
 
-      if token.kind.private?
-        raise "unexpected token 'private'" if _private
-        raise "cannot apply private and protected visibility" if _protected
-        _private = true
-        token = next_token_skip space: true
-      end
-
-      if token.kind.protected?
-        raise "unexpected token 'protected'" if _protected
-        raise "cannot apply private and protected visibility" if _private
-        _protected = true
-        token = next_token_skip space: true
-      end
-
-      if token.kind.def? && _abstract
+      if token.kind.def? && is_abstract
         node = parse_def token, true
       else
         node = parse token
@@ -175,10 +200,10 @@ module Lucid::Compiler
 
       case node
       when Def
-        node.private = _private
-        node.protected = _protected
+        node.private = is_private
+        node.protected = is_protected
       else
-        raise "visibility modifier cannot be applied to #{node}"
+        return raise node.as(Node), "visibility modifier cannot be applied to #{node.class}"
       end
 
       node
@@ -200,7 +225,7 @@ module Lucid::Compiler
       token = next_token_skip space: true
       params = [] of Parameter
       empty_parens = false
-      free_vars = [] of Const
+      free_vars = [] of Node
 
       if token.kind.left_paren?
         token = next_token_skip space: true
@@ -229,12 +254,15 @@ module Lucid::Compiler
               token = next_token_skip space: true
             end
 
+            # TODO: not sure how to handle this one
             if token.kind.bit_and? && !pname.is_a?(NilLiteral)
               raise "block parameters cannot have external names"
             end
 
             if token.kind.ident?
-              raise "block parameters cannot have external names" if block
+              if block
+                pname = raise pname, "block parameters cannot have external names"
+              end
               internal = parse_ident_or_path token, false
               token = next_token_skip space: true
             end
@@ -251,13 +279,17 @@ module Lucid::Compiler
 
             params << Parameter.new(pname, internal, type, value, block)
 
+            unless token.kind.right_paren? || token.kind.comma?
+              node = raise token, "expected a comma or right parenthesis; got #{token}"
+              params << Parameter.new(node, nil, nil, nil, false)
+              token = next_token_skip space: true
+            end
+
             if token.kind.right_paren?
               token = next_token_skip space: true
               break
             elsif token.kind.comma?
               token = next_token_skip space: true
-            else
-              raise "expected a comma or right parenthesis; got #{token}"
             end
           end
         end
@@ -271,11 +303,12 @@ module Lucid::Compiler
       if token.kind.forall?
         loop do
           token = next_token_skip space: true
-          raise "expected token const; got #{token}" unless token.kind.const?
+          node = parse_const_or_path token, false
 
-          case node = parse_const_or_path token, false
-          when Const then free_vars << node
-          else            raise "free variables cannot be paths"
+          if node.is_a? Path
+            free_vars << raise node, "free variables cannot be paths"
+          else
+            free_vars << node
           end
 
           token = next_token_skip space: true
@@ -290,16 +323,17 @@ module Lucid::Compiler
       end
 
       unless empty_parens && return_type.nil?
-        unless token.kind.newline? || token.kind.semicolon?
-          raise "expected a newline or semicolon after def signature; got #{token}"
+        if token.kind.newline? || token.kind.semicolon?
+          token = next_token_skip space: true, newline: true, semicolon: true
+        else
+          name = raise name.at(name.loc & token.loc), "expected a newline or semicolon after def signature; got #{token}"
         end
-        token = next_token_skip space: true, newline: true, semicolon: true
       end
 
       body = [] of Node
       loop do
         break if token.kind.end?
-        raise "unexpected end of file" if token.kind.eof?
+        return raise token, "unexpected end of file" if token.kind.eof?
 
         body << parse_expression token
         token = current_token
@@ -311,31 +345,41 @@ module Lucid::Compiler
 
     private def parse_alias(token : Token) : Node
       name = parse_const_or_path next_token_skip(space: true), true
+
+      if name.is_a?(Error) && current_token.kind.eof?
+        return Alias.new(name, name).at(token.loc & name.loc)
+      end
+
       case next_token_skip(space: true).kind
       when .eof?
-        raise "unexpected end of file"
+        type = raise current_token, "unexpected end of file"
       when .assign?
-        type = parse_const_or_path(next_token_skip(space: true), true)
-        next_token_skip space: true, newline: true
-
-        Alias.new(name, type).at(token.loc & type.loc)
+        type = parse_const_or_path next_token_skip(space: true), true
+        next_token_skip(space: true, newline: true) unless current_token.kind.eof?
       else
-        raise "unexpected token #{token}"
+        type = raise current_token, "unexpected token #{current_token}"
+        next_token_skip space: true, newline: true
       end
+
+      Alias.new(name, type).at(token.loc & type.loc)
     end
 
     private def parse_require(token : Token) : Node
-      # TODO: not sure why ameba is flagging this
-      # ameba:disable Lint/ShadowedArgument
+      start = token.loc
       token = next_token_skip space: true
-      if !token.kind.string?
-        raise "require needs a string literal"
+
+      case token.kind
+      when .eof?
+        node = raise token, "unexpected end of file"
+      when .string?
+        node = parse_string token
+        next_token_skip space: true, newline: true
+      else
+        node = raise token, "require needs a string literal"
+        next_token_skip space: true, newline: true
       end
 
-      mod = parse_string(token)
-      next_token_skip space: true, newline: true
-
-      Require.new(mod)
+      Require.new(node).at(start & node.loc)
     end
 
     private def parse_expression(token : Token) : Node
@@ -350,7 +394,8 @@ module Lucid::Compiler
     # EXPRESSION ::= PREFIX_EXPR | INFIX_EXPR
     private def parse_expression(token : Token, prec : Precedence) : Node
       left = parse_prefix_expression token
-      raise "cannot parse expression #{token}" if left.nil?
+      # TODO: should this error message change?
+      return raise token, "cannot parse expression #{token}" if left.nil?
 
       loop do
         token = peek_token_skip space: true, newline: true
@@ -370,17 +415,19 @@ module Lucid::Compiler
         parse_var_or_call next_token_skip(space: true), true
       when .ident?, .const?, .self?, .underscore?
         parse_var_or_call token, false
-      when .integer?       then parse_integer token
-      when .float?         then parse_float token
-      when .string?        then parse_string token
-      when .true?, .false? then parse_bool token
-      when .char?          then parse_char token
-      when .is_nil?        then parse_nil token
-      when .left_paren?    then parse_grouped_expression
-      when .proc?          then parse_proc token
-      when .magic_line?    then parse_integer token
-      when .magic_dir?     then parse_string token
-      when .magic_file?    then parse_string token
+      when .integer?            then parse_integer token
+      when .integer_bad_suffix? then parse_invalid_integer token
+      when .float?              then parse_float token
+      when .float_bad_suffix?   then parse_invalid_float token
+      when .string?             then parse_string token
+      when .true?, .false?      then parse_bool token
+      when .char?               then parse_char token
+      when .is_nil?             then parse_nil token
+      when .left_paren?         then parse_grouped_expression
+      when .proc?               then parse_proc token
+      when .magic_line?         then parse_integer token
+      when .magic_dir?          then parse_string token
+      when .magic_file?         then parse_string token
       else
         return unless token.operator?
 
@@ -396,10 +443,13 @@ module Lucid::Compiler
     # INFIX_EXPR ::= (['('] EXPRESSION OP EXPRESSION [')'])+
     private def parse_infix_expression(token : Token, left : Node) : Node
       op = Infix::Operator.from token.kind
+      error = "invalid infix operator '#{token.kind}'" if op.invalid?
       token = next_token_skip space: true
       right = parse_expression token, Precedence.from(token.kind)
 
-      Infix.new(op, left, right).at(left.loc & right.loc)
+      infix = Infix.new(op, left, right).at(left.loc & right.loc)
+      infix = raise infix, error if error
+      infix
     end
 
     # VAR ::= (IDENT | PATH) [':' (CONST | PATH)] ['=' EXPRESSION]
@@ -416,7 +466,7 @@ module Lucid::Compiler
       when .underscore?
         receiver = Underscore.new.at(token.loc)
       else
-        raise "unexpected token #{token}"
+        receiver = raise token, "unexpected token #{token}"
       end
 
       peek = peek_token_skip space: true
@@ -439,7 +489,7 @@ module Lucid::Compiler
                 end
 
       if !is_call && receiver.is_a?(Underscore)
-        raise "underscore cannot be called as a method"
+        receiver = raise receiver, "underscore cannot be called as a method"
       end
 
       if is_call
@@ -456,14 +506,12 @@ module Lucid::Compiler
         end
       end
 
-      skip_token
-      case current_token.kind
+      case peek_token.kind
       when .space?
         token = next_token_skip space: true
         case token.kind
         when .colon?
-          node = parse_var_or_call next_token_skip(space: true), false
-          case node
+          case node = parse_var_or_call next_token_skip(space: true), false
           when Assign
             Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
           when Ident
@@ -480,15 +528,17 @@ module Lucid::Compiler
           parse_open_call receiver
         end
       when .left_paren?
+        skip_token
         parse_closed_call receiver
       else
-        raise "unexpected token #{current_token}"
+        Call.new(receiver, [] of Node).at(receiver.loc)
       end
     end
 
     # IDENT ::= ('a'..'z' | '_') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_ident_or_path(token : Token, global : Bool) : Node
-      names = [] of Ident
+      names = [] of Node
+
       case token.kind
       when .self?
         names << Self.new("self", global).at(token.loc)
@@ -497,7 +547,7 @@ module Lucid::Compiler
       when Token::Kind::Abstract..Token::Kind::Require
         names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
       else
-        raise "unexpected token #{token}"
+        names << raise token, "unexpected token #{token}"
       end
 
       while peek_token.kind.period?
@@ -512,12 +562,12 @@ module Lucid::Compiler
         when Token::Kind::Abstract..Token::Kind::Require
           names << Ident.new(token.kind.to_s.downcase, false).at(token.loc)
         else
-          raise "unexpected token #{token}"
+          names << raise token, "unexpected token #{token}"
         end
       end
 
       if names.size > 1
-        Path.new(names, names[0].global?)
+        Path.new names, names[0].as?(Ident).try(&.global?) || false
       else
         names[0]
       end
@@ -525,12 +575,19 @@ module Lucid::Compiler
 
     # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Node
-      names = [Const.new(token.str_value, global).at(token.loc)] of Ident
+      return raise token, "unexpected end of file" if token.kind.eof?
+
+      names = [] of Node
+      if token.kind.const?
+        names << Const.new(token.str_value, global).at(token.loc)
+      else
+        names << raise token, "expected token 'const', not '#{token.kind.to_s.downcase}'"
+      end
       in_method = false
 
       while peek_token.kind.period? || peek_token.kind.double_colon?
         global = peek_token.kind.double_colon?
-        raise "unexpected token #{peek_token}" if global && in_method
+        names << raise peek_token, "unexpected token #{peek_token}" if global && in_method
         skip_token
         token = next_token_skip space: true
 
@@ -545,15 +602,19 @@ module Lucid::Compiler
           in_method = true
           names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
         when .const?
-          raise "unexpected token #{token}" if in_method
-          names << Const.new(token.str_value, global).at(token.loc)
+          node = Const.new(token.str_value, global).at(token.loc)
+          if in_method
+            names << raise node, "unexpected token #{token}"
+          else
+            names << node
+          end
         else
-          raise "unexpected token #{token}"
+          names << raise token, "unexpected token #{token}"
         end
       end
 
       if names.size > 1
-        Path.new(names, names[0].global?)
+        Path.new names, names[0].as?(Ident).try(&.global?) || false
       else
         names[0]
       end
@@ -574,20 +635,26 @@ module Lucid::Compiler
           break unless delimited
           next_token_skip space: true
         when .comma?
-          raise "unexpected token ','" if delimited
+          args << raise token, "unexpected token ','" if delimited
           next_token_skip space: true
           delimited = true
           received = false
         else
-          raise "expected a comma after the last argument" if received
+          node = parse_expression next_token_skip(space: true), :lowest
+          if received
+            args << raise node, "expected a comma after the last argument"
+          else
+            args << node
+          end
 
-          args << parse_expression next_token_skip(space: true), :lowest
           delimited = false
           received = true
         end
       end
 
-      raise "invalid trailing comma in call" if delimited
+      if delimited && !args.last.is_a?(Error)
+        args << raise current_token, "invalid trailing comma in call"
+      end
 
       Call.new(receiver, args).at(receiver.loc)
     end
@@ -609,7 +676,7 @@ module Lucid::Compiler
           closed = true
           break
         when .comma?
-          raise "unexpected token ','" unless delimited
+          args << raise current_token, "unexpected token ','" unless delimited
           delimited = false
           skip_token
         else
@@ -630,9 +697,9 @@ module Lucid::Compiler
         end
       end
 
-      raise "expected closing parenthesis for call" unless closed
-
-      Call.new(receiver, args).at(receiver.loc)
+      call = Call.new(receiver, args).at(receiver.loc)
+      call = raise call, "expected closing parenthesis for call" unless closed
+      call
     end
 
     private def parse_integer(token : Token) : Node
@@ -652,11 +719,21 @@ module Lucid::Compiler
       end
     end
 
+    private def parse_invalid_integer(token : Token) : Node
+      raise IntLiteral.new(token.str_value.split(/i|u/)[0].to_i64, :invalid).at(token.loc),
+        "invalid integer literal suffix"
+    end
+
     private def parse_float(token : Token) : Node
       value = token.str_value
       base = value.ends_with?("f64") ? FloatLiteral::Base::F64 : FloatLiteral::Base::F32
 
       FloatLiteral.new(value.to_f64(strict: false), base).at(token.loc)
+    end
+
+    private def parse_invalid_float(token : Token) : Node
+      raise FloatLiteral.new(token.str_value.split('f')[0].to_f64, :invalid).at(token.loc),
+        "invalid float literal suffix"
     end
 
     private def parse_string(token : Token) : Node
