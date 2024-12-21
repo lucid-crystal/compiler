@@ -5,12 +5,12 @@ alias LC = Lucid::Compiler
 
 def parse(source : String, file : String = "STDIN", dir : String = "") : LC::Node
   tokens = LC::Lexer.run source, filename: file, dirname: dir
-  LC::Parser.parse(tokens)[0]
+  LC::Parser.parse(tokens).nodes[0]
 end
 
 def parse_all(source : String) : Array(LC::Node)
   tokens = LC::Lexer.run source
-  LC::Parser.parse tokens
+  LC::Parser.parse(tokens).nodes
 end
 
 def assert_node(cls : LC::Node.class, for input : String) : Nil
