@@ -1,4 +1,12 @@
 module Lucid::Compiler
+  class Program
+    getter errors : Array(Error)
+    getter nodes : Array(Node)
+
+    def initialize(@errors, @nodes)
+    end
+  end
+
   abstract class Node
     property loc : Location
 

@@ -70,18 +70,20 @@ module Lucid::Compiler
       end
     end
 
+    @errors : Array(Error)
     @tokens : Array(Token)
     @fail_first : Bool
     @pos : Int32 = 0
 
-    def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Array(Node)
+    def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Program
       new(tokens, fail_first).parse
     end
 
     private def initialize(@tokens : Array(Token), @fail_first : Bool)
+      @errors = [] of Error
     end
 
-    def parse : Array(Node)
+    def parse : Program
       nodes = [] of Node
 
       loop do
@@ -90,7 +92,7 @@ module Lucid::Compiler
         nodes << node
       end
 
-      nodes
+      Program.new(@errors, nodes)
     end
 
     private def current_token : Token
@@ -138,7 +140,8 @@ module Lucid::Compiler
       if @fail_first
         raise Parser::Exception.new target, message
       else
-        Error.new target, message
+        @errors << (node = Error.new target, message)
+        node
       end
     end
 
