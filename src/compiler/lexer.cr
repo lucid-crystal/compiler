@@ -539,6 +539,10 @@ module Lucid::Compiler
       @reader.next_char
     end
 
+    private def peek_char : Char
+      @reader.peek_next_char
+    end
+
     private def next_sequence?(*chars : Char) : Bool
       chars.all? { |c| next_char == c }
     end
@@ -579,7 +583,7 @@ module Lucid::Compiler
           next_char
           break
         when '!', '='
-          next_char unless @reader.peek_next_char == '='
+          next_char unless peek_char == '='
           break
         else
           break
@@ -590,7 +594,7 @@ module Lucid::Compiler
     end
 
     private def lex_keyword_or_ident(keyword : Token::Kind, start : Int32 = current_pos) : Token
-      char = @reader.peek_next_char
+      char = peek_char
 
       if char.ascii_alphanumeric? || char.in?('_', '!', '?', '=')
         lex_ident start
@@ -690,7 +694,7 @@ module Lucid::Compiler
           kind = Token::Kind::Float
           case next_char
           when '3'
-            if next_char == '2' && !@reader.peek_next_char.ascii_number?
+            if next_char == '2' && !peek_char.ascii_number?
               next_char
             else
               kind = Token::Kind::FloatBadSuffix
@@ -700,7 +704,7 @@ module Lucid::Compiler
             end
             break
           when '6'
-            if next_char == '4' && !@reader.peek_next_char.ascii_number?
+            if next_char == '4' && !peek_char.ascii_number?
               next_char
             else
               kind = Token::Kind::FloatBadSuffix
@@ -719,7 +723,7 @@ module Lucid::Compiler
         when 'i', 'u'
           case next_char
           when '8'
-            if @reader.peek_next_char.ascii_number?
+            if peek_char.ascii_number?
               kind = Token::Kind::IntegerBadSuffix
               while next_char.ascii_number?
                 # skip
@@ -731,7 +735,7 @@ module Lucid::Compiler
           when '1'
             case next_char
             when '2'
-              if next_char == '8' && !@reader.peek_next_char.ascii_number?
+              if next_char == '8' && !peek_char.ascii_number?
                 next_char
               else
                 kind = Token::Kind::IntegerBadSuffix
@@ -741,7 +745,7 @@ module Lucid::Compiler
               end
               break
             when '6'
-              if @reader.peek_next_char.ascii_number?
+              if peek_char.ascii_number?
                 kind = Token::Kind::IntegerBadSuffix
                 while next_char.ascii_number?
                   # skip
@@ -758,7 +762,7 @@ module Lucid::Compiler
               break
             end
           when '3'
-            if next_char == '2' && !@reader.peek_next_char.ascii_number?
+            if next_char == '2' && !peek_char.ascii_number?
               next_char
             else
               kind = Token::Kind::IntegerBadSuffix
@@ -768,7 +772,7 @@ module Lucid::Compiler
             end
             break
           when '6'
-            if next_char == '4' && !@reader.peek_next_char.ascii_number?
+            if next_char == '4' && !peek_char.ascii_number?
               next_char
             else
               kind = Token::Kind::IntegerBadSuffix
@@ -788,7 +792,7 @@ module Lucid::Compiler
           next
         when '.'
           break if kind.float?
-          case @reader.peek_next_char
+          case peek_char
           when .ascii_letter?, '.'
             suffix = false
             break
@@ -831,7 +835,7 @@ module Lucid::Compiler
     end
 
     private def read_unicode_escape(allow_spaces : Bool) : Char
-      if @reader.peek_next_char == '{'
+      if peek_char == '{'
         next_char
         codepoint = 0
         found_brace = found_space = found_digit = false
