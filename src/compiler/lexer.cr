@@ -51,6 +51,21 @@ module Lucid::Compiler
         Token.new :newline, loc
       when '#'
         lex_comment
+      when '@'
+        start = current_pos + 1
+        kind = Token::Kind::InstanceVar
+
+        if next_char == '@'
+          kind = Token::Kind::ClassVar
+          start += 1
+          next_char
+        end
+
+        while current_char.ascii_alphanumeric? || current_char == '_'
+          next_char
+        end
+
+        Token.new kind, location, read_string_from start
       when '('
         next_char
         Token.new :left_paren, location
