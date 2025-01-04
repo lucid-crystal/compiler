@@ -416,7 +416,7 @@ module Lucid::Compiler
       case token.kind
       when .double_colon?
         parse_var_or_call next_token_skip(space: true), true
-      when .ident?, .const?, .self?, .underscore?
+      when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?
         parse_var_or_call token, false
       when .integer?            then parse_integer token
       when .integer_bad_suffix? then parse_invalid_integer token
@@ -462,7 +462,7 @@ module Lucid::Compiler
     # PATH ::= [(['::'] CONST)+ '.'] IDENT ('.' IDENT)*
     private def parse_var_or_call(token : Token, global : Bool) : Node
       case token.kind
-      when .ident?, .self?, Token::Kind::Abstract..Token::Kind::Require
+      when .ident?, .self?, .instance_var?, .class_var?, Token::Kind::Abstract..Token::Kind::Require
         receiver = parse_ident_or_path token, global
       when .const?
         receiver = parse_const_or_path token, global
@@ -517,10 +517,10 @@ module Lucid::Compiler
           case node = parse_var_or_call next_token_skip(space: true), false
           when Assign
             Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
-          when Ident
+          when Ident, Const
             Var.new(receiver, node, nil).at(receiver.loc & node.loc)
           else
-            raise "BUG: expected Assign or Ident; got #{node.class}"
+            raise "BUG: expected Assign, Ident or Const; got #{node.class}"
           end
         when .assign?
           node = parse_expression next_token_skip(space: true), :lowest
@@ -544,9 +544,13 @@ module Lucid::Compiler
 
       case token.kind
       when .self?
-        names << Self.new("self", global).at(token.loc)
+        names << Self.new(global).at(token.loc)
       when .ident?
         names << Ident.new(token.str_value, global).at(token.loc)
+      when .instance_var?
+        names << InstanceVar.new(token.str_value, global).at(token.loc)
+      when .class_var?
+        names << ClassVar.new(token.str_value, global).at(token.loc)
       when Token::Kind::Abstract..Token::Kind::Require
         names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
       else
@@ -559,9 +563,13 @@ module Lucid::Compiler
 
         case token.kind
         when .self?
-          names << Self.new("self", false).at(token.loc)
+          names << Self.new(false).at(token.loc)
         when .ident?
           names << Ident.new(token.str_value, false).at(token.loc)
+        when .instance_var?
+          names << InstanceVar.new(token.str_value, false).at(token.loc)
+        when .class_var?
+          names << ClassVar.new(token.str_value, false).at(token.loc)
         when Token::Kind::Abstract..Token::Kind::Require
           names << Ident.new(token.kind.to_s.downcase, false).at(token.loc)
         else
@@ -597,10 +605,16 @@ module Lucid::Compiler
         case token.kind
         when .self?
           in_method = true
-          names << Self.new("self", global).at(token.loc)
+          names << Self.new(global).at(token.loc)
         when .ident?
           in_method = true
           names << Ident.new(token.str_value, global).at(token.loc)
+        when .instance_var?
+          in_method = true
+          names << InstanceVar.new(token.str_value, global).at(token.loc)
+        when .class_var?
+          in_method = true
+          names << ClassVar.new(token.str_value, global).at(token.loc)
         when Token::Kind::Abstract..Token::Kind::Require
           in_method = true
           names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)

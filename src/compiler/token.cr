@@ -8,6 +8,8 @@ module Lucid::Compiler
 
       Ident
       Const
+      InstanceVar
+      ClassVar
 
       String
       Char
