@@ -33,6 +33,20 @@ describe LC::Parser do
       end
     end
 
+    it "parses instance variables" do
+      call = parse("@foo").should be_a LC::Call
+      ivar = call.receiver.should be_a LC::InstanceVar
+      ivar.value.should eq "foo"
+      call.args.should be_empty
+    end
+
+    it "parses class variables" do
+      call = parse("@@bar").should be_a LC::Call
+      cvar = call.receiver.should be_a LC::ClassVar
+      cvar.value.should eq "bar"
+      call.args.should be_empty
+    end
+
     it "parses path call expressions" do
       call = parse("foo.bar.baz").should be_a LC::Call
       path = call.receiver.should be_a LC::Path
