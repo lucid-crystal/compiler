@@ -327,7 +327,7 @@ module Lucid::Compiler
     end
   end
 
-  class Ident < Node
+  abstract class Identifiable < Node
     property value : String
     property? global : Bool
 
@@ -340,7 +340,7 @@ module Lucid::Compiler
     end
 
     def pretty_print(pp : PrettyPrint) : Nil
-      pp.text "Ident("
+      pp.text "#{self.class.name}("
       pp.group 1 do
         pp.breakable ""
         pp.text "value: "
@@ -354,23 +354,17 @@ module Lucid::Compiler
     end
   end
 
-  class Const < Ident
-    def pretty_print(pp : PrettyPrint) : Nil
-      pp.text "Const("
-      pp.group 1 do
-        pp.breakable ""
-        pp.text "value: "
-        pp.text @value.inspect
-        pp.comma
-
-        pp.text "global: "
-        pp.text @global
-      end
-      pp.text ")"
-    end
+  class Ident < Identifiable
   end
 
-  class Self < Ident
+  class Const < Identifiable
+  end
+
+  class Self < Identifiable
+    def initialize(@global : Bool)
+      super "self", global
+    end
+
     def to_s(io : IO) : Nil
       io << "self"
     end
@@ -380,7 +374,11 @@ module Lucid::Compiler
     end
   end
 
-  class Underscore < Node
+  class Underscore < Identifiable
+    def initialize
+      super "_", false
+    end
+
     def to_s(io : IO) : Nil
       io << '_'
     end
@@ -388,6 +386,12 @@ module Lucid::Compiler
     def pretty_print(pp : PrettyPrint) : Nil
       pp.text "Underscore"
     end
+  end
+
+  class InstanceVar < Identifiable
+  end
+
+  class ClassVar < Identifiable
   end
 
   class Var < Node
@@ -431,12 +435,6 @@ module Lucid::Compiler
       end
       pp.text ")"
     end
-  end
-
-  class InstanceVar < Var
-  end
-
-  class ClassVar < Var
   end
 
   class Prefix < Node
