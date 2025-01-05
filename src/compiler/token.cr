@@ -95,7 +95,9 @@ module Lucid::Compiler
       Do
       End
       Enum
+      Extend
       Forall
+      Include
       IsA
       # Lib
       Module
