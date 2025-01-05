@@ -401,6 +401,52 @@ module Lucid::Compiler
     end
   end
 
+  class Include < Node
+    property type : Node
+
+    def initialize(@type : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "include "
+      @type.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Include("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "type: "
+        @type.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
+  class Extend < Node
+    property type : Node
+
+    def initialize(@type : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "extend "
+      @type.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Extend("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "type: "
+        @type.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class Alias < Node
     property name : Node
     property type : Node

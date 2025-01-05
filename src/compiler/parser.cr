@@ -157,6 +157,8 @@ module Lucid::Compiler
         parse_module token
       when .def?
         parse_def token
+      when .include?, .extend?
+        parse_include_or_extend token
       when .alias?
         parse_alias token
       when .require?
@@ -386,6 +388,22 @@ module Lucid::Compiler
 
       skip_token
       Def.new(name, params, return_type, free_vars, body).at(start & token.loc)
+    end
+
+    private def parse_include_or_extend(start : Token) : Node
+      token = next_token_skip space: true
+
+      if token.kind.eof?
+        node = raise token, "unexpected end of file"
+      else
+        node = parse(token).not_nil!
+      end
+
+      if start.kind.include?
+        Include.new node
+      else
+        Extend.new node
+      end
     end
 
     private def parse_alias(token : Token) : Node
