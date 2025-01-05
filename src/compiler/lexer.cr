@@ -423,7 +423,8 @@ module Lucid::Compiler
         end
       when 'e'
         start = current_pos
-        if next_char == 'n'
+        case next_char
+        when 'n'
           case next_char
           when 'd'
             lex_keyword_or_ident :end, start
@@ -433,6 +434,12 @@ module Lucid::Compiler
             else
               lex_ident start
             end
+          else
+            lex_ident start
+          end
+        when 'x'
+          if next_sequence?('t', 'e', 'n', 'd')
+            lex_keyword_or_ident :extend, start
           else
             lex_ident start
           end
@@ -459,8 +466,19 @@ module Lucid::Compiler
         end
       when 'i'
         start = current_pos
-        if next_sequence?('s', '_', 'a', '?')
-          lex_keyword_or_ident :is_a, start
+        case next_char
+        when 'n'
+          if next_sequence?('c', 'l', 'u', 'd', 'e')
+            lex_keyword_or_ident :include, start
+          else
+            lex_ident start
+          end
+        when 's'
+          if next_sequence?('_', 'a', '?')
+            lex_keyword_or_ident :is_a, start
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end
