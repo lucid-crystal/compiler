@@ -68,10 +68,11 @@ module Lucid::Compiler
     property methods : Array(Def)
     property body : Array(Node) # for calls, errors & dead code
 
-    def initialize(@name : Node, @free_vars : Array(Node), @superclass : Node?, @private : Bool,
-                   @includes : Array(Node), @extends : Array(Node), @constants : Array(Node),
-                   @aliases : Array(Node), @types : Array(Node), @methods : Array(Def),
-                   @body : Array(Node))
+    def initialize(@name : Node, *, @free_vars : Array(Node) = [] of Node, @superclass : Node? = nil,
+                   @private : Bool = false, @includes : Array(Node) = [] of Node,
+                   @extends : Array(Node) = [] of Node, @constants : Array(Node) = [] of Node,
+                   @aliases : Array(Alias) = [] of Alias, @types : Array(Node) = [] of Node,
+                   @methods : Array(Def) = [] of Def, @body : Array(Node) = [] of Node)
       super()
     end
 

@@ -220,10 +220,7 @@ module Lucid::Compiler
       start = token.loc
       name = parse_const_or_path next_token_skip(space: true), false
       token = next_token_skip space: true, newline: true, semicolon: true
-      aliases = [] of Alias
-      types = [] of Node
-      methods = [] of Def
-      body = [] of Node
+      mod = ModuleDef.new name
 
       loop do
         break if token.kind.end?
@@ -231,29 +228,26 @@ module Lucid::Compiler
 
         case node = parse token
         when Alias
-          aliases << node
+          mod.aliases << node
         when ModuleDef
-          types << node
+          mod.types << node
         when Def
-          methods << node
+          mod.methods << node
         when Nil
-          body << raise current_token, "unexpected end of file"
+          mod.body << raise current_token, "unexpected end of file"
           break
         else
-          body << node
+          mod.body << node
         end
 
         break if current_token.kind.end?
         token = next_token_skip space: true, newline: true, semicolon: true
       end
 
+      mod.at(start & current_token.loc)
       skip_token
 
-      ModuleDef.new(
-        name, [] of Node, nil, false,
-        [] of Node, [] of Node, [] of Node,
-        aliases, types, methods, body
-      ).at(start & token.loc)
+      mod
     end
 
     # DEF ::=
