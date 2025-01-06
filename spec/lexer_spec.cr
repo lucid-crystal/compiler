@@ -298,6 +298,16 @@ describe LC::Lexer, tags: "lexer" do
     )
   end
 
+  it "parses include/extend expressions" do
+    assert_tokens(
+      <<-CR,
+        include Base
+        extend self
+        CR
+      :include, :space, :const, :newline, :extend, :space, :self, :eof
+    )
+  end
+
   it "parses enum expressions" do
     assert_tokens(
       <<-CR,

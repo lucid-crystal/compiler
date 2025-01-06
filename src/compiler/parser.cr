@@ -153,13 +153,18 @@ module Lucid::Compiler
         parse next_token_skip space: true, newline: true, semicolon: true
       when .abstract?, .private?, .protected?
         parse_visibility_expression token
+      when .module?
+        parse_module token
+      when .class?, .struct?
+        parse_class_or_struct token
       when .def?
         parse_def token
+      when .include?, .extend?
+        parse_include_or_extend token
       when .alias?
         parse_alias token
       when .require?
         parse_require token
-        # when .class?, .struct? then parse_class token
       else
         parse_expression token
       end
@@ -210,6 +215,66 @@ module Lucid::Compiler
       end
 
       node
+    end
+
+    # TODO: might be worth merging with below and erroring on inheritance
+    private def parse_module(token : Token) : Node
+      name = parse_const_or_path next_token_skip(space: true), false
+      next_token_skip space: true, newline: true, semicolon: true
+
+      parse_namespace token.loc, ModuleDef.new name
+    end
+
+    private def parse_class_or_struct(start : Token) : Node
+      name = parse_const_or_path next_token_skip(space: true), false
+      token = next_token_skip space: true, newline: true, semicolon: true
+
+      if token.kind.lesser?
+        superclass = parse_const_or_path next_token_skip(space: true), false
+        next_token_skip space: true, newline: true, semicolon: true
+      end
+
+      if start.kind.class?
+        parse_namespace start.loc, ClassDef.new(name, superclass: superclass)
+      else
+        parse_namespace start.loc, StructDef.new(name, superclass: superclass)
+      end
+    end
+
+    private def parse_namespace(start : Location, namespace : NamespaceDef) : Node
+      loop do
+        break if current_token.kind.end?
+        return raise current_token, "unexpected end of file" if current_token.kind.eof?
+
+        case node = parse current_token
+        when Include
+          namespace.includes << node
+        when Extend
+          namespace.extends << node
+        when Alias
+          namespace.aliases << node
+        when NamespaceDef
+          namespace.types << node
+        when Def
+          namespace.methods << node
+        when Nil
+          namespace.body << raise current_token, "unexpected end of file"
+          break
+        else
+          namespace.body << node
+        end
+
+        break if current_token.kind.end?
+        case current_token.kind
+        when .space?, .newline?, .semicolon?
+          next_token_skip space: true, newline: true, semicolon: true
+        end
+      end
+
+      namespace.at(start & current_token.loc)
+      skip_token
+
+      namespace
     end
 
     # DEF ::=
@@ -344,6 +409,22 @@ module Lucid::Compiler
 
       skip_token
       Def.new(name, params, return_type, free_vars, body).at(start & token.loc)
+    end
+
+    private def parse_include_or_extend(start : Token) : Node
+      token = next_token_skip space: true
+
+      if token.kind.eof?
+        node = raise token, "unexpected end of file"
+      else
+        node = parse(token).not_nil!
+      end
+
+      if start.kind.include?
+        Include.new node
+      else
+        Extend.new node
+      end
     end
 
     private def parse_alias(token : Token) : Node

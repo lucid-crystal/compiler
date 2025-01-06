@@ -54,6 +54,265 @@ module Lucid::Compiler
     end
   end
 
+  abstract class NamespaceDef < Node
+    property name : Node
+    property free_vars : Array(Node)
+    property superclass : Node?
+    property? private : Bool
+    property includes : Array(Include)
+    property extends : Array(Extend)
+    property constants : Array(Node)
+    property aliases : Array(Alias)
+    # property annotations : Array(Annotation)
+    property types : Array(Node) # modules, classes, structs, enums
+    property methods : Array(Def)
+    property body : Array(Node) # for calls, errors & dead code
+
+    def initialize(@name : Node, *, @free_vars : Array(Node) = [] of Node, @superclass : Node? = nil,
+                   @private : Bool = false, @includes : Array(Include) = [] of Include,
+                   @extends : Array(Extend) = [] of Extend, @constants : Array(Node) = [] of Node,
+                   @aliases : Array(Alias) = [] of Alias, @types : Array(Node) = [] of Node,
+                   @methods : Array(Def) = [] of Def, @body : Array(Node) = [] of Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      @name.to_s io
+
+      unless @free_vars.empty?
+        io << '('
+        @free_vars[0].to_s io
+
+        if @free_vars.size > 1
+          @free_vars.skip(1).each do |var|
+            io << ", "
+            var.to_s io
+          end
+        end
+
+        io << ')'
+      end
+
+      if cls = @superclass
+        io << " < "
+        cls.to_s io
+      end
+
+      io << '\n'
+      unless @includes.empty?
+        @includes.each do |type|
+          io << "include "
+          type.to_s io
+          io << '\n'
+        end
+      end
+
+      io << '\n'
+      unless @extends.empty?
+        @extends.each do |type|
+          io << "extend "
+          type.to_s io
+          io << '\n'
+        end
+      end
+
+      io << '\n'
+      unless @constants.empty?
+        @constants.each do |const|
+          const.to_s io
+          io << '\n'
+        end
+      end
+
+      io << '\n'
+      unless @aliases.empty?
+        @aliases.each do |type|
+          type.to_s io
+          io << '\n'
+        end
+      end
+
+      io << '\n'
+      unless @types.empty?
+        @types.each do |type|
+          type.to_s io
+          io << '\n'
+        end
+      end
+
+      io << '\n'
+      unless @methods.empty?
+        @methods.each do |method|
+          method.to_s io
+          io << '\n'
+        end
+      end
+
+      io << "\nend"
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "name: "
+        @name.pretty_print pp
+        pp.comma
+
+        pp.text "free_vars: "
+        @free_vars.pretty_print pp
+        pp.comma
+
+        pp.text "superclass: "
+        @superclass.pretty_print pp
+        pp.comma
+
+        pp.text "private: "
+        @private.pretty_print pp
+        pp.comma
+
+        pp.text "includes: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @includes.empty?
+
+          @includes[0].pretty_print pp
+          if @includes.size > 1
+            @includes.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "extends: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @extends.empty?
+
+          @extends[0].pretty_print pp
+          if @extends.size > 1
+            @extends.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "constants: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @constants.empty?
+
+          @constants[0].pretty_print pp
+          if @constants.size > 1
+            @constants.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "aliases: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @aliases.empty?
+
+          @aliases[0].pretty_print pp
+          if @aliases.size > 1
+            @aliases.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "types: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @types.empty?
+
+          @types[0].pretty_print pp
+          if @types.size > 1
+            @types.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "methods: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @methods.empty?
+
+          @methods[0].pretty_print pp
+          if @methods.size > 1
+            @methods.skip(1).each do |method|
+              pp.comma
+              method.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+    end
+  end
+
+  class ModuleDef < NamespaceDef
+    def to_s(io : IO) : Nil
+      io << "private " if @private
+      super
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ModuleDef("
+      super
+      pp.text ")"
+    end
+  end
+
+  class ClassDef < NamespaceDef
+    property? abstract : Bool = false
+
+    def to_s(io : IO) : Nil
+      io << "private " if @private
+      io << "abstract " if @abstract
+      super
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ClassDef("
+      super
+      pp.text ")"
+    end
+  end
+
+  class StructDef < NamespaceDef
+    property? abstract : Bool = false
+
+    def to_s(io : IO) : Nil
+      io << "private " if @private
+      io << "abstract " if @abstract
+      super
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "StructDef("
+      super
+      pp.text ")"
+    end
+  end
+
   class Def < Node
     property name : Node
     property params : Array(Parameter)
@@ -170,6 +429,52 @@ module Lucid::Compiler
           end
         end
         pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
+
+  class Include < Node
+    property type : Node
+
+    def initialize(@type : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "include "
+      @type.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Include("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "type: "
+        @type.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
+  class Extend < Node
+    property type : Node
+
+    def initialize(@type : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "extend "
+      @type.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Extend("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "type: "
+        @type.pretty_print pp
       end
       pp.text ")"
     end
