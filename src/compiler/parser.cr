@@ -155,6 +155,8 @@ module Lucid::Compiler
         parse_visibility_expression token
       when .module?
         parse_module token
+      when .class?, .struct?
+        parse_class_or_struct token
       when .def?
         parse_def token
       when .include?, .extend?
@@ -163,7 +165,6 @@ module Lucid::Compiler
         parse_alias token
       when .require?
         parse_require token
-        # when .class?, .struct? then parse_class token
       else
         parse_expression token
       end
@@ -216,32 +217,51 @@ module Lucid::Compiler
       node
     end
 
+    # TODO: might be worth merging with below and erroring on inheritance
     private def parse_module(token : Token) : Node
-      start = token.loc
       name = parse_const_or_path next_token_skip(space: true), false
       next_token_skip space: true, newline: true, semicolon: true
-      mod = ModuleDef.new name
 
+      parse_namespace token.loc, ModuleDef.new name
+    end
+
+    private def parse_class_or_struct(start : Token) : Node
+      name = parse_const_or_path next_token_skip(space: true), false
+      token = next_token_skip space: true, newline: true, semicolon: true
+
+      if token.kind.lesser?
+        superclass = parse_const_or_path next_token_skip(space: true), false
+        next_token_skip space: true, newline: true, semicolon: true
+      end
+
+      if start.kind.class?
+        parse_namespace start.loc, ClassDef.new(name, superclass: superclass)
+      else
+        parse_namespace start.loc, StructDef.new(name, superclass: superclass)
+      end
+    end
+
+    private def parse_namespace(start : Location, namespace : NamespaceDef) : Node
       loop do
         break if current_token.kind.end?
         return raise current_token, "unexpected end of file" if current_token.kind.eof?
 
         case node = parse current_token
         when Include
-          mod.includes << node
+          namespace.includes << node
         when Extend
-          mod.extends << node
+          namespace.extends << node
         when Alias
-          mod.aliases << node
-        when ModuleDef
-          mod.types << node
+          namespace.aliases << node
+        when NamespaceDef
+          namespace.types << node
         when Def
-          mod.methods << node
+          namespace.methods << node
         when Nil
-          mod.body << raise current_token, "unexpected end of file"
+          namespace.body << raise current_token, "unexpected end of file"
           break
         else
-          mod.body << node
+          namespace.body << node
         end
 
         break if current_token.kind.end?
@@ -251,10 +271,10 @@ module Lucid::Compiler
         end
       end
 
-      mod.at(start & current_token.loc)
+      namespace.at(start & current_token.loc)
       skip_token
 
-      mod
+      namespace
     end
 
     # DEF ::=

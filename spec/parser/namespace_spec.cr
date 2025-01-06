@@ -52,7 +52,7 @@ describe LC::Parser do
     it "parses types inside namespaces" do
       mod = parse(<<-CR).should be_a LC::ModuleDef
         module Foo
-          module Bar
+          class Bar < Baz
             extend self
 
             def baz : Nil
@@ -81,17 +81,20 @@ describe LC::Parser do
       const.value.should eq "Bar"
       mod.types.size.should eq 1
 
-      mod = mod.types[0].should be_a LC::ModuleDef
-      const = mod.name.should be_a LC::Const
+      cls = mod.types[0].should be_a LC::ClassDef
+      const = cls.name.should be_a LC::Const
       const.value.should eq "Bar"
-      mod.extends.size.should eq 1
 
-      call = mod.extends[0].type.should be_a LC::Call
+      const = cls.superclass.should be_a LC::Const
+      const.value.should eq "Baz"
+      cls.extends.size.should eq 1
+
+      call = cls.extends[0].type.should be_a LC::Call
       call.receiver.should be_a LC::Self
       call.args.should be_empty
-      mod.methods.size.should eq 1
+      cls.methods.size.should eq 1
 
-      method = mod.methods[0]
+      method = cls.methods[0]
       ident = method.name.should be_a LC::Ident
       ident.value.should eq "baz"
 

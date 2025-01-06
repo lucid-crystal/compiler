@@ -281,6 +281,38 @@ module Lucid::Compiler
     end
   end
 
+  class ClassDef < NamespaceDef
+    property? abstract : Bool = false
+
+    def to_s(io : IO) : Nil
+      io << "private " if @private
+      io << "abstract " if @abstract
+      super
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ClassDef("
+      super
+      pp.text ")"
+    end
+  end
+
+  class StructDef < NamespaceDef
+    property? abstract : Bool = false
+
+    def to_s(io : IO) : Nil
+      io << "private " if @private
+      io << "abstract " if @abstract
+      super
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "StructDef("
+      super
+      pp.text ")"
+    end
+  end
+
   class Def < Node
     property name : Node
     property params : Array(Parameter)
