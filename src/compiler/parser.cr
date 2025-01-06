@@ -219,14 +219,18 @@ module Lucid::Compiler
     private def parse_module(token : Token) : Node
       start = token.loc
       name = parse_const_or_path next_token_skip(space: true), false
-      token = next_token_skip space: true, newline: true, semicolon: true
+      next_token_skip space: true, newline: true, semicolon: true
       mod = ModuleDef.new name
 
       loop do
-        break if token.kind.end?
-        return raise token, "unexpected end of file" if token.kind.eof?
+        break if current_token.kind.end?
+        return raise current_token, "unexpected end of file" if current_token.kind.eof?
 
-        case node = parse token
+        case node = parse current_token
+        when Include
+          mod.includes << node
+        when Extend
+          mod.extends << node
         when Alias
           mod.aliases << node
         when ModuleDef
@@ -241,7 +245,10 @@ module Lucid::Compiler
         end
 
         break if current_token.kind.end?
-        token = next_token_skip space: true, newline: true, semicolon: true
+        case current_token.kind
+        when .space?, .newline?, .semicolon?
+          next_token_skip space: true, newline: true, semicolon: true
+        end
       end
 
       mod.at(start & current_token.loc)

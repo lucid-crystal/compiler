@@ -59,8 +59,8 @@ module Lucid::Compiler
     property free_vars : Array(Node)
     property superclass : Node?
     property? private : Bool
-    property includes : Array(Node)
-    property extends : Array(Node)
+    property includes : Array(Include)
+    property extends : Array(Extend)
     property constants : Array(Node)
     property aliases : Array(Alias)
     # property annotations : Array(Annotation)
@@ -69,8 +69,8 @@ module Lucid::Compiler
     property body : Array(Node) # for calls, errors & dead code
 
     def initialize(@name : Node, *, @free_vars : Array(Node) = [] of Node, @superclass : Node? = nil,
-                   @private : Bool = false, @includes : Array(Node) = [] of Node,
-                   @extends : Array(Node) = [] of Node, @constants : Array(Node) = [] of Node,
+                   @private : Bool = false, @includes : Array(Include) = [] of Include,
+                   @extends : Array(Extend) = [] of Extend, @constants : Array(Node) = [] of Node,
                    @aliases : Array(Alias) = [] of Alias, @types : Array(Node) = [] of Node,
                    @methods : Array(Def) = [] of Def, @body : Array(Node) = [] of Node)
       super()
