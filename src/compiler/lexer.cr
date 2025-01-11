@@ -14,7 +14,7 @@ module Lucid::Compiler
       @reader = Char::Reader.new source
       @pool = StringPool.new
       @line = @column = 0
-      @loc = Location[0, 0]
+      @loc = Location[0, 0, 0, 0]
     end
 
     def run : Array(Token)
@@ -29,7 +29,7 @@ module Lucid::Compiler
     end
 
     private def next_token : Token
-      @loc = Location[@line, @column]
+      @loc = Location[@line, @column, @line, @column]
 
       case current_char
       when '\0'
@@ -330,12 +330,10 @@ module Lucid::Compiler
         Token.new :tilde, location
       when '"'
         next_char
-        @loc.increment_column_start
         value = read_string_to '"'
         next_char
         Token.new :string, location, value
       when '\''
-        @loc.increment_column_start
         case next_char
         when '\0'
           raise "unterminated char literal"
@@ -581,8 +579,7 @@ module Lucid::Compiler
     end
 
     private def location : Location
-      @loc.line_end_at @line
-      @loc.column_end_at @column
+      @loc.end_at(@line, @column)
       @loc
     end
 

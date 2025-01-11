@@ -11,7 +11,7 @@ module Lucid::Compiler
     property loc : Location
 
     def initialize
-      @loc = Location[0, 0]
+      @loc = Location[0, 0, 0, 0]
     end
 
     def at(@loc : Location) : self
