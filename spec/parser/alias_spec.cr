@@ -4,6 +4,8 @@ describe LC::Parser do
   context "aliases" do
     it "parses alias statements" do
       type = parse("alias Bar = Foo").should be_a LC::Alias
+      type.loc.to_tuple.should eq({0, 0, 0, 15})
+
       const = type.name.should be_a LC::Const
       const.value.should eq "Bar"
 

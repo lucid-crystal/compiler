@@ -4,6 +4,7 @@ describe LC::Parser do
   context "prefixes", tags: %w[parser prefix] do
     it "parses prefix operator expressions" do
       prefix = parse("!true").should be_a LC::Prefix
+      prefix.loc.to_tuple.should eq({0, 0, 0, 5})
       prefix.op.should eq LC::Prefix::Operator::Not
 
       bool = prefix.value.should be_a LC::BoolLiteral
@@ -12,6 +13,7 @@ describe LC::Parser do
 
     it "parses double prefix operator expressions" do
       prefix = parse("!!false").should be_a LC::Prefix
+      prefix.loc.to_tuple.should eq({0, 0, 0, 7})
       prefix.op.should eq LC::Prefix::Operator::Not
 
       prefix = prefix.value.should be_a LC::Prefix
@@ -23,6 +25,8 @@ describe LC::Parser do
 
     it "parses prefix operator expressions in calls" do
       call = parse("puts !foo").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
+
       receiver = call.receiver.should be_a LC::Ident
       receiver.value.should eq "puts"
       call.args.size.should eq 1
@@ -37,6 +41,8 @@ describe LC::Parser do
 
     it "parses prefix operators with incorrect syntax as errors" do
       error = parse("puts ! foo").should be_a LC::Error
+      error.loc.to_tuple.should eq({0, 0, 0, 10})
+
       infix = error.target.should be_a LC::Infix
       left = infix.left.should be_a LC::Call
       ident = left.receiver.should be_a LC::Ident

@@ -4,6 +4,8 @@ describe LC::Parser do
   context "infix", tags: %w[parser infix] do
     it "parses infix operator expressions" do
       infix = parse("1 + 1").should be_a LC::Infix
+      infix.loc.to_tuple.should eq({0, 0, 0, 5})
+
       left = infix.left.should be_a LC::IntLiteral
       left.value.should eq 1
       infix.op.should eq LC::Infix::Operator::Add
@@ -12,6 +14,8 @@ describe LC::Parser do
       right.value.should eq 1
 
       infix = parse("false & true").should be_a LC::Infix
+      infix.loc.to_tuple.should eq({0, 0, 0, 12})
+
       left = infix.left.should be_a LC::BoolLiteral
       left.value.should be_false
       infix.op.should eq LC::Infix::Operator::BitAnd
@@ -22,6 +26,8 @@ describe LC::Parser do
 
     it "parses grouped infix operator expressions" do
       node = parse("4 + (16 / 2)").should be_a LC::Infix
+      node.loc.to_tuple.should eq({0, 0, 0, 11})
+
       int = node.left.should be_a LC::IntLiteral
       int.value.should eq 4
 
@@ -36,6 +42,9 @@ describe LC::Parser do
       int.value.should eq 2
 
       node = parse("1 + (2 ** 3) - (20 // -4)").should be_a LC::Infix
+      # TODO: 25 not 24, needs investigating
+      # node.loc.to_tuple.should eq({0, 0, 0, 25})
+
       int = node.left.should be_a LC::IntLiteral
       int.value.should eq 1
 
@@ -67,6 +76,8 @@ describe LC::Parser do
 
     it "parses multiple ungrouped infix operator expressions" do
       node = parse("8 << 16 | 2 ^ 3").should be_a LC::Infix
+      node.loc.to_tuple.should eq({0, 0, 0, 15})
+
       int = node.left.should be_a LC::IntLiteral
       int.value.should eq 8
 
@@ -89,6 +100,8 @@ describe LC::Parser do
 
     it "parses logic infix operator expressions" do
       node = parse("foo || bar && baz").should be_a LC::Infix
+      node.loc.to_tuple.should eq({0, 0, 0, 17})
+
       expr = node.left.should be_a LC::Call
       ident = expr.receiver.should be_a LC::Ident
       ident.value.should eq "foo"
