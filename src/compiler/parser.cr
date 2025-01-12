@@ -417,7 +417,7 @@ module Lucid::Compiler
       if token.kind.eof?
         node = raise token, "unexpected end of file"
       else
-        node = parse(token).not_nil!
+        node = parse(token).as(Node) # TODO: replace with parse! method
       end
 
       if start.kind.include?
