@@ -152,11 +152,8 @@ module Lucid::Compiler
       @kind.inspect io
 
       io << ", loc: "
-      line_start, line_end = @loc.line
-      io << line_start << ':' << line_end
-
-      col_start, col_end = @loc.column
-      io << '-' << col_start << ':' << col_end
+      line_start, col_start, line_end, col_end = @loc.to_tuple
+      io << line_start << ':' << col_start << '-' << line_end << ':' << col_end
 
       if @raw_value
         io << ", value: "

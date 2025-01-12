@@ -3,30 +3,28 @@ require "../spec_helper"
 describe LC::Parser do
   context "defs", tags: %w[parser defs] do
     it "parses method defs" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 1, 3})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
 
       node.params.should be_empty
       node.return_type.should be_nil
       node.body.should be_empty
 
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo; end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 0, 12})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
 
       node.params.should be_empty
       node.return_type.should be_nil
@@ -34,28 +32,26 @@ describe LC::Parser do
     end
 
     it "parses method defs with a return type" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo() : Nil
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 1, 3})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
+
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
       node.body.should be_empty
 
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo : Nil; end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 0, 18})
 
       node.name.should be_a LC::Ident
       node.name.as(LC::Ident).value.should eq "foo"

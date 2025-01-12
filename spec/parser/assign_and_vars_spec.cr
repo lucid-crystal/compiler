@@ -4,6 +4,8 @@ describe LC::Parser do
   context "assign and vars", tags: %w[parser assign vars] do
     it "parses assignment expressions" do
       assign = parse("x = 7").should be_a LC::Assign
+      assign.loc.to_tuple.should eq({0, 0, 0, 5})
+
       target = assign.target.should be_a LC::Ident
       target.value.should eq "x"
 
@@ -13,6 +15,7 @@ describe LC::Parser do
 
     it "parses uninitialized variable declaration expressions" do
       var = parse("x : Int32").should be_a LC::Var
+      var.loc.to_tuple.should eq({0, 0, 0, 9})
 
       name = var.name.should be_a LC::Ident
       name.value.should eq "x"
@@ -26,6 +29,7 @@ describe LC::Parser do
 
     it "parses initialized variable declaration expressions" do
       var = parse("y : Int32 = 123").should be_a LC::Var
+      var.loc.to_tuple.should eq({0, 0, 0, 15})
 
       name = var.name.should be_a LC::Ident
       name.value.should eq "y"
