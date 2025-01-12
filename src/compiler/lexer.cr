@@ -824,7 +824,6 @@ module Lucid::Compiler
           break if kind.float?
           case peek_char
           when .ascii_letter?, '.'
-            suffix = false
             break
           when .ascii_number?
             next_char

@@ -140,7 +140,7 @@ module Lucid::Compiler
       if @fail_first
         raise Parser::Exception.new target, message
       else
-        @errors << (node = Error.new target, message)
+        @errors << (node = Error.new(target, message).at(target.loc))
         node
       end
     end
@@ -417,13 +417,13 @@ module Lucid::Compiler
       if token.kind.eof?
         node = raise token, "unexpected end of file"
       else
-        node = parse(token).not_nil!
+        node = parse(token).as(Node) # TODO: replace with parse! method
       end
 
       if start.kind.include?
-        Include.new node
+        Include.new(node).at(start.loc & node.loc)
       else
-        Extend.new node
+        Extend.new(node).at(start.loc & node.loc)
       end
     end
 
@@ -496,7 +496,9 @@ module Lucid::Compiler
     private def parse_prefix_expression(token : Token) : Node?
       case token.kind
       when .double_colon?
-        parse_var_or_call next_token_skip(space: true), true
+        parse_var_or_call(next_token_skip(space: true), true).tap do |node|
+          node.loc = token.loc & node.loc
+        end
       when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?
         parse_var_or_call token, false
       when .integer?            then parse_integer token
@@ -605,7 +607,7 @@ module Lucid::Compiler
           end
         when .assign?
           node = parse_expression next_token_skip(space: true), :lowest
-          Assign.new(receiver, node).at(receiver.loc)
+          Assign.new(receiver, node).at(receiver.loc & node.loc)
         when .left_paren?
           parse_closed_call receiver
         else
@@ -659,7 +661,9 @@ module Lucid::Compiler
       end
 
       if names.size > 1
-        Path.new names, names[0].as?(Ident).try(&.global?) || false
+        Path
+          .new(names, names[0].as?(Ident).try(&.global?) || false)
+          .at(names[0].loc & names[-1].loc)
       else
         names[0]
       end
@@ -712,7 +716,9 @@ module Lucid::Compiler
       end
 
       if names.size > 1
-        Path.new names, names[0].as?(Ident).try(&.global?) || false
+        Path
+          .new(names, names[0].as?(Ident).try(&.global?) || false)
+          .at(names[0].loc & names[-1].loc)
       else
         names[0]
       end
@@ -754,7 +760,7 @@ module Lucid::Compiler
         args << raise current_token, "invalid trailing comma in call"
       end
 
-      Call.new(receiver, args).at(receiver.loc)
+      Call.new(receiver, args).at(receiver.loc & current_token.loc)
     end
 
     # CLOSED_CALL ::= (IDENT | PATH) '(' [EXPRESSION (',' [NEWLINE] EXPRESSION)*] ')'
@@ -795,7 +801,7 @@ module Lucid::Compiler
         end
       end
 
-      call = Call.new(receiver, args).at(receiver.loc)
+      call = Call.new(receiver, args).at(receiver.loc & current_token.loc)
       call = raise call, "expected closing parenthesis for call" unless closed
       call
     end

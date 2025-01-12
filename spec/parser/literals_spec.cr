@@ -70,8 +70,9 @@ describe LC::Parser do
 
     it "errors on calling underscore" do
       call = parse("_ foo").should be_a LC::Call
-      error = call.receiver.should be_a LC::Error
+      call.loc.to_tuple.should eq({0, 0, 0, 5})
 
+      error = call.receiver.should be_a LC::Error
       error.target.should be_a LC::Underscore
       error.message.should eq "underscore cannot be called as a method"
       call.args.size.should eq 1
@@ -82,15 +83,20 @@ describe LC::Parser do
     end
 
     it "parses empty proc expressions" do
-      {parse("-> { }"), parse("-> () { }")}.each do |node|
-        proc = node.should be_a LC::ProcLiteral
-        proc.params.should be_empty
-        proc.body.should be_empty
-      end
+      proc = parse("-> { }").should be_a LC::ProcLiteral
+      proc.loc.to_tuple.should eq({0, 0, 0, 6})
+      proc.params.should be_empty
+      proc.body.should be_empty
+
+      proc = parse("-> () { }").should be_a LC::ProcLiteral
+      proc.loc.to_tuple.should eq({0, 0, 0, 9})
+      proc.params.should be_empty
+      proc.body.should be_empty
     end
 
     it "parses proc expressions with single arguments" do
       proc = parse("-> (x : Int32) { }").should be_a LC::ProcLiteral
+      proc.loc.to_tuple.should eq({0, 0, 0, 18})
       proc.params.size.should eq 1
 
       param = proc.params[0]
@@ -104,6 +110,7 @@ describe LC::Parser do
 
     it "parses proc expressions with multiple arguments" do
       proc = parse("-> (a : Int32, b : Int32) { }").should be_a LC::ProcLiteral
+      proc.loc.to_tuple.should eq({0, 0, 0, 29})
       proc.params.size.should eq 2
 
       param = proc.params[0]
@@ -124,6 +131,7 @@ describe LC::Parser do
 
     it "parses proc expressions with a body" do
       proc = parse("-> do exit end").should be_a LC::ProcLiteral
+      proc.loc.to_tuple.should eq({0, 0, 0, 14})
       proc.params.should be_empty
       proc.body.size.should eq 1
 
@@ -144,6 +152,7 @@ describe LC::Parser do
         end
         CR
 
+      proc.loc.to_tuple.should eq({0, 0, 6, 3})
       proc.params.size.should eq 2
 
       param = proc.params[0]

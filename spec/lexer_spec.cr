@@ -8,6 +8,10 @@ describe LC::Lexer, tags: "lexer" do
     token = tokens[0]
     token.kind.should eq LC::Token::Kind::EOF
     token.raw_value.should be_nil
+
+    token.loc.start.should eq({0, 0})
+    token.loc.end.should eq({0, 0})
+
     token.inspect.should eq "Token(kind: Lucid::Compiler::Token::Kind::EOF, loc: 0:0-0:0)"
   end
 

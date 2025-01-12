@@ -4,6 +4,8 @@ describe LC::Parser do
   context "calls and paths", tags: %w[parser calls paths] do
     it "parses call expressions with no arguments" do
       call = parse("exit").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 4})
+
       ident = call.receiver.should be_a LC::Ident
 
       ident.value.should eq "exit"
@@ -12,11 +14,15 @@ describe LC::Parser do
 
     it "parses call expressions with keyword names" do
       call = parse("::alias").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 7})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "alias"
       call.args.should be_empty
 
       call = parse(%(::require("my_file.cr"))).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 23})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "require"
       call.args.size.should eq 1
@@ -35,6 +41,8 @@ describe LC::Parser do
 
     it "parses instance variables" do
       call = parse("@foo").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 4})
+
       ivar = call.receiver.should be_a LC::InstanceVar
       ivar.value.should eq "foo"
       call.args.should be_empty
@@ -42,6 +50,8 @@ describe LC::Parser do
 
     it "parses class variables" do
       call = parse("@@bar").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 5})
+
       cvar = call.receiver.should be_a LC::ClassVar
       cvar.value.should eq "bar"
       call.args.should be_empty
@@ -49,6 +59,8 @@ describe LC::Parser do
 
     it "parses path call expressions" do
       call = parse("foo.bar.baz").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 11})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 3
 
@@ -64,6 +76,8 @@ describe LC::Parser do
 
     it "parses path call expressions with keyword names" do
       call = parse("self.self.self").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 14})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 3
 
@@ -72,6 +86,8 @@ describe LC::Parser do
       end
 
       call = parse("this.abstract.type").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 18})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 3
 
@@ -87,6 +103,7 @@ describe LC::Parser do
 
     it "parses constant path expressions" do
       path = parse("Foo::Bar").should be_a LC::Path
+      path.loc.to_tuple.should eq({0, 0, 0, 8})
       path.names.size.should eq 2
 
       const = path.names[0].should be_a LC::Const
@@ -100,6 +117,8 @@ describe LC::Parser do
 
     it "parses constant call expresions" do
       call = parse("::Foo.baz").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 2
 
@@ -114,6 +133,8 @@ describe LC::Parser do
 
     it "parses constant call expressions with keyword names" do
       call = parse("Foo.class").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 2
 
@@ -124,6 +145,8 @@ describe LC::Parser do
       ident.value.should eq "class"
 
       call = parse("::Bar::Baz.end").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 14})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 3
 
@@ -139,6 +162,8 @@ describe LC::Parser do
 
     it "parses call expressions ending with special tokens" do
       infix = parse("call==").should be_a LC::Infix
+      infix.loc.to_tuple.should eq({0, 0, 0, 6})
+
       call = infix.left.should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
 
@@ -154,6 +179,8 @@ describe LC::Parser do
 
     it "parses invalid calls as errors" do
       call = parse(%(foo."bar")).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 2
 
@@ -167,6 +194,8 @@ describe LC::Parser do
       error.message.should eq %(unexpected token "bar")
 
       path = parse("Foo::'a'::Bar").should be_a LC::Path
+      path.loc.to_tuple.should eq({0, 0, 0, 13})
+
       path.names.size.should eq 3
 
       const = path.names[0].should be_a LC::Const
@@ -182,6 +211,8 @@ describe LC::Parser do
       const.value.should eq "Bar"
 
       call = parse("Foo.bar::Baz").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 12})
+
       path = call.receiver.should be_a LC::Path
       path.names.size.should eq 4
 
@@ -206,6 +237,8 @@ describe LC::Parser do
 
     it "parses call expressions with single arguments" do
       call = parse(%(puts "hello world")).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 18})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
       call.args.size.should eq 1
@@ -216,6 +249,7 @@ describe LC::Parser do
 
     it "parses call expressions with multiple arguments" do
       call = parse(%(puts "foo", "bar", "baz")).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 24})
 
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
@@ -239,6 +273,8 @@ describe LC::Parser do
         )
         CR
 
+      call.loc.to_tuple.should eq({0, 0, 3, 1})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
       call.args.size.should eq 2
@@ -258,6 +294,8 @@ describe LC::Parser do
         )
         CR
 
+      call.loc.to_tuple.should eq({0, 0, 3, 1})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
       call.args.size.should eq 2
@@ -274,6 +312,7 @@ describe LC::Parser do
 
     it "parses undelimited call arguments" do
       call = parse(%(puts "foo" "bar")).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 16})
       call.args.size.should eq 2
 
       str = call.args[0].should be_a LC::StringLiteral
@@ -287,6 +326,7 @@ describe LC::Parser do
 
     it "parses trailing commas in call arguments as errors" do
       call = parse("puts foo,").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
       call.args.size.should eq 2
 
       inner = call.args[0].should be_a LC::Call
@@ -304,6 +344,7 @@ describe LC::Parser do
 
     it "parses duplicate commas in call arguments as errors" do
       call = parse("puts foo,,").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 10})
       call.args.size.should eq 2
 
       inner = call.args[0].should be_a LC::Call
@@ -321,6 +362,8 @@ describe LC::Parser do
 
     it "parses unclosed parenthesis calls as errors" do
       error = parse(%[puts("foo", "bar"]).should be_a LC::Error
+      error.loc.to_tuple.should eq({0, 0, 0, 17})
+
       call = error.target.should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
 
@@ -337,6 +380,8 @@ describe LC::Parser do
 
     it "parses call expressions with a single variable declaration" do
       call = parse("::property(name : String)").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 25})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "property"
       ident.global?.should be_true
@@ -353,6 +398,8 @@ describe LC::Parser do
 
     it "parses call expressions with a single variable assignment" do
       call = parse(%(::property(name = "dev"))).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 24})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "property"
       ident.global?.should be_true
@@ -368,6 +415,8 @@ describe LC::Parser do
 
     it "parses call expressions with a single variable declaration and assignment" do
       call = parse(%(::property(name : String = "dev"))).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 33})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "property"
       ident.global?.should be_true
@@ -386,6 +435,8 @@ describe LC::Parser do
 
     it "parses call expressions with multiple variable declarations" do
       call = parse("record Foo, bar : Int32, baz : String").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 37})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "record"
       call.args.size.should eq 3
@@ -412,6 +463,8 @@ describe LC::Parser do
 
     it "parses call expressions with multiple variable assignments" do
       call = parse(%(record Foo, bar = 123, baz = "true")).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 35})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "record"
       call.args.size.should eq 3
@@ -436,6 +489,8 @@ describe LC::Parser do
 
     it "parses call expressions with multiple variable declarations and assignments" do
       call = parse(%(record Foo, bar : Int32 = 123, baz : String = "true")).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 52})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "record"
       call.args.size.should eq 3
@@ -466,6 +521,8 @@ describe LC::Parser do
 
     it "parses expressions ignoring semicolons" do
       call = parse(%(;;;;;;;puts "hello world";;;;;;;)).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 7, 0, 25})
+
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
       call.args.size.should eq 1

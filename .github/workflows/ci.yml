@@ -6,8 +6,6 @@ on:
       - main
 
   pull_request:
-    branches:
-      - main
 
 permissions:
   checks: write
@@ -25,7 +23,7 @@ jobs:
           crystal: latest
 
       - name: Install Ameba
-        uses: crystal-ameba/github-action@v0.9.0
+        uses: crystal-ameba/github-action@v0.12.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

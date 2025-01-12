@@ -4,12 +4,15 @@ describe LC::Parser do
   context "namespace", tags: %w[parser namespace] do
     it "parses valid include/extend expressions" do
       includer = parse("include Base").should be_a LC::Include
+      includer.loc.to_tuple.should eq({0, 0, 0, 12})
+
       const = includer.type.should be_a LC::Const
       const.value.should eq "Base"
 
       extender = parse("extend self").should be_a LC::Extend
-      call = extender.type.should be_a LC::Call
+      extender.loc.to_tuple.should eq({0, 0, 0, 11})
 
+      call = extender.type.should be_a LC::Call
       call.receiver.should be_a LC::Self
       call.args.should be_empty
     end
@@ -40,6 +43,8 @@ describe LC::Parser do
         end
         CR
 
+      mod.loc.to_tuple.should eq({0, 0, 3, 3})
+
       const = mod.name.should be_a LC::Const
       const.value.should eq "Foo"
       mod.types.size.should eq 1
@@ -65,6 +70,8 @@ describe LC::Parser do
         end
         CR
 
+      mod.loc.to_tuple.should eq({0, 0, 11, 3})
+
       const = mod.name.should be_a LC::Const
       const.value.should eq "Foo"
       mod.includes.size.should eq 1
@@ -74,6 +81,8 @@ describe LC::Parser do
       mod.aliases.size.should eq 1
 
       aliased = mod.aliases[0].should be_a LC::Alias
+      aliased.loc.to_tuple.should eq({10, 2, 10, 17})
+
       const = aliased.name.should be_a LC::Const
       const.value.should eq "Qux"
 
@@ -82,6 +91,8 @@ describe LC::Parser do
       mod.types.size.should eq 1
 
       cls = mod.types[0].should be_a LC::ClassDef
+      cls.loc.to_tuple.should eq({1, 2, 6, 5})
+
       const = cls.name.should be_a LC::Const
       const.value.should eq "Bar"
 
@@ -95,6 +106,8 @@ describe LC::Parser do
       cls.methods.size.should eq 1
 
       method = cls.methods[0]
+      method.loc.to_tuple.should eq({4, 4, 5, 7})
+
       ident = method.name.should be_a LC::Ident
       ident.value.should eq "baz"
 
