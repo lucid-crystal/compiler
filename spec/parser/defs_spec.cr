@@ -3,30 +3,28 @@ require "../spec_helper"
 describe LC::Parser do
   context "defs", tags: %w[parser defs] do
     it "parses method defs" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 1, 3})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
 
       node.params.should be_empty
       node.return_type.should be_nil
       node.body.should be_empty
 
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo; end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 0, 12})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
 
       node.params.should be_empty
       node.return_type.should be_nil
@@ -34,78 +32,71 @@ describe LC::Parser do
     end
 
     it "parses method defs with a return type" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo() : Nil
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 1, 3})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
+
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
       node.body.should be_empty
 
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo : Nil; end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node.loc.to_tuple.should eq({0, 0, 0, 18})
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
+
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
       node.body.should be_empty
     end
 
     it "parses method defs with a body (1)" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo() : Nil
           puts "bar"
           puts "baz"
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
 
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
       node.body.size.should eq 2
-      node.body[0].should be_a LC::Call
-      expr = node.body[0].as(LC::Call)
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "puts"
-      expr.args.size.should eq 1
-      expr.args[0].should be_a LC::StringLiteral
-      expr.args[0].as(LC::StringLiteral).value.should eq "bar"
+      call = node.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "puts"
+      call.args.size.should eq 1
 
-      node.body[1].should be_a LC::Call
-      expr = node.body[1].as(LC::Call)
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "bar"
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "puts"
-      expr.args.size.should eq 1
-      expr.args[0].should be_a LC::StringLiteral
-      expr.args[0].as(LC::StringLiteral).value.should eq "baz"
+      call = node.body[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "puts"
+      call.args.size.should eq 1
+
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "baz"
     end
 
     it "parses method defs with a body (2)" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def test : Nil
           foo
           bar
@@ -113,70 +104,56 @@ describe LC::Parser do
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "test"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "test"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
 
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
       node.body.size.should eq 3
-      node.body[0].should be_a LC::Call
-      expr = node.body[0].as(LC::Call)
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "foo"
-      expr = node.body[1].as(LC::Call)
+      call = node.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "bar"
-      expr = node.body[2].as(LC::Call)
+      call = node.body[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "baz"
+      call = node.body[2].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "baz"
     end
 
     it "parses method defs with a single line body" do
-      node = parse "def foo() puts end"
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node = parse("def foo() puts end").should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident.value.should eq "foo"
       node.params.should be_empty
       node.return_type.should be_nil
-
       node.body.size.should eq 1
-      node.body[0].should be_a LC::Call
-      expr = node.body[0].as(LC::Call)
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "puts"
+      call = node.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "puts"
       expr.args.should be_empty
 
-      node = parse %(def foo() puts "bar" end)
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
+      node = parse(%(def foo() puts "bar" end)).should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
 
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident.value.should eq "foo"
       node.params.should be_empty
       node.return_type.should be_nil
-
       node.body.size.should eq 1
-      node.body[0].should be_a LC::Call
-      expr = node.body[0].as(LC::Call)
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "puts"
+      call = node.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "puts"
       expr.args.size.should eq 1
-      expr.args[0].should be_a LC::StringLiteral
-      expr.args[0].as(LC::StringLiteral).value.should eq "bar"
+
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "bar"
     end
 
     it "errors on method def single line body without parentheses, newline or semicolon" do
@@ -186,34 +163,34 @@ describe LC::Parser do
 
       ident.value.should eq "foo"
       error.message.should eq %(expected a newline or semicolon after def signature; got "puts")
-
       method.return_type.should be_nil
       method.body.size.should eq 1
+
       call = method.body[0].should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
-
       ident.value.should eq "puts"
       call.args.size.should eq 1
-      str = call.args[0].should be_a LC::StringLiteral
 
+      str = call.args[0].should be_a LC::StringLiteral
       str.value.should eq "bar"
     end
 
     it "errors on method defs with undelimited parameters" do
       method = parse("def foo(bar baz qux); end").should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "foo"
       method.params.size.should eq 2
+
       param = method.params[0]
       ident = param.name.should be_a LC::Ident
-
       ident.value.should eq "bar"
-      ident = param.internal_name.should be_a LC::Ident
 
+      ident = param.internal_name.should be_a LC::Ident
       ident.value.should eq "baz"
+
       param.type.should be_nil
       param.default_value.should be_nil
+
       param = method.params[1]
       error = param.name.should be_a LC::Error
       token = error.target.should be_a LC::Token
@@ -224,128 +201,111 @@ describe LC::Parser do
     end
 
     it "parses method defs with a single parameter" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def greet(name : String = "dev") : Nil
           puts "Hello, ", name
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "greet"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "greet"
       node.params.size.should eq 1
+
       param = node.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "name"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "name"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "String"
 
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "String"
+      str = param.default_value.should be_a LC::StringLiteral
+      str.value.should eq "dev"
 
-      param.default_value.should be_a LC::StringLiteral
-      param.default_value.as(LC::StringLiteral).value.should eq "dev"
-
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
-
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
       node.body.size.should eq 1
-      node.body[0].should be_a LC::Call
-      expr = node.body[0].as(LC::Call)
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "puts"
+      call = node.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "puts"
+      call.args.size.should eq 2
 
-      expr.args.size.should eq 2
-      expr.args[0].should be_a LC::StringLiteral
-      expr.args[0].as(LC::StringLiteral).value.should eq "Hello, "
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "Hello, "
 
-      expr.args[1].should be_a LC::Call
-      call = expr.args[1].as(LC::Call)
-
-      call.receiver.should be_a LC::Ident
-      call.receiver.as(LC::Ident).value.should eq "name"
+      call = expr.args[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "name"
       call.args.should be_empty
     end
 
     it "parses method defs with multiple parameters" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def add(a : Int32, b : Int32) : Int32
           a + b
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "add"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "add"
       node.params.size.should eq 2
+
       param = node.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "a"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "a"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
       param.default_value.should be_nil
+
       param = node.params[1]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "b"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "b"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Int32"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Int32"
       param.default_value.should be_nil
 
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Int32"
-
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Int32"
       node.body.size.should eq 1
-      node.body[0].should be_a LC::Infix
-      expr = node.body[0].as(LC::Infix)
 
-      expr.left.should be_a LC::Call
-      value = expr.left.as(LC::Call)
+      infix = node.body[0].should be_a LC::Infix
+      left = infix.left.should be_a LC::Call
+      ident = left.receiver.should be_a LC::Ident
 
-      value.receiver.should be_a LC::Ident
-      value.receiver.as(LC::Ident).value.should eq "a"
-      value.args.should be_empty
+      ident.value.should eq "a"
+      left.args.should be_empty
+      infix.op.should eq LC::Infix::Operator::Add
 
-      expr.op.should eq LC::Infix::Operator::Add
-      expr.right.should be_a LC::Call
-      value = expr.right.as(LC::Call)
-
-      value.receiver.should be_a LC::Ident
-      value.receiver.as(LC::Ident).value.should eq "b"
-      value.args.should be_empty
+      right = infix.right.should be_a LC::Call
+      ident = right.receiver.should be_a LC::Ident
+      ident.value.should eq "b"
+      right.args.should be_empty
     end
 
     it "parses method defs with external parameter names" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def write(to file : IO) : Nil
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "write"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "write"
       node.params.size.should eq 1
+
       param = node.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "to"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "to"
-      param.internal_name.should be_a LC::Ident
-      param.internal_name.as(LC::Ident).value.should eq "file"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "IO"
+      ident = param.internal_name.should be_a LC::Ident
+      ident.value.should eq "file"
 
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "IO"
+
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
     end
 
     it "errors on method def external names for block parameters" do
@@ -366,31 +326,28 @@ describe LC::Parser do
     end
 
     it "parses method defs with free variables" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         def foo(x : T, y : U) forall T, U
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "foo"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "foo"
       node.params.size.should eq 2
+
       param = node.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "x"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "x"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "T"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "T"
+
       param = node.params[1]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "y"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "y"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "U"
-
+      const = param.type.should be_a LC::Const
+      const.value.should eq "U"
       node.return_type.should be_nil
       node.free_vars.size.should eq 2
 
@@ -404,12 +361,12 @@ describe LC::Parser do
     it "errors on method defs with invalid free variables" do
       method = parse("def foo : T forall 3; end").should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "foo"
-      const = method.return_type.should be_a LC::Const
 
+      const = method.return_type.should be_a LC::Const
       const.value.should eq "T"
       method.free_vars.size.should eq 1
+
       error = method.free_vars[0].should be_a LC::Error
       token = error.target.should be_a LC::Token
 
@@ -419,43 +376,39 @@ describe LC::Parser do
 
       method = parse("def foo : U forall T::U; end").should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "foo"
-      const = method.return_type.should be_a LC::Const
 
+      const = method.return_type.should be_a LC::Const
       const.value.should eq "U"
       method.free_vars.size.should eq 1
+
       error = method.free_vars[0].should be_a LC::Error
       path = error.target.should be_a LC::Path
-
       path.names.size.should eq 2
+
       const = path.names[0].should be_a LC::Const
-
       const.value.should eq "T"
-      const = path.names[1].should be_a LC::Const
 
+      const = path.names[1].should be_a LC::Const
       const.value.should eq "U"
       error.message.should eq "free variables cannot be paths"
     end
 
     it "parses abstract method defs" do
-      node = parse "abstract def read(slice : Bytes) : Int32"
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "read"
-
+      node = parse("abstract def read(slice : Bytes) : Int32").should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "read"
       node.params.size.should eq 1
+
       param = node.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "slice"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "slice"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Bytes"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Bytes"
 
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Int32"
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Int32"
 
       node.body.should be_empty
       node.private?.should be_false
@@ -464,35 +417,30 @@ describe LC::Parser do
     end
 
     it "parses private method defs" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         private def read_impl(slice : Bytes) : Int32
           does_something_cool
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "read_impl"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "read_impl"
       node.params.size.should eq 1
+
       param = node.params[0]
+      ident = param.name.should be_a LC::Ident
+      ident.value.should eq "slice"
 
-      param.name.should be_a LC::Ident
-      param.name.as(LC::Ident).value.should eq "slice"
-      param.type.should be_a LC::Const
-      param.type.as(LC::Const).value.should eq "Bytes"
+      const = param.type.should be_a LC::Const
+      const.value.should eq "Bytes"
 
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Int32"
-
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Int32"
       node.body.size.should eq 1
-      node.body[0].should be_a LC::Call
-      expr = node.body[0].as(LC::Call)
 
-      expr.receiver.should be_a LC::Ident
-      expr.receiver.as(LC::Ident).value.should eq "does_something_cool"
+      call = node.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "does_something_cool"
 
       node.private?.should be_true
       node.protected?.should be_false
@@ -500,60 +448,49 @@ describe LC::Parser do
     end
 
     it "parses protected method defs" do
-      node = parse <<-CR
+      node = parse(<<-CR).should be_a LC::Def
         protected def does_something_cool : Nil
         end
         CR
 
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "does_something_cool"
-
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "does_something_cool"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
-      node.body.should be_empty
 
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
+
+      node.body.should be_empty
       node.private?.should be_false
       node.protected?.should be_true
       node.abstract?.should be_false
     end
 
     it "parses private abstract method defs" do
-      node = parse "private abstract def select_impl : Nil"
-
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "select_impl"
-
+      node = parse("private abstract def select_impl : Nil").should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "select_impl"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Nil"
-      node.body.should be_empty
 
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Nil"
+
+      node.body.should be_empty
       node.private?.should be_true
       node.protected?.should be_false
       node.abstract?.should be_true
     end
 
     it "parses protected abstract method defs" do
-      node = parse "protected abstract def execute : Bool"
-
-      node.should be_a LC::Def
-      node = node.as(LC::Def)
-
-      node.name.should be_a LC::Ident
-      node.name.as(LC::Ident).value.should eq "execute"
-
+      node = parse("protected abstract def execute : Bool").should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
+      ident.value.should eq "execute"
       node.params.should be_empty
-      node.return_type.should be_a LC::Const
-      node.return_type.as(LC::Const).value.should eq "Bool"
-      node.body.should be_empty
 
+      const = node.return_type.should be_a LC::Const
+      const.value.should eq "Bool"
+
+      node.body.should be_empty
       node.private?.should be_false
       node.protected?.should be_true
       node.abstract?.should be_true
@@ -572,8 +509,8 @@ describe LC::Parser do
 
       method = nodes[1].should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "foo"
+
       method.private?.should be_true
       method.protected?.should be_false
       method.abstract?.should be_false
@@ -590,8 +527,8 @@ describe LC::Parser do
 
       method = nodes[1].should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "bar"
+
       method.private?.should be_false
       method.protected?.should be_true
       method.abstract?.should be_false
@@ -608,8 +545,8 @@ describe LC::Parser do
 
       method = nodes[1].should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "baz"
+
       method.private?.should be_false
       method.protected?.should be_false
       method.abstract?.should be_true
@@ -628,8 +565,8 @@ describe LC::Parser do
 
       method = nodes[1].should be_a LC::Def
       ident = method.name.should be_a LC::Ident
-
       ident.value.should eq "foo"
+
       method.private?.should be_false
       method.protected?.should be_true
       method.abstract?.should be_false
