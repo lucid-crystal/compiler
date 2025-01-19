@@ -137,7 +137,7 @@ describe LC::Parser do
       call = node.body[0].should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
-      expr.args.should be_empty
+      call.args.should be_empty
 
       node = parse(%(def foo() puts "bar" end)).should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -150,7 +150,7 @@ describe LC::Parser do
       call = node.body[0].should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "puts"
-      expr.args.size.should eq 1
+      call.args.size.should eq 1
 
       str = call.args[0].should be_a LC::StringLiteral
       str.value.should eq "bar"
@@ -233,7 +233,7 @@ describe LC::Parser do
       str = call.args[0].should be_a LC::StringLiteral
       str.value.should eq "Hello, "
 
-      call = expr.args[1].should be_a LC::Call
+      call = call.args[1].should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "name"
       call.args.should be_empty
