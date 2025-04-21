@@ -101,6 +101,42 @@ describe LC::Parser do
       ident.value.should eq "type"
     end
 
+    it "parses path call expressions with call receivers" do
+      call = parse("foo().bar").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
+
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 2
+
+      inner = path.names[0].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      inner.args.should be_empty
+
+      inner = path.names[1].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+      inner.args.should be_empty
+      call.args.should be_empty
+
+      call = parse("foo(true).bar(false)").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 20})
+
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 2
+
+      inner = path.names[0].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      inner.args.size.should eq 1
+
+      inner = path.names[1].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+      inner.args.size.should eq 1
+      call.args.should be_empty
+    end
+
     it "parses constant path expressions" do
       path = parse("Foo::Bar").should be_a LC::Path
       path.loc.to_tuple.should eq({0, 0, 0, 8})
