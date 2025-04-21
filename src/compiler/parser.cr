@@ -494,36 +494,38 @@ module Lucid::Compiler
 
     # PREFIX_EXPR ::= ['!' | '&' | '*' | '**' | '+' | '-' | '~'] EXPRESSION
     private def parse_prefix_expression(token : Token) : Node?
-      case token.kind
-      when .double_colon?
-        parse_var_or_call(next_token_skip(space: true), true).tap do |node|
-          node.loc = token.loc & node.loc
-        end
-      when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?
-        parse_var_or_call token, false
-      when .integer?            then parse_integer token
-      when .integer_bad_suffix? then parse_invalid_integer token
-      when .float?              then parse_float token
-      when .float_bad_suffix?   then parse_invalid_float token
-      when .string?             then parse_string token
-      when .true?, .false?      then parse_bool token
-      when .char?               then parse_char token
-      when .is_nil?             then parse_nil token
-      when .left_paren?         then parse_grouped_expression
-      when .proc?               then parse_proc token
-      when .magic_line?         then parse_integer token
-      when .magic_dir?          then parse_string token
-      when .magic_file?         then parse_string token
-      else
-        return unless token.operator?
+      expr = case token.kind
+             when .double_colon?
+               parse_var_or_call(next_token_skip(space: true), true).tap do |node|
+                 node.loc = token.loc & node.loc
+               end
+             when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?
+               parse_var_or_call token, false
+             when .integer?            then parse_integer token
+             when .integer_bad_suffix? then parse_invalid_integer token
+             when .float?              then parse_float token
+             when .float_bad_suffix?   then parse_invalid_float token
+             when .string?             then parse_string token
+             when .true?, .false?      then parse_bool token
+             when .char?               then parse_char token
+             when .is_nil?             then parse_nil token
+             when .left_paren?         then parse_grouped_expression
+             when .proc?               then parse_proc token
+             when .magic_line?         then parse_integer token
+             when .magic_dir?          then parse_string token
+             when .magic_file?         then parse_string token
+             else
+               return unless token.operator?
 
-        op = Prefix::Operator.from token.kind
-        start = token.loc
-        token = next_token_skip space: true
-        value = parse_expression token, Precedence.from(token.kind)
+               op = Prefix::Operator.from token.kind
+               start = token.loc
+               token = next_token_skip space: true
+               value = parse_expression token, Precedence.from(token.kind)
 
-        Prefix.new(op, value).at(start & value.loc)
-      end
+               Prefix.new(op, value).at(start & value.loc)
+             end
+
+      expr
     end
 
     # INFIX_EXPR ::= (['('] EXPRESSION OP EXPRESSION [')'])+
@@ -803,6 +805,22 @@ module Lucid::Compiler
 
       call = Call.new(receiver, args).at(receiver.loc & current_token.loc)
       call = raise call, "expected closing parenthesis for call" unless closed
+
+      if peek_token_skip(space: true, newline: true).kind.period?
+        next_token_skip space: true, newline: true
+        expr = parse_var_or_call next_token_skip(space: true, newline: true), false
+
+        case receiver
+        when Call, Const, Ident
+          new_receiver = Path.new([call, expr], false).at(call.loc & expr.loc)
+          call = Call.new(new_receiver, [] of Node).at(new_receiver.loc)
+        when Path
+          receiver.names << expr
+        else
+          raise "BUG: expected Call or Path for closed call; got #{receiver.class}"
+        end
+      end
+
       call
     end
 
