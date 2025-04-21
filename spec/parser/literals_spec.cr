@@ -60,6 +60,23 @@ describe LC::Parser do
       assert_node LC::CharLiteral, "'ǅ'"
     end
 
+    it "parses symbol expressions" do
+      assert_node LC::SymbolLiteral, ":a"
+      assert_node LC::SymbolLiteral, ":i0"
+      assert_node LC::SymbolLiteral, ":foo?"
+      assert_node LC::SymbolLiteral, ":bar!"
+      assert_node LC::SymbolLiteral, %(:"foo bar")
+
+      %i[! != !~ % & &* &** &+ &- * ** + - / // < <= <=> == === =~ ^ | ~].each do |op|
+        assert_node LC::SymbolLiteral, op.inspect
+      end
+    end
+
+    it "parses symbol key expressions" do
+      assert_node LC::SymbolKey, "foo:"
+      assert_node LC::SymbolKey, %("foo bar":)
+    end
+
     it "parses nil expressions" do
       assert_node LC::NilLiteral, "nil"
     end

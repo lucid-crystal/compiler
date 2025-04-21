@@ -1145,6 +1145,50 @@ module Lucid::Compiler
     end
   end
 
+  class SymbolLiteral < Node
+    property value : String
+    property? quoted : Bool
+
+    def initialize(@value : String, @quoted : Bool)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << ':'
+      io << '"' if @quoted
+      @value.inspect io
+      io << '"' if @quoted
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "SymbolLiteral("
+      @value.pretty_print pp
+
+      pp.comma
+      pp.text "quoted: "
+      @quoted.pretty_print pp
+      pp.text ")"
+    end
+  end
+
+  class SymbolKey < Node
+    property value : String
+
+    def initialize(@value : String)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      @value.inspect io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "SymbolKey("
+      @value.pretty_print pp
+      pp.text ")"
+    end
+  end
+
   class NilLiteral < Node
     def to_s(io : IO) : Nil
       io << "nil"
