@@ -167,6 +167,24 @@ describe LC::Parser do
       ident.global?.should be_false
     end
 
+    it "parses constant call expresions with call receivers" do
+      call = parse("Foo(T).class").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 12})
+
+      path = call.receiver.should be_a LC::Path
+      path.names.size.should eq 2
+
+      inner = path.names[0].should be_a LC::Call
+      const = inner.receiver.should be_a LC::Const
+      const.value.should eq "Foo"
+      inner.args.size.should eq 1
+
+      inner = path.names[1].should be_a LC::Call
+      ident = inner.receiver.should be_a LC::Ident
+      ident.value.should eq "class"
+      inner.args.should be_empty
+    end
+
     it "parses constant call expressions with keyword names" do
       call = parse("Foo.class").should be_a LC::Call
       call.loc.to_tuple.should eq({0, 0, 0, 9})

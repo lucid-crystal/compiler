@@ -811,7 +811,7 @@ module Lucid::Compiler
         expr = parse_var_or_call next_token_skip(space: true, newline: true), false
 
         case receiver
-        when Call, Ident
+        when Call, Const, Ident
           new_receiver = Path.new([call, expr], false).at(call.loc & expr.loc)
           call = Call.new(new_receiver, [] of Node).at(new_receiver.loc)
         when Path
