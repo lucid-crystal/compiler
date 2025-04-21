@@ -13,6 +13,9 @@ module Lucid::Compiler
 
       String
       Char
+      Symbol
+      QuotedSymbol
+      SymbolKey
       Integer
       Float
       IntegerBadSuffix

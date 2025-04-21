@@ -501,19 +501,20 @@ module Lucid::Compiler
                end
              when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?
                parse_var_or_call token, false
-             when .integer?            then parse_integer token
-             when .integer_bad_suffix? then parse_invalid_integer token
-             when .float?              then parse_float token
-             when .float_bad_suffix?   then parse_invalid_float token
-             when .string?             then parse_string token
-             when .true?, .false?      then parse_bool token
-             when .char?               then parse_char token
-             when .is_nil?             then parse_nil token
-             when .left_paren?         then parse_grouped_expression
-             when .proc?               then parse_proc token
-             when .magic_line?         then parse_integer token
-             when .magic_dir?          then parse_string token
-             when .magic_file?         then parse_string token
+             when .integer?                 then parse_integer token
+             when .integer_bad_suffix?      then parse_invalid_integer token
+             when .float?                   then parse_float token
+             when .float_bad_suffix?        then parse_invalid_float token
+             when .string?                  then parse_string token
+             when .true?, .false?           then parse_bool token
+             when .char?                    then parse_char token
+             when .symbol?, .quoted_symbol? then parse_symbol token
+             when .is_nil?                  then parse_nil token
+             when .left_paren?              then parse_grouped_expression
+             when .proc?                    then parse_proc token
+             when .magic_line?              then parse_integer token
+             when .magic_dir?               then parse_string token
+             when .magic_file?              then parse_string token
              else
                return unless token.operator?
 
@@ -868,6 +869,10 @@ module Lucid::Compiler
 
     private def parse_char(token : Token) : Node
       CharLiteral.new(token.char_value).at(token.loc)
+    end
+
+    private def parse_symbol(token : Token) : Node
+      SymbolLiteral.new(token.str_value, token.kind.quoted_symbol?).at(token.loc)
     end
 
     private def parse_nil(token : Token) : Node

@@ -76,11 +76,19 @@ module Lucid::Compiler
         next_char
         Token.new :comma, location
       when ':'
-        if next_char == ':'
+        case next_char
+        when ':'
           next_char
           Token.new :double_colon, location
-        else
+        when '"'
+          next_char
+          value = read_string_to '"'
+          next_char
+          Token.new :quoted_symbol, location, value
+        when ' '
           Token.new :colon, location
+        else
+          lex_symbol
         end
       when ';'
         next_char
@@ -621,6 +629,123 @@ module Lucid::Compiler
       end
 
       Token.new kind, location, read_string_from start
+    end
+
+    private def lex_symbol : Token
+      start = current_pos
+
+      if current_char.ascii_letter?
+        loop do
+          case current_char
+          when .ascii_alphanumeric?, '_'
+            next_char
+          when '?'
+            next_char
+            break
+          when '!', '='
+            next_char unless peek_char == '='
+            break
+          else
+            break
+          end
+        end
+
+        value = read_string_from start
+      else
+        case current_char
+        when '%', '+', '-', '^', '|', '~'
+          value = current_char.to_s
+          next_char
+        when '!'
+          case next_char
+          when '='
+            value = "!="
+            next_char
+          when '~'
+            value = "!~"
+            next_char
+          else
+            value = "!"
+          end
+        when '&'
+          case next_char
+          when '*'
+            if next_char == '*'
+              value = "&**"
+              next_char
+            else
+              value = "&*"
+            end
+          when '+'
+            value = "&+"
+            next_char
+          when '-'
+            value = "&-"
+            next_char
+          else
+            value = "&"
+          end
+        when '*'
+          if next_char == '*'
+            value = "**"
+            next_char
+          else
+            value = "*"
+          end
+        when '/'
+          if next_char == '/'
+            value = "//"
+            next_char
+          else
+            value = "/"
+          end
+        when '<'
+          case next_char
+          when '<'
+            value = "<<"
+            next_char
+          when '='
+            if next_char == '>'
+              value = "<=>"
+              next_char
+            else
+              value = "<="
+            end
+          else
+            value = "<"
+          end
+        when '='
+          case next_char
+          when '='
+            if next_char == '='
+              value = "==="
+              next_char
+            else
+              value = "=="
+            end
+          when '~'
+            value = "=~"
+            next_char
+          else
+            value = "="
+          end
+        when '>'
+          case next_char
+          when '>'
+            value = ">>"
+            next_char
+          when '='
+            value = ">="
+            next_char
+          else
+            value = ">"
+          end
+        else
+          raise "unexpected character for symbol literal #{current_char.inspect}"
+        end
+      end
+
+      Token.new :symbol, location, value
     end
 
     private def lex_keyword_or_ident(keyword : Token::Kind, start : Int32 = current_pos) : Token

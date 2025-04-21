@@ -105,6 +105,15 @@ describe LC::Lexer, tags: "lexer" do
     end
   end
 
+  it "parses symbol literals" do
+    assert_tokens ":foo", {t!(symbol), 0, 0, 0, 4}, {t!(eof), 0, 4, 0, 4}
+    assert_tokens ":foo?", {t!(symbol), 0, 0, 0, 5}, {t!(eof), 0, 5, 0, 5}
+    assert_tokens ":foo!", {t!(symbol), 0, 0, 0, 5}, {t!(eof), 0, 5, 0, 5}
+    assert_tokens %(:"foo bar"), {t!(quoted_symbol), 0, 0, 0, 10}, {t!(eof), 0, 10, 0, 10}
+    assert_tokens ":!", {t!(symbol), 0, 0, 0, 2}, {t!(eof), 0, 2, 0, 2}
+    assert_tokens ":===", {t!(symbol), 0, 0, 0, 4}, {t!(eof), 0, 4, 0, 4}
+  end
+
   it "parses nil expressions" do
     assert_tokens "nil", {t!(nil), 0, 0, 0, 3}, {t!(eof), 0, 3, 0, 3}
   end
