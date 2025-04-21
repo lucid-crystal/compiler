@@ -339,8 +339,12 @@ module Lucid::Compiler
       when '"'
         next_char
         value = read_string_to '"'
-        next_char
-        Token.new :string, location, value
+        if next_char == ':'
+          next_char
+          Token.new :symbol_key, location, value
+        else
+          Token.new :string, location, value
+        end
       when '\''
         case next_char
         when '\0'
@@ -623,12 +627,23 @@ module Lucid::Compiler
         when '!', '='
           next_char unless peek_char == '='
           break
+        when ':'
+          unless peek_char == ':'
+            kind = Token::Kind::SymbolKey
+          end
+          break
         else
           break
         end
       end
 
-      Token.new kind, location, read_string_from start
+      if kind.symbol_key?
+        value = read_string_from start
+        next_char
+        Token.new kind, location, value
+      else
+        Token.new kind, location, read_string_from start
+      end
     end
 
     private def lex_symbol : Token

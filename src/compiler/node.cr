@@ -1171,6 +1171,24 @@ module Lucid::Compiler
     end
   end
 
+  class SymbolKey < Node
+    property value : String
+
+    def initialize(@value : String)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      @value.inspect io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "SymbolKey("
+      @value.pretty_print pp
+      pp.text ")"
+    end
+  end
+
   class NilLiteral < Node
     def to_s(io : IO) : Nil
       io << "nil"

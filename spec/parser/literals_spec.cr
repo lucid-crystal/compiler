@@ -72,6 +72,11 @@ describe LC::Parser do
       end
     end
 
+    it "parses symbol key expressions" do
+      assert_node LC::SymbolKey, "foo:"
+      assert_node LC::SymbolKey, %("foo bar":)
+    end
+
     it "parses nil expressions" do
       assert_node LC::NilLiteral, "nil"
     end

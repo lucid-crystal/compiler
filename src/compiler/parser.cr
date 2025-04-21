@@ -509,6 +509,7 @@ module Lucid::Compiler
              when .true?, .false?           then parse_bool token
              when .char?                    then parse_char token
              when .symbol?, .quoted_symbol? then parse_symbol token
+             when .symbol_key?              then parse_symbol_key token
              when .is_nil?                  then parse_nil token
              when .left_paren?              then parse_grouped_expression
              when .proc?                    then parse_proc token
@@ -873,6 +874,10 @@ module Lucid::Compiler
 
     private def parse_symbol(token : Token) : Node
       SymbolLiteral.new(token.str_value, token.kind.quoted_symbol?).at(token.loc)
+    end
+
+    private def parse_symbol_key(token : Token) : Node
+      SymbolKey.new(token.str_value).at(token.loc)
     end
 
     private def parse_nil(token : Token) : Node

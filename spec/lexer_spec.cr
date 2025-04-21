@@ -114,6 +114,11 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens ":===", {t!(symbol), 0, 0, 0, 4}, {t!(eof), 0, 4, 0, 4}
   end
 
+  it "parses symbol keys" do
+    assert_tokens "foo:", {t!(symbol_key), 0, 0, 0, 4}, {t!(eof), 0, 4, 0, 4}
+    assert_tokens %("foo bar":), {t!(symbol_key), 0, 0, 0, 10}, {t!(eof), 0, 10, 0, 10}
+  end
+
   it "parses nil expressions" do
     assert_tokens "nil", {t!(nil), 0, 0, 0, 3}, {t!(eof), 0, 3, 0, 3}
   end
