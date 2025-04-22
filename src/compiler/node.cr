@@ -507,6 +507,28 @@ module Lucid::Compiler
     end
   end
 
+  class AnnotationDef < Node
+    property name : Node
+
+    def initialize(@name : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "annotation " << @name
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "AnnotationDef("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "name: "
+        @name.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class Require < Node
     property mod : Node
 
@@ -1014,6 +1036,28 @@ module Lucid::Compiler
         pp.comma
         pp.text "named_args: "
         @named_args.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
+  class Annotation < Node
+    property call : Node
+
+    def initialize(@call : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "@[" << @call << ']'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Annotation("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "call: "
+        @call.pretty_print pp
       end
       pp.text ")"
     end
