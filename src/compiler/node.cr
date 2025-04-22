@@ -971,14 +971,20 @@ module Lucid::Compiler
   class Call < Node
     property receiver : Node
     property args : Array(Node)
+    property named_args : Hash(String, Node)
 
-    def initialize(@receiver : Node, @args : Array(Node))
+    def initialize(@receiver : Node, @args : Array(Node),
+                   @named_args : Hash(String, Node) = {} of String => Node)
       super()
     end
 
     def to_s(io : IO) : Nil
       io << @receiver << '('
       @args.join(io, ", ") unless @args.empty?
+
+      unless @named_args.empty?
+        @named_args.join(io, ", ") { |(k, v), i| i << k << ": " << v }
+      end
       io << ')'
     end
 
@@ -1004,6 +1010,10 @@ module Lucid::Compiler
           end
         end
         pp.text "]"
+
+        pp.comma
+        pp.text "named_args: "
+        @named_args.pretty_print pp
       end
       pp.text ")"
     end

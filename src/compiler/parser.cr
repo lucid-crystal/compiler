@@ -730,9 +730,17 @@ module Lucid::Compiler
 
     # OPEN_CALL ::= (IDENT | PATH) [EXPRESSION (',' [NEWLINE] EXPRESSION)*]
     private def parse_open_call(receiver : Node) : Node
-      args = [parse_expression(current_token, :lowest)] of Node
+      args = [] of Node
+      named_args = {} of String => Node
       delimited = false
       received = true
+
+      if current_token.kind.symbol_key?
+        key = current_token.str_value
+        named_args[key] = parse_expression next_token_skip(space: true), :lowest
+      else
+        args << parse_expression current_token, :lowest
+      end
 
       loop do
         token = peek_token_skip space: true
@@ -747,6 +755,17 @@ module Lucid::Compiler
           next_token_skip space: true
           delimited = true
           received = false
+        when .symbol_key?
+          key = next_token_skip(space: true).str_value
+          node = parse_expression next_token_skip(space: true), :lowest
+          if received
+            named_args[key] = raise node, "expected a comma after the last argument"
+          else
+            named_args[key] = node
+          end
+
+          delimited = false
+          received = true
         else
           node = parse_expression next_token_skip(space: true), :lowest
           if received
@@ -764,13 +783,14 @@ module Lucid::Compiler
         args << raise current_token, "invalid trailing comma in call"
       end
 
-      Call.new(receiver, args).at(receiver.loc & current_token.loc)
+      Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
     end
 
     # CLOSED_CALL ::= (IDENT | PATH) '(' [EXPRESSION (',' [NEWLINE] EXPRESSION)*] ')'
     private def parse_closed_call(receiver : Node) : Node
       skip_token
       args = [] of Node
+      named_args = {} of String => Node
       delimited = true
       closed = false
 
@@ -787,6 +807,22 @@ module Lucid::Compiler
           args << raise current_token, "unexpected token ','" unless delimited
           delimited = false
           skip_token
+        when .symbol_key?
+          key = current_token.str_value
+          named_args[key] = parse_expression next_token_skip(space: true), :lowest
+          token = peek_token_skip space: true, newline: true
+          case token.kind
+          when .eof?
+            break
+          when .comma?
+            delimited = true
+            skip_token
+          when .right_paren?
+            closed = true
+            skip_token
+          else
+            raise "Unexpected token #{token}"
+          end
         else
           args << parse_expression current_token, :lowest
           token = peek_token_skip space: true, newline: true
@@ -805,7 +841,7 @@ module Lucid::Compiler
         end
       end
 
-      call = Call.new(receiver, args).at(receiver.loc & current_token.loc)
+      call = Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
       call = raise call, "expected closing parenthesis for call" unless closed
 
       if peek_token_skip(space: true, newline: true).kind.period?
