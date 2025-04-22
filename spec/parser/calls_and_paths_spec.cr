@@ -432,6 +432,30 @@ describe LC::Parser do
       error.message.should eq "expected closing parenthesis for call"
     end
 
+    it "parses call expressions with named arguments" do
+      call = parse("log(foo: true)").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 14})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "log"
+      call.args.should be_empty
+      call.named_args.size.should eq 1
+      call.named_args.first_key.should eq "foo"
+      call.named_args.first_value.should be_a LC::BoolLiteral
+
+      call = parse("log foo: true, bar: nil").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 23})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "log"
+      call.args.should be_empty
+      call.named_args.size.should eq 2
+      call.named_args.first_key.should eq "foo"
+      call.named_args.first_value.should be_a LC::BoolLiteral
+      call.named_args.last_key.should eq "bar"
+      call.named_args.last_value.should be_a LC::NilLiteral
+    end
+
     it "parses call expressions with a single variable declaration" do
       call = parse("::property(name : String)").should be_a LC::Call
       call.loc.to_tuple.should eq({0, 0, 0, 25})
