@@ -24,15 +24,18 @@ module Lucid::Compiler
       False
       Nil
 
-      LeftParen   # (
-      RightParen  # )
-      Comma       # ,
-      Colon       # :
-      DoubleColon # ::
-      Semicolon   # ;
-      Underscore  # _
-      LeftBrace   # {
-      RightBrace  # }
+      LeftParen      # (
+      RightParen     # )
+      Comma          # ,
+      Colon          # :
+      DoubleColon    # ::
+      Semicolon      # ;
+      Underscore     # _
+      LeftBrace      # {
+      RightBrace     # }
+      AnnotationOpen # @[
+      LeftBracket    # [
+      RightBracket   # ]
 
       Bang             # !
       NotEqual         # !=
@@ -93,6 +96,7 @@ module Lucid::Compiler
 
       Abstract
       Alias
+      Annotation
       Class
       Def
       Do

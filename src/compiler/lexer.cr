@@ -52,6 +52,12 @@ module Lucid::Compiler
       when '#'
         lex_comment
       when '@'
+        if peek_char == '['
+          next_char
+          next_char
+          return Token.new :annotation_open, location
+        end
+
         start = current_pos + 1
         kind = Token::Kind::InstanceVar
 
@@ -66,6 +72,12 @@ module Lucid::Compiler
         end
 
         Token.new kind, location, read_string_from start
+      when '['
+        next_char
+        Token.new :left_bracket, location
+      when ']'
+        next_char
+        Token.new :right_bracket, location
       when '('
         next_char
         Token.new :left_paren, location
@@ -404,6 +416,12 @@ module Lucid::Compiler
         when 'l'
           if next_sequence?('i', 'a', 's')
             lex_keyword_or_ident :alias, start
+          else
+            lex_ident start
+          end
+        when 'n'
+          if next_sequence?('n', 'o', 't', 'a', 't', 'i', 'o', 'n')
+            lex_keyword_or_ident :annotation, start
           else
             lex_ident start
           end

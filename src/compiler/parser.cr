@@ -163,6 +163,8 @@ module Lucid::Compiler
         parse_include_or_extend token
       when .alias?
         parse_alias token
+      when .annotation?
+        parse_annotation_def token
       when .require?
         parse_require token
       else
@@ -448,6 +450,43 @@ module Lucid::Compiler
       Alias.new(name, type).at(token.loc & type.loc)
     end
 
+    private def parse_annotation_def(token : Token) : Node
+      next_token_skip space: true
+
+      case current_token.kind
+      when .eof?
+        node = raise current_token, "unexpected end of file"
+        end_loc = current_token.loc
+      when .const?
+        node = parse_const_or_path current_token, true
+        next_token_skip space: true, newline: true, semicolon: true
+      else
+        node = raise current_token, "expected a const for annotation"
+        next_token_skip space: true, newline: true, semicolon: true
+      end
+
+      unless end_loc
+        while current_token.kind.comment?
+          next_token_skip space: true, newline: true
+        end
+
+        case current_token.kind
+        when .eof?
+          node = raise current_token, "unexpected end of file"
+          end_loc = current_token.loc
+        when .end?
+          end_loc = current_token.loc
+          next_token_skip space: true, newline: true
+        else
+          node = raise current_token, "expected 'end' not #{current_token}"
+          end_loc = current_token.loc
+          next_token_skip space: true, newline: true
+        end
+      end
+
+      AnnotationDef.new(node).at(token.loc & end_loc)
+    end
+
     private def parse_require(token : Token) : Node
       start = token.loc
       token = next_token_skip space: true
@@ -512,6 +551,7 @@ module Lucid::Compiler
              when .symbol_key?              then parse_symbol_key token
              when .is_nil?                  then parse_nil token
              when .left_paren?              then parse_grouped_expression
+             when .annotation_open?         then parse_annotation token
              when .proc?                    then parse_proc token
              when .magic_line?              then parse_integer token
              when .magic_dir?               then parse_string token
@@ -918,6 +958,29 @@ module Lucid::Compiler
 
     private def parse_nil(token : Token) : Node
       NilLiteral.new.at(token.loc)
+    end
+
+    private def parse_annotation(token : Token) : Node
+      call = parse_const_or_path next_token_skip(space: true), true
+
+      if call.is_a?(Error) && current_token.kind.eof?
+        return Annotation.new(call).at(token.loc & call.loc)
+      end
+
+      case next_token_skip(space: true).kind
+      when .eof?
+        call = raise current_token, "unexpected end of file"
+        end_loc = current_token.loc
+      when .right_bracket?
+        end_loc = current_token.loc
+        next_token_skip space: true, newline: true
+      else
+        call = raise current_token, "unexpected token #{current_token}"
+        end_loc = current_token.loc
+        next_token_skip space: true, newline: true
+      end
+
+      Annotation.new(call).at(token.loc & end_loc)
     end
 
     private def parse_grouped_expression : Node
