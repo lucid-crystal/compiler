@@ -473,6 +473,23 @@ describe LC::Lexer, tags: "lexer" do
       {t!(eof), 1, 3, 1, 3}
   end
 
+  it "parses annotation expressions" do
+    assert_tokens "annotation Def; end",
+      {t!(:annotation), 0, 0, 0, 10},
+      {t!(space), 0, 10, 0, 11},
+      {t!(const), 0, 11, 0, 14},
+      {t!(semicolon), 0, 14, 0, 15},
+      {t!(space), 0, 15, 0, 16},
+      {t!(end), 0, 16, 0, 19},
+      {t!(eof), 0, 19, 0, 19}
+
+    assert_tokens "@[Def]",
+      {t!(annotation_open), 0, 0, 0, 2},
+      {t!(const), 0, 2, 0, 5},
+      {t!(right_bracket), 0, 5, 0, 6},
+      {t!(eof), 0, 6, 0, 6}
+  end
+
   it "parses require expressions" do
     assert_tokens %q(require "json"),
       {t!(:require), 0, 0, 0, 7},
