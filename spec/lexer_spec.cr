@@ -497,4 +497,20 @@ describe LC::Lexer, tags: "lexer" do
       {t!(string), 0, 8, 0, 14},
       {t!(eof), 0, 14, 0, 14}
   end
+
+  it "parses size keywords" do
+    assert_tokens "sizeof instance_alignof offsetof pointerof instance_sizeof alignof",
+      {t!(:sizeof), 0, 0, 0, 6},
+      {t!(space), 0, 6, 0, 7},
+      {t!(:instance_alignof), 0, 7, 0, 23},
+      {t!(space), 0, 23, 0, 24},
+      {t!(:offsetof), 0, 24, 0, 32},
+      {t!(space), 0, 32, 0, 33},
+      {t!(:pointerof), 0, 33, 0, 42},
+      {t!(space), 0, 42, 0, 43},
+      {t!(:instance_sizeof), 0, 43, 0, 58},
+      {t!(space), 0, 58, 0, 59},
+      {t!(:alignof), 0, 59, 0, 66},
+      {t!(eof), 0, 66, 0, 66}
+  end
 end

@@ -96,6 +96,7 @@ module Lucid::Compiler
 
       Abstract
       Alias
+      Alignof
       Annotation
       Class
       Def
@@ -105,13 +106,18 @@ module Lucid::Compiler
       Extend
       Forall
       Include
+      InstanceAlignof
+      InstanceSizeof
       IsA
       # Lib
       Module
+      Offsetof
+      Pointerof
       Private
       Protected
       RespondsTo
       Self
+      Sizeof
       Struct
       Require
 
