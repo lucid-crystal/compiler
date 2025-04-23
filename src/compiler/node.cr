@@ -1063,6 +1063,44 @@ module Lucid::Compiler
     end
   end
 
+  macro def_pseudo(name, type)
+    class {{type}} < Node
+      property args : Array(Node)
+
+      def initialize(@args : Array(Node))
+        super()
+      end
+
+      def to_s(io : IO) : Nil
+        io << {{name.stringify}} << '('
+        @args.join(io, ", ")
+        io << ')'
+      end
+
+      def pretty_print(pp : PrettyPrint) : Nil
+        pp.text "{{type}}("
+        pp.group 1 do
+          pp.breakable ""
+          pp.text "args: ["
+          next if @args.empty?
+
+          @args[0].pretty_print pp
+          if @args.size > 1
+            @args.skip(1).each do |arg|
+              pp.comma
+              arg.pretty_print pp
+            end
+          end
+          pp.text "]"
+        end
+        pp.text ")"
+      end
+    end
+  end
+
+  def_pseudo alignof, AlignOf
+  def_pseudo instance_alignof, InstanceAlignOf
+
   class StringLiteral < Node
     property value : String
 
