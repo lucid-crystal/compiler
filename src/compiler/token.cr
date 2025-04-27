@@ -131,6 +131,17 @@ module Lucid::Compiler
       def is_nil? : Bool
         self == Kind::Nil
       end
+
+      def keyword? : Bool
+        self.in?(
+          Abstract, Alias, Annotation, Class, Def, Do, End, Enum, Extend,
+          Forall, Include, Module, Private, Protected, Struct, Require
+        )
+      end
+
+      def pseudo? : Bool
+        self.in?(Alignof, InstanceAlignof, InstanceSizeof, Offsetof, Pointerof, Sizeof)
+      end
     end
 
     getter kind : Kind
