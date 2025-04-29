@@ -54,6 +54,40 @@ module Lucid::Compiler
     end
   end
 
+  class TypeModifier < Node
+    enum Kind
+      Abstract
+      Private
+      Protected
+    end
+
+    property kind : Kind
+    property expr : Node
+
+    def initialize(@kind : Kind, @expr : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << @kind.to_s.downcase << ' '
+      @expr.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "TypeModifier("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "kind: "
+        @kind.pretty_print pp
+        pp.comma
+
+        pp.text "expr: "
+        @expr.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   abstract class NamespaceDef < Node
     property name : Node
     property free_vars : Array(Node)

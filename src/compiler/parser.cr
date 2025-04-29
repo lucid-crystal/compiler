@@ -152,7 +152,7 @@ module Lucid::Compiler
       when .space?, .newline?, .semicolon?
         parse next_token_skip space: true, newline: true, semicolon: true
       when .abstract?, .private?, .protected?
-        parse_visibility_expression token
+        parse_type_modifier_expression token
       when .module?
         parse_module token
       when .class?, .struct?
@@ -172,51 +172,31 @@ module Lucid::Compiler
       end
     end
 
-    private def parse_visibility_expression(token : Token) : Node
-      # start = token.loc # TODO: merge start loc into result node
-      is_private = token.kind.private?
-      is_protected = token.kind.protected?
-      is_abstract = token.kind.abstract?
+    private def parse_type_modifier_expression(token : Token) : Node
+      start = token.loc
+      kind = case token.kind
+             when .abstract?
+               TypeModifier::Kind::Abstract
+             when .private?
+               TypeModifier::Kind::Private
+             when .protected?
+               TypeModifier::Kind::Protected
+             else
+               raise "unreachable"
+             end
 
-      loop do
-        token = next_token_skip space: true
-        case token.kind
-        when .eof?
-          return raise token, "unexpected end of file"
-        when .private?
-          return raise token, "unexpected token 'private'" if is_private
-          return raise token, "cannot apply protected and private visibility" if is_protected
-
-          is_private = true
-        when .protected?
-          return raise token, "unexpected token 'protected'" if is_protected
-          return raise token, "cannot apply private and protected visibility" if is_private
-
-          is_protected = true
-        when .abstract?
-          return raise token, "unexpected token 'abstract'" if is_abstract
-
-          is_abstract = true
-        else
-          break
-        end
-      end
-
-      if token.kind.def? && is_abstract
-        node = parse_def token, true
+      token = next_token_skip space: true
+      if token.kind.def? && kind.abstract?
+        expr = parse_def token, true
       else
-        node = parse token
+        expr = parse token
       end
 
-      case node
-      when Def
-        node.private = is_private
-        node.protected = is_protected
-      else
-        return raise node.as(Node), "visibility modifier cannot be applied to #{node.class}"
+      if expr.nil?
+        expr = raise current_token, "unexpected end of file"
       end
 
-      node
+      TypeModifier.new(kind, expr).at(start & expr.loc)
     end
 
     # TODO: might be worth merging with below and erroring on inheritance

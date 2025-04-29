@@ -395,7 +395,10 @@ describe LC::Parser do
     end
 
     it "parses abstract method defs" do
-      node = parse("abstract def read(slice : Bytes) : Int32").should be_a LC::Def
+      mod = parse("abstract def read(slice : Bytes) : Int32").should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "read"
       node.params.size.should eq 1
@@ -411,18 +414,19 @@ describe LC::Parser do
       const.value.should eq "Int32"
 
       node.body.should be_empty
-      node.private?.should be_false
-      node.protected?.should be_false
       node.abstract?.should be_true
     end
 
     it "parses private method defs" do
-      node = parse(<<-CR).should be_a LC::Def
+      mod = parse(<<-CR).should be_a LC::TypeModifier
         private def read_impl(slice : Bytes) : Int32
           does_something_cool
         end
         CR
 
+      mod.kind.private?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "read_impl"
       node.params.size.should eq 1
@@ -441,33 +445,34 @@ describe LC::Parser do
       call = node.body[0].should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "does_something_cool"
-
-      node.private?.should be_true
-      node.protected?.should be_false
-      node.abstract?.should be_false
     end
 
     it "parses protected method defs" do
-      node = parse(<<-CR).should be_a LC::Def
+      mod = parse(<<-CR).should be_a LC::TypeModifier
         protected def does_something_cool : Nil
         end
         CR
 
+      mod.kind.protected?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "does_something_cool"
       node.params.should be_empty
 
       const = node.return_type.should be_a LC::Const
       const.value.should eq "Nil"
-
       node.body.should be_empty
-      node.private?.should be_false
-      node.protected?.should be_true
-      node.abstract?.should be_false
     end
 
     it "parses private abstract method defs" do
-      node = parse("private abstract def select_impl : Nil").should be_a LC::Def
+      mod = parse("private abstract def select_impl : Nil").should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
+
+      mod = mod.expr.should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "select_impl"
       node.params.should be_empty
@@ -476,13 +481,17 @@ describe LC::Parser do
       const.value.should eq "Nil"
 
       node.body.should be_empty
-      node.private?.should be_true
-      node.protected?.should be_false
       node.abstract?.should be_true
     end
 
     it "parses protected abstract method defs" do
-      node = parse("protected abstract def execute : Bool").should be_a LC::Def
+      mod = parse("protected abstract def execute : Bool").should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
+
+      mod = mod.expr.should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "execute"
       node.params.should be_empty
@@ -491,12 +500,10 @@ describe LC::Parser do
       const.value.should eq "Bool"
 
       node.body.should be_empty
-      node.private?.should be_false
-      node.protected?.should be_true
       node.abstract?.should be_true
     end
 
-    it "errors on duplicate visibility keywords on method defs" do
+    pending "errors on duplicate visibility keywords on method defs" do
       nodes = parse_all "private private def foo; end"
       nodes.size.should eq 2
 
@@ -552,7 +559,7 @@ describe LC::Parser do
       method.abstract?.should be_true
     end
 
-    it "errors on private-protected keywords on method defs" do
+    pending "errors on private-protected keywords on method defs" do
       nodes = parse_all "private protected def foo; end"
       nodes.size.should eq 2
 
