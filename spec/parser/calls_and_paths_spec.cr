@@ -414,6 +414,28 @@ describe LC::Parser do
       error.message.should eq "unexpected token ','"
     end
 
+    it "parses nested calls in parentheses" do
+      call = parse("foo(bar baz)").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 12})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+      call.named_args.should be_empty
+
+      call = call.args[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+      call.args.size.should eq 1
+      call.named_args.should be_empty
+
+      call = call.args[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "baz"
+      call.args.should be_empty
+      call.named_args.should be_empty
+    end
+
     it "parses unclosed parenthesis calls as errors" do
       error = parse(%[puts("foo", "bar"]).should be_a LC::Error
       error.loc.to_tuple.should eq({0, 0, 0, 17})

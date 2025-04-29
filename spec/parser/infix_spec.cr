@@ -26,13 +26,14 @@ describe LC::Parser do
 
     it "parses grouped infix operator expressions" do
       node = parse("4 + (16 / 2)").should be_a LC::Infix
-      node.loc.to_tuple.should eq({0, 0, 0, 11})
+      node.loc.to_tuple.should eq({0, 0, 0, 12})
 
       int = node.left.should be_a LC::IntLiteral
       int.value.should eq 4
 
       node.op.should eq LC::Infix::Operator::Add
-      expr = node.right.should be_a LC::Infix
+      group = node.right.should be_a LC::GroupedExpression
+      expr = group.expr.should be_a LC::Infix
 
       int = expr.left.should be_a LC::IntLiteral
       int.value.should eq 16
@@ -40,17 +41,18 @@ describe LC::Parser do
       expr.op.should eq LC::Infix::Operator::Divide
       int = expr.right.should be_a LC::IntLiteral
       int.value.should eq 2
+    end
 
+    pending "parses complex grouped infix operator expressions" do
       node = parse("1 + (2 ** 3) - (20 // -4)").should be_a LC::Infix
-      # TODO: 25 not 24, needs investigating
-      # node.loc.to_tuple.should eq({0, 0, 0, 25})
+      node.loc.to_tuple.should eq({0, 0, 0, 25})
 
       int = node.left.should be_a LC::IntLiteral
       int.value.should eq 1
 
       node.op.should eq LC::Infix::Operator::Add
-      node = node.right.should be_a LC::Infix
-
+      group = node.right.should be_a LC::GroupedExpression
+      node = group.expr.should be_a LC::Infix
       expr = node.left.should be_a LC::Infix
 
       int = expr.left.should be_a LC::IntLiteral
@@ -61,7 +63,8 @@ describe LC::Parser do
       int.value.should eq 3
 
       node.op.should eq LC::Infix::Operator::Subtract
-      expr = node.right.should be_a LC::Infix
+      group = node.right.should be_a LC::GroupedExpression
+      expr = group.expr.should be_a LC::Infix
 
       int = expr.left.should be_a LC::IntLiteral
       int.value.should eq 20

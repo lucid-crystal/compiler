@@ -197,5 +197,31 @@ describe LC::Parser do
       ident = node.receiver.should be_a LC::Ident
       ident.value.should eq "b"
     end
+
+    it "parses grouped expressions" do
+      group = parse("(1 + 2)").should be_a LC::GroupedExpression
+      group.loc.to_tuple.should eq({0, 0, 0, 7})
+
+      infix = group.expr.should be_a LC::Infix
+      int = infix.left.should be_a LC::IntLiteral
+      int.value.should eq 1
+      infix.op.should eq LC::Infix::Operator::Add
+
+      int = infix.right.should be_a LC::IntLiteral
+      int.value.should eq 2
+
+      group = parse("(foo bar)").should be_a LC::GroupedExpression
+      group.loc.to_tuple.should eq({0, 0, 0, 9})
+
+      call = group.expr.should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      call = call.args[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+      call.args.should be_empty
+    end
   end
 end
