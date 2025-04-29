@@ -538,7 +538,7 @@ module Lucid::Compiler
                parse_var_or_call(next_token_skip(space: true), true).tap do |node|
                  node.loc = token.loc & node.loc
                end
-             when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?
+             when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?, .pseudo?
                parse_var_or_call token, false
              when .integer?                 then parse_integer token
              when .integer_bad_suffix?      then parse_invalid_integer token
@@ -589,10 +589,22 @@ module Lucid::Compiler
     # PATH ::= [(['::'] CONST)+ '.'] IDENT ('.' IDENT)*
     private def parse_var_or_call(token : Token, global : Bool) : Node
       case token.kind
-      when .ident?, .self?, .instance_var?, .class_var?, Token::Kind::Abstract..Token::Kind::Require
+      when .ident?, .self?, .instance_var?, .class_var?, .keyword?
         receiver = parse_ident_or_path token, global
       when .const?
         receiver = parse_const_or_path token, global
+      when .alignof?
+        receiver = AlignOf.new.at(token.loc)
+      when .instance_alignof?
+        receiver = InstanceAlignOf.new.at(token.loc)
+      when .instance_sizeof?
+        receiver = InstanceSizeOf.new.at(token.loc)
+      when .offsetof?
+        receiver = OffsetOf.new.at(token.loc)
+      when .pointerof?
+        receiver = PointerOf.new.at(token.loc)
+      when .sizeof?
+        receiver = SizeOf.new.at(token.loc)
       when .underscore?
         receiver = Underscore.new.at(token.loc)
       else
@@ -678,7 +690,7 @@ module Lucid::Compiler
         names << InstanceVar.new(token.str_value, global).at(token.loc)
       when .class_var?
         names << ClassVar.new(token.str_value, global).at(token.loc)
-      when Token::Kind::Abstract..Token::Kind::Require
+      when .keyword?
         names << Ident.new(token.kind.to_s.downcase, global).at(token.loc)
       else
         names << raise token, "unexpected token #{token}"

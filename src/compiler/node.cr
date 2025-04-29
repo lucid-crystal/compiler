@@ -1063,6 +1063,29 @@ module Lucid::Compiler
     end
   end
 
+  macro def_pseudo(name, str)
+    class {{name}} < Node
+      def initialize
+        super()
+      end
+
+      def to_s(io : IO) : Nil
+        io << {{str}}
+      end
+
+      def pretty_print(pp : PrettyPrint) : Nil
+        pp.text {{name.stringify}}
+      end
+    end
+  end
+
+  def_pseudo AlignOf, "alignof"
+  def_pseudo InstanceAlignOf, "instance_alignof"
+  def_pseudo InstanceSizeOf, "instance_sizeof"
+  def_pseudo OffsetOf, "offsetof"
+  def_pseudo PointerOf, "pointerof"
+  def_pseudo SizeOf, "sizeof"
+
   class StringLiteral < Node
     property value : String
 

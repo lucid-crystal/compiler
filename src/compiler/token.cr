@@ -96,6 +96,7 @@ module Lucid::Compiler
 
       Abstract
       Alias
+      Alignof
       Annotation
       Class
       Def
@@ -105,13 +106,18 @@ module Lucid::Compiler
       Extend
       Forall
       Include
+      InstanceAlignof
+      InstanceSizeof
       IsA
       # Lib
       Module
+      Offsetof
+      Pointerof
       Private
       Protected
       RespondsTo
       Self
+      Sizeof
       Struct
       Require
 
@@ -124,6 +130,17 @@ module Lucid::Compiler
       # ameba:disable Naming/PredicateName
       def is_nil? : Bool
         self == Kind::Nil
+      end
+
+      def keyword? : Bool
+        self.in?(
+          Abstract, Alias, Annotation, Class, Def, Do, End, Enum, Extend,
+          Forall, Include, Module, Private, Protected, Struct, Require
+        )
+      end
+
+      def pseudo? : Bool
+        self.in?(Alignof, InstanceAlignof, InstanceSizeof, Offsetof, Pointerof, Sizeof)
       end
     end
 

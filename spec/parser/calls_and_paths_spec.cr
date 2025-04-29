@@ -625,7 +625,26 @@ describe LC::Parser do
       str.value.should eq "true"
     end
 
-    it "parses expressions ignoring semicolons" do
+    it "parses pseudo keyword call expressions" do
+      {
+        {"alignof(Foo)", LC::AlignOf, 12},
+        {"instance_alignof(Foo)", LC::InstanceAlignOf, 21},
+        {"instance_sizeof(Foo)", LC::InstanceSizeOf, 20},
+        {"offsetof(Foo)", LC::OffsetOf, 13},
+        {"pointerof(Foo)", LC::PointerOf, 14},
+        {"sizeof(Foo)", LC::SizeOf, 11},
+      }.each do |(input, type, loc)|
+        call = parse(input).should be_a LC::Call
+        call.loc.to_tuple.should eq({0, 0, 0, loc})
+        call.receiver.class.should eq type
+        call.args.size.should eq 1
+
+        const = call.args[0].should be_a LC::Const
+        const.value.should eq "Foo"
+      end
+    end
+
+    it "parses call expressions ignoring semicolons" do
       call = parse(%(;;;;;;;puts "hello world";;;;;;;)).should be_a LC::Call
       call.loc.to_tuple.should eq({0, 7, 0, 25})
 
