@@ -579,6 +579,7 @@ module Lucid::Compiler
 
       infix = Infix.new(op, left, right).at(left.loc & right.loc)
       infix = raise infix, error if error
+      skip_token unless current_token.kind.eof?
       infix
     end
 
@@ -785,7 +786,7 @@ module Lucid::Compiler
       loop do
         token = peek_token_skip space: true
         case token.kind
-        when .eof?, .semicolon?, .right_brace?, .end?
+        when .eof?, .semicolon?, .right_brace?, .right_paren?, .end?
           break
         when .newline?
           break unless delimited
@@ -984,13 +985,23 @@ module Lucid::Compiler
     end
 
     private def parse_grouped_expression : Node
+      start = current_token.loc
       expr = parse_expression next_token_skip(space: true), :lowest
 
-      unless next_token_skip(space: true).kind.right_paren?
-        raise "expected closing parenthesis after expression"
+      if expr.is_a? Call
+        next_token_skip space: true
       end
 
-      expr
+      case current_token.kind
+      when .right_paren?
+        expr = GroupedExpression.new(expr).at(start & current_token.loc)
+        skip_token
+        expr
+      when .eof?
+        raise expr, "unexpected end of file"
+      else
+        raise current_token, "expected closing parenthesis after expression"
+      end
     end
 
     private def parse_proc(token : Token) : Node

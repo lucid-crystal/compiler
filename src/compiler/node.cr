@@ -604,6 +604,28 @@ module Lucid::Compiler
     end
   end
 
+  class GroupedExpression < Node
+    property expr : Node
+
+    def initialize(@expr : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '(' << expr << ')'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "GroupedExpression("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "expr: "
+        @expr.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class Path < Node
     property names : Array(Node)
     property? global : Bool
