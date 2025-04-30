@@ -395,7 +395,11 @@ describe LC::Parser do
     end
 
     it "parses abstract method defs" do
-      node = parse("abstract def read(slice : Bytes) : Int32").should be_a LC::Def
+      mod = parse("abstract def read(slice : Bytes) : Int32").should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 8})
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "read"
       node.params.size.should eq 1
@@ -411,18 +415,20 @@ describe LC::Parser do
       const.value.should eq "Int32"
 
       node.body.should be_empty
-      node.private?.should be_false
-      node.protected?.should be_false
       node.abstract?.should be_true
     end
 
     it "parses private method defs" do
-      node = parse(<<-CR).should be_a LC::Def
+      mod = parse(<<-CR).should be_a LC::TypeModifier
         private def read_impl(slice : Bytes) : Int32
           does_something_cool
         end
         CR
 
+      mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "read_impl"
       node.params.size.should eq 1
@@ -441,33 +447,36 @@ describe LC::Parser do
       call = node.body[0].should be_a LC::Call
       ident = call.receiver.should be_a LC::Ident
       ident.value.should eq "does_something_cool"
-
-      node.private?.should be_true
-      node.protected?.should be_false
-      node.abstract?.should be_false
     end
 
     it "parses protected method defs" do
-      node = parse(<<-CR).should be_a LC::Def
+      mod = parse(<<-CR).should be_a LC::TypeModifier
         protected def does_something_cool : Nil
         end
         CR
 
+      mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 9})
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "does_something_cool"
       node.params.should be_empty
 
       const = node.return_type.should be_a LC::Const
       const.value.should eq "Nil"
-
       node.body.should be_empty
-      node.private?.should be_false
-      node.protected?.should be_true
-      node.abstract?.should be_false
     end
 
     it "parses private abstract method defs" do
-      node = parse("private abstract def select_impl : Nil").should be_a LC::Def
+      mod = parse("private abstract def select_impl : Nil").should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
+
+      mod = mod.expr.should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "select_impl"
       node.params.should be_empty
@@ -476,13 +485,18 @@ describe LC::Parser do
       const.value.should eq "Nil"
 
       node.body.should be_empty
-      node.private?.should be_true
-      node.protected?.should be_false
       node.abstract?.should be_true
     end
 
     it "parses protected abstract method defs" do
-      node = parse("protected abstract def execute : Bool").should be_a LC::Def
+      mod = parse("protected abstract def execute : Bool").should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 9})
+
+      mod = mod.expr.should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+
+      node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
       ident.value.should eq "execute"
       node.params.should be_empty
@@ -491,85 +505,71 @@ describe LC::Parser do
       const.value.should eq "Bool"
 
       node.body.should be_empty
-      node.private?.should be_false
-      node.protected?.should be_true
       node.abstract?.should be_true
     end
 
     it "errors on duplicate visibility keywords on method defs" do
-      nodes = parse_all "private private def foo; end"
-      nodes.size.should eq 2
+      mod = parse("private private def foo; end").should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply private to private"
 
-      token.kind.private?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "unexpected token 'private'"
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 8, 0, 15})
 
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "foo"
 
-      method.private?.should be_true
-      method.protected?.should be_false
-      method.abstract?.should be_false
+      mod = parse("protected protected def bar; end").should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 9})
 
-      nodes = parse_all "protected protected def bar; end"
-      nodes.size.should eq 2
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply protected to protected"
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 10, 0, 19})
 
-      token.kind.protected?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "unexpected token 'protected'"
-
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "bar"
 
-      method.private?.should be_false
-      method.protected?.should be_true
-      method.abstract?.should be_false
+      mod = parse("abstract abstract def baz").should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 8})
 
-      nodes = parse_all "abstract abstract def baz"
-      nodes.size.should eq 2
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply abstract to abstract"
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
+      mod.loc.to_tuple.should eq({0, 9, 0, 17})
 
-      token.kind.abstract?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "unexpected token 'abstract'"
-
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "baz"
-
-      method.private?.should be_false
-      method.protected?.should be_false
-      method.abstract?.should be_true
     end
 
     it "errors on private-protected keywords on method defs" do
-      nodes = parse_all "private protected def foo; end"
-      nodes.size.should eq 2
+      mod = parse("private protected def foo; end").should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply private to protected"
 
-      token.kind.protected?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "cannot apply private and protected visibility"
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 8, 0, 17})
 
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "foo"
-
-      method.private?.should be_false
-      method.protected?.should be_true
-      method.abstract?.should be_false
     end
   end
 end

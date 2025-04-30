@@ -8,11 +8,6 @@ def parse(source : String, file : String = "STDIN", dir : String = "") : LC::Nod
   LC::Parser.parse(tokens).nodes[0]
 end
 
-def parse_all(source : String) : Array(LC::Node)
-  tokens = LC::Lexer.run source
-  LC::Parser.parse(tokens).nodes
-end
-
 def assert_node(cls : LC::Node.class, for input : String) : Nil
   parse(input).class.should eq cls
 end
