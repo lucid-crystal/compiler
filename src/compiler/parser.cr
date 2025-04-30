@@ -192,7 +192,12 @@ module Lucid::Compiler
         expr = parse token
       end
 
-      if expr.nil?
+      case expr
+      when TypeModifier
+        unless (kind.private? || kind.protected?) && expr.kind.abstract?
+          expr = raise expr, "cannot apply #{kind.to_s.downcase} to #{expr.kind.to_s.downcase}"
+        end
+      when Nil
         expr = raise current_token, "unexpected end of file"
       end
 

@@ -503,80 +503,60 @@ describe LC::Parser do
       node.abstract?.should be_true
     end
 
-    pending "errors on duplicate visibility keywords on method defs" do
-      nodes = parse_all "private private def foo; end"
-      nodes.size.should eq 2
+    it "errors on duplicate visibility keywords on method defs" do
+      mod = parse("private private def foo; end").should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply private to private"
 
-      token.kind.private?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "unexpected token 'private'"
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
 
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "foo"
 
-      method.private?.should be_true
-      method.protected?.should be_false
-      method.abstract?.should be_false
+      mod = parse("protected protected def bar; end").should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
 
-      nodes = parse_all "protected protected def bar; end"
-      nodes.size.should eq 2
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply protected to protected"
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
 
-      token.kind.protected?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "unexpected token 'protected'"
-
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "bar"
 
-      method.private?.should be_false
-      method.protected?.should be_true
-      method.abstract?.should be_false
+      mod = parse("abstract abstract def baz").should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
 
-      nodes = parse_all "abstract abstract def baz"
-      nodes.size.should eq 2
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply abstract to abstract"
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.abstract?.should be_true
 
-      token.kind.abstract?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "unexpected token 'abstract'"
-
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "baz"
-
-      method.private?.should be_false
-      method.protected?.should be_false
-      method.abstract?.should be_true
     end
 
-    pending "errors on private-protected keywords on method defs" do
-      nodes = parse_all "private protected def foo; end"
-      nodes.size.should eq 2
+    it "errors on private-protected keywords on method defs" do
+      mod = parse("private protected def foo; end").should be_a LC::TypeModifier
+      mod.kind.private?.should be_true
 
-      error = nodes[0].should be_a LC::Error
-      token = error.target.should be_a LC::Token
+      error = mod.expr.should be_a LC::Error
+      error.message.should eq "cannot apply private to protected"
 
-      token.kind.protected?.should be_true
-      token.raw_value.should be_nil
-      error.message.should eq "cannot apply private and protected visibility"
+      mod = error.target.should be_a LC::TypeModifier
+      mod.kind.protected?.should be_true
 
-      method = nodes[1].should be_a LC::Def
-      ident = method.name.should be_a LC::Ident
+      node = mod.expr.should be_a LC::Def
+      ident = node.name.should be_a LC::Ident
       ident.value.should eq "foo"
-
-      method.private?.should be_false
-      method.protected?.should be_true
-      method.abstract?.should be_false
     end
   end
 end
