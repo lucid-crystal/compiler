@@ -397,6 +397,7 @@ describe LC::Parser do
     it "parses abstract method defs" do
       mod = parse("abstract def read(slice : Bytes) : Int32").should be_a LC::TypeModifier
       mod.kind.abstract?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 8})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -425,6 +426,7 @@ describe LC::Parser do
         CR
 
       mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -454,6 +456,7 @@ describe LC::Parser do
         CR
 
       mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 9})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -468,6 +471,7 @@ describe LC::Parser do
     it "parses private abstract method defs" do
       mod = parse("private abstract def select_impl : Nil").should be_a LC::TypeModifier
       mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
 
       mod = mod.expr.should be_a LC::TypeModifier
       mod.kind.abstract?.should be_true
@@ -487,6 +491,7 @@ describe LC::Parser do
     it "parses protected abstract method defs" do
       mod = parse("protected abstract def execute : Bool").should be_a LC::TypeModifier
       mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 9})
 
       mod = mod.expr.should be_a LC::TypeModifier
       mod.kind.abstract?.should be_true
@@ -506,12 +511,14 @@ describe LC::Parser do
     it "errors on duplicate visibility keywords on method defs" do
       mod = parse("private private def foo; end").should be_a LC::TypeModifier
       mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
 
       error = mod.expr.should be_a LC::Error
       error.message.should eq "cannot apply private to private"
 
       mod = error.target.should be_a LC::TypeModifier
       mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 8, 0, 15})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -519,12 +526,14 @@ describe LC::Parser do
 
       mod = parse("protected protected def bar; end").should be_a LC::TypeModifier
       mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 9})
 
       error = mod.expr.should be_a LC::Error
       error.message.should eq "cannot apply protected to protected"
 
       mod = error.target.should be_a LC::TypeModifier
       mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 10, 0, 19})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -532,12 +541,14 @@ describe LC::Parser do
 
       mod = parse("abstract abstract def baz").should be_a LC::TypeModifier
       mod.kind.abstract?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 8})
 
       error = mod.expr.should be_a LC::Error
       error.message.should eq "cannot apply abstract to abstract"
 
       mod = error.target.should be_a LC::TypeModifier
       mod.kind.abstract?.should be_true
+      mod.loc.to_tuple.should eq({0, 9, 0, 17})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident
@@ -547,12 +558,14 @@ describe LC::Parser do
     it "errors on private-protected keywords on method defs" do
       mod = parse("private protected def foo; end").should be_a LC::TypeModifier
       mod.kind.private?.should be_true
+      mod.loc.to_tuple.should eq({0, 0, 0, 7})
 
       error = mod.expr.should be_a LC::Error
       error.message.should eq "cannot apply private to protected"
 
       mod = error.target.should be_a LC::TypeModifier
       mod.kind.protected?.should be_true
+      mod.loc.to_tuple.should eq({0, 8, 0, 17})
 
       node = mod.expr.should be_a LC::Def
       ident = node.name.should be_a LC::Ident

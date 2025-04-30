@@ -173,7 +173,7 @@ module Lucid::Compiler
     end
 
     private def parse_type_modifier_expression(token : Token) : Node
-      start = token.loc
+      loc = token.loc
       kind = case token.kind
              when .abstract?
                TypeModifier::Kind::Abstract
@@ -201,7 +201,7 @@ module Lucid::Compiler
         expr = raise current_token, "unexpected end of file"
       end
 
-      TypeModifier.new(kind, expr).at(start & expr.loc)
+      TypeModifier.new(kind, expr).at(loc)
     end
 
     # TODO: might be worth merging with below and erroring on inheritance
