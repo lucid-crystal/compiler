@@ -525,6 +525,7 @@ module Lucid::Compiler
                end
              when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?, .pseudo?
                parse_var_or_call token, false
+             when .shorthand?               then parse_block token
              when .integer?                 then parse_integer token
              when .integer_bad_suffix?      then parse_invalid_integer token
              when .float?                   then parse_float token
@@ -650,6 +651,9 @@ module Lucid::Compiler
         when .assign?
           node = parse_expression next_token_skip(space: true), :lowest
           Assign.new(receiver, node).at(receiver.loc & node.loc)
+        when .do?, .left_brace?
+          node = parse_block token
+          Call.new(receiver, [node]).at(receiver.loc & node.loc)
         when .left_paren?
           parse_closed_call receiver
         else
@@ -898,6 +902,44 @@ module Lucid::Compiler
       end
 
       call
+    end
+
+    private def parse_block(token : Token) : Node
+      case token.kind
+      when .shorthand?
+        call = parse_expression next_token, :lowest
+        Block.new(:shorthand, [] of Node, [call] of Node).at(token.loc & call.loc)
+      when .left_brace?
+        next_token_skip space: true, newline: true
+        body = [] of Node
+
+        loop do
+          break if current_token.kind.right_brace?
+          return raise token, "unexpected end of file" if token.kind.eof?
+
+          body << parse_expression current_token
+        end
+        loc = current_token.loc
+        skip_token
+
+        Block.new(:braces, [] of Node, body).at(token.loc & loc)
+      when .do?
+        next_token_skip space: true, newline: true
+        body = [] of Node
+
+        loop do
+          break if current_token.kind.end?
+          return raise token, "unexpected end of file" if token.kind.eof?
+
+          body << parse_expression current_token
+        end
+        loc = current_token.loc
+        skip_token
+
+        Block.new(:do_end, [] of Node, body).at(token.loc & loc)
+      else
+        raise "BUG: unexpected token for block: #{token}"
+      end
     end
 
     private def parse_integer(token : Token) : Node

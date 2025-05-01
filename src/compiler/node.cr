@@ -1046,6 +1046,93 @@ module Lucid::Compiler
     end
   end
 
+  class Block < Node
+    enum Kind
+      Shorthand
+      Braces
+      DoEnd
+    end
+
+    property kind : Kind
+    property args : Array(Node)
+    property body : Array(Node)
+
+    def initialize(@kind : Kind, @args : Array(Node), @body : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      case @kind
+      in .shorthand?
+        io << "&."
+        @body[0].to_s(io)
+      in .braces?
+        io << "{ "
+        unless @args.empty?
+          io << '|'
+          @args.join(", ") { |e, i| e << i }
+          io << "| "
+        end
+
+        @body.join("; ") { |e, i| e << i }
+        io << " }"
+      in .do_end?
+        io << "do "
+        unless @args.empty?
+          io << '|'
+          @args.join(", ") { |e, i| e << i }
+          io << "| "
+        end
+        io << '\n'
+
+        @body.join("\n  ") { |e, i| e << i }
+        io << "\nend"
+      end
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Block("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "kind: "
+        @kind.pretty_print pp
+
+        pp.comma
+        pp.text "args: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @args.empty?
+
+          @args[0].pretty_print pp
+          if @args.size > 1
+            @args.skip(1).each do |arg|
+              pp.comma
+              arg.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+
+        pp.comma
+        pp.text "body: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @body.empty?
+
+          @body[0].pretty_print pp
+          if @body.size > 1
+            @body.skip(1).each do |expr|
+              pp.comma
+              expr.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
+
   class Call < Node
     property receiver : Node
     property args : Array(Node)
