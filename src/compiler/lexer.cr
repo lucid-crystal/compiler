@@ -207,6 +207,9 @@ module Lucid::Compiler
           else
             Token.new :binary_minus, location
           end
+        when '.'
+          next_char
+          Token.new :shorthand, location
         else
           Token.new :bit_and, location
         end
