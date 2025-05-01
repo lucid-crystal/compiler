@@ -905,41 +905,33 @@ module Lucid::Compiler
     end
 
     private def parse_block(token : Token) : Node
-      case token.kind
-      when .shorthand?
+      if token.kind.shorthand?
         call = parse_expression next_token, :lowest
-        Block.new(:shorthand, [] of Node, [call] of Node).at(token.loc & call.loc)
-      when .left_brace?
-        next_token_skip space: true, newline: true
-        body = [] of Node
-
-        loop do
-          break if current_token.kind.right_brace?
-          return raise token, "unexpected end of file" if token.kind.eof?
-
-          body << parse_expression current_token
-        end
-        loc = current_token.loc
-        skip_token
-
-        Block.new(:braces, [] of Node, body).at(token.loc & loc)
-      when .do?
-        next_token_skip space: true, newline: true
-        body = [] of Node
-
-        loop do
-          break if current_token.kind.end?
-          return raise token, "unexpected end of file" if token.kind.eof?
-
-          body << parse_expression current_token
-        end
-        loc = current_token.loc
-        skip_token
-
-        Block.new(:do_end, [] of Node, body).at(token.loc & loc)
-      else
-        raise "BUG: unexpected token for block: #{token}"
+        return Block.new(:shorthand, [] of Node, [call] of Node).at(token.loc & call.loc)
       end
+
+      if token.kind.left_brace?
+        closing = Token::Kind::RightBrace
+        kind = Block::Kind::Braces
+      else
+        closing = Token::Kind::End
+        kind = Block::Kind::DoEnd
+      end
+
+      next_token_skip space: true, newline: true
+      body = [] of Node
+
+      loop do
+        break if current_token.kind == closing
+        return raise token, "unexpected end of file" if current_token.kind.eof?
+
+        body << parse_expression current_token
+      end
+
+      loc = current_token.loc
+      skip_token
+
+      Block.new(kind, [] of Node, body).at(token.loc & loc)
     end
 
     private def parse_integer(token : Token) : Node
