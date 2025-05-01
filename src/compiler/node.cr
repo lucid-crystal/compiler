@@ -1070,22 +1070,22 @@ module Lucid::Compiler
         io << "{ "
         unless @args.empty?
           io << '|'
-          @args.join(", ") { |e, i| e << i }
+          @args.join(io, ", ") { |i, e| e << i }
           io << "| "
         end
 
-        @body.join("; ") { |e, i| e << i }
+        @body.join(io, "; ") { |i, e| e << i }
         io << " }"
       in .do_end?
         io << "do "
         unless @args.empty?
           io << '|'
-          @args.join(", ") { |e, i| e << i }
+          @args.join(io, ", ") { |i, e| e << i }
           io << "| "
         end
         io << '\n'
 
-        @body.join("\n  ") { |e, i| e << i }
+        @body.join(io, "\n  ") { |i, e| e << i }
         io << "\nend"
       end
     end
