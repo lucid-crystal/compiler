@@ -910,6 +910,7 @@ module Lucid::Compiler
         return Block.new(:shorthand, [] of Node, [call] of Node).at(token.loc & call.loc)
       end
 
+      start_loc = token.loc
       if token.kind.left_brace?
         closing = Token::Kind::RightBrace
         kind = Block::Kind::Braces
@@ -919,6 +920,47 @@ module Lucid::Compiler
       end
 
       next_token_skip space: true, newline: true
+      args = [] of Node
+
+      if current_token.kind.bit_or?
+        delimited = true
+        done = false
+
+        loop do
+          case current_token.kind
+          when .eof?
+            break
+          when .space?
+            skip_token
+          when .bit_or?
+            done = true
+            skip_token
+            break
+          when .comma?
+            args << raise current_token, "unexpected token ','" unless delimited
+            delimited = false
+            skip_token
+            # when .right_paren? # TODO: handle unpacked args into UnpackedArgs type
+          else
+            args << parse_expression current_token, :binary_or
+            token = peek_token_skip space: true
+
+            case token.kind
+            when .eof?
+              break
+            when .comma?
+              delimited = true
+              skip_token
+            when .bit_or?
+              done = true
+              skip_token
+            else
+              raise "Unexpected token #{token}"
+            end
+          end
+        end
+      end
+
       body = [] of Node
 
       loop do
@@ -928,10 +970,10 @@ module Lucid::Compiler
         body << parse_expression current_token
       end
 
-      loc = current_token.loc
+      end_loc = current_token.loc
       skip_token
 
-      Block.new(kind, [] of Node, body).at(token.loc & loc)
+      Block.new(kind, args, body).at(start_loc & end_loc)
     end
 
     private def parse_integer(token : Token) : Node
