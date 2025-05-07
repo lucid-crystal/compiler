@@ -923,6 +923,7 @@ module Lucid::Compiler
       args = [] of Node
 
       if current_token.kind.bit_or?
+        next_token_skip space: true
         delimited = true
         done = false
 
@@ -931,32 +932,38 @@ module Lucid::Compiler
           when .eof?
             break
           when .space?
-            skip_token
+            next_token_skip space: true
           when .bit_or?
             done = true
-            skip_token
+            next_token_skip space: true, newline: true
             break
           when .comma?
             args << raise current_token, "unexpected token ','" unless delimited
             delimited = false
-            skip_token
+            next_token_skip space: true
             # when .right_paren? # TODO: handle unpacked args into UnpackedArgs type
-          else
-            args << parse_expression current_token, :binary_or
-            token = peek_token_skip space: true
+          when .ident?, .underscore?
+            if current_token.kind.underscore?
+              args << Underscore.new.at(current_token.loc)
+            else
+              args << parse_ident_or_path current_token, false
+            end
 
+            token = peek_token_skip space: true
             case token.kind
             when .eof?
               break
             when .comma?
               delimited = true
-              skip_token
+              next_token_skip space: true
             when .bit_or?
               done = true
-              skip_token
+              next_token_skip space: true, newline: true
             else
               raise "Unexpected token #{token}"
             end
+          else
+            raise "Unexpected token #{token}"
           end
         end
       end
