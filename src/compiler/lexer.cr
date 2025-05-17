@@ -5,6 +5,7 @@ module Lucid::Compiler
     @line : Int32
     @column : Int32
     @loc : Location
+    @string_nest : Array(Char)
 
     def self.run(source : String, filename : String = "STDIN", dirname : String = "") : Array(Token)
       new(source, filename, dirname).run
@@ -15,6 +16,7 @@ module Lucid::Compiler
       @pool = StringPool.new
       @line = @column = 0
       @loc = Location[0, 0, 0, 0]
+      @string_nest = [] of Char
     end
 
     def run : Array(Token)
@@ -84,6 +86,16 @@ module Lucid::Compiler
       when ')'
         next_char
         Token.new :right_paren, location
+      when '{'
+        next_char
+        Token.new :left_brace, location
+      when '}'
+        next_char
+        if @string_nest.empty?
+          Token.new :right_brace, location
+        else
+          lex_string_part @string_nest[-1]
+        end
       when ','
         next_char
         Token.new :comma, location
@@ -149,12 +161,6 @@ module Lucid::Compiler
         else
           Token.new :underscore, location
         end
-      when '{'
-        next_char
-        Token.new :left_brace, location
-      when '}'
-        next_char
-        Token.new :right_brace, location
       when '!'
         case next_char
         when '='
@@ -353,13 +359,7 @@ module Lucid::Compiler
         Token.new :tilde, location
       when '"'
         next_char
-        value = read_string_to '"'
-        if next_char == ':'
-          next_char
-          Token.new :symbol_key, location, value
-        else
-          Token.new :string, location, value
-        end
+        lex_string_or_symbol_key '"'
       when '\''
         case next_char
         when '\0'
@@ -1061,6 +1061,79 @@ module Lucid::Compiler
       end
 
       Token.new kind, location, read_string_from start
+    end
+
+    private def lex_string_or_symbol_key(end_char : Char) : Token
+      start = current_pos
+      escaped = false
+      @string_nest << end_char
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated quote literal"
+        when '\\'
+          escaped = !escaped
+          next_char
+        when '#'
+          if next_char == '{' && !escaped
+            loc = location
+            next_char
+            return Token.new :string_start, loc, read_string_from(start)[..-3]
+          end
+          escaped = false
+        when end_char
+          break unless escaped
+          escaped = false
+          next_char
+        else
+          next_char
+          escaped = false
+        end
+      end
+
+      value = read_string_from start
+      @string_nest.pop
+
+      if next_char == ':'
+        next_char
+        Token.new :symbol_key, location, value
+      else
+        Token.new :string, location, value
+      end
+    end
+
+    private def lex_string_part(end_char : Char) : Token
+      start = current_pos
+      escaped = false
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated quote literal"
+        when '\\'
+          escaped = !escaped
+          next_char
+        when '#'
+          if next_char == '{' && !escaped
+            next_char
+            return Token.new :string_part, location, read_string_from(start)[..-3]
+          end
+          escaped = false
+        when end_char
+          break unless escaped
+          escaped = false
+        else
+          next_char
+          escaped = false
+        end
+      end
+
+      value = read_string_from start
+      next_char
+      @string_nest.pop
+
+      Token.new :string_end, location, value
     end
 
     private def read_string_from(start : Int32) : String
