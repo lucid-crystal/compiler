@@ -1166,6 +1166,10 @@ module Lucid::Compiler
         node = raise node, "missing closing bracket for array literal"
       end
 
+      if values.empty? && !of_type
+        node = raise node, "an empty array literal must have an explicit type"
+      end
+
       node
     end
 
