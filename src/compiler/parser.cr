@@ -920,52 +920,12 @@ module Lucid::Compiler
       end
 
       next_token_skip space: true, newline: true
-      args = [] of Node
 
       if current_token.kind.bit_or?
         next_token_skip space: true
-        delimited = true
-        done = false
-
-        loop do
-          case current_token.kind
-          when .eof?
-            break
-          when .space?
-            next_token_skip space: true
-          when .bit_or?
-            done = true
-            next_token_skip space: true, newline: true
-            break
-          when .comma?
-            args << raise current_token, "unexpected token ','" unless delimited
-            delimited = false
-            next_token_skip space: true
-            # when .right_paren? # TODO: handle unpacked args into UnpackedArgs type
-          when .ident?, .underscore?
-            if current_token.kind.underscore?
-              args << Underscore.new.at(current_token.loc)
-            else
-              args << parse_ident_or_path current_token, false
-            end
-
-            token = peek_token_skip space: true
-            case token.kind
-            when .eof?
-              break
-            when .comma?
-              delimited = true
-              next_token_skip space: true
-            when .bit_or?
-              done = true
-              next_token_skip space: true, newline: true
-            else
-              raise "Unexpected token #{token}"
-            end
-          else
-            raise "Unexpected token #{token}"
-          end
-        end
+        args = parse_block_args_until :bit_or
+      else
+        args = [] of Node
       end
 
       body = [] of Node
@@ -981,6 +941,57 @@ module Lucid::Compiler
       skip_token
 
       Block.new(kind, args, body).at(start_loc & end_loc)
+    end
+
+    private def parse_block_args_until(stop_kind : Token::Kind) : Array(Node)
+      args = [] of Node
+      delimited = true
+      done = false
+
+      loop do
+        case current_token.kind
+        when .eof?
+          break
+        when .space?
+          next_token_skip space: true
+        when .comma?
+          args << raise current_token, "unexpected token ','" unless delimited
+          delimited = false
+          next_token_skip space: true
+        when .left_paren?
+          raise "unimplemented"
+        when .ident?, .underscore?
+          if current_token.kind.underscore?
+            args << Underscore.new.at(current_token.loc)
+          else
+            args << parse_ident_or_path current_token, false
+          end
+
+          token = peek_token_skip space: true
+          case token.kind
+          when .eof?
+            break
+          when .comma?
+            delimited = true
+            next_token_skip space: true
+          when stop_kind
+            done = true
+            next_token_skip space: true
+          else
+            raise "Unexpected token #{token}"
+          end
+        when stop_kind
+          done = true
+          next_token_skip space: true, newline: true
+          break
+        else
+          raise "Unexpected token #{current_token}"
+        end
+      end
+
+      raise "Missing closing argument character #{stop_kind}" unless done
+
+      args
     end
 
     private def parse_integer(token : Token) : Node
