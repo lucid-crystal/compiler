@@ -1110,9 +1110,7 @@ module Lucid::Compiler
 
       case current_token.kind
       when .right_paren?
-        expr = GroupedExpression.new(expr).at(start & current_token.loc)
-        skip_token
-        expr
+        GroupedExpression.new(expr).at(start & current_token.loc)
       when .eof?
         raise expr, "unexpected end of file"
       else
@@ -1124,28 +1122,51 @@ module Lucid::Compiler
       next_token_skip space: true, newline: true
       values = [] of Node
       start = token.loc
+      delimited = true
+      done = false
 
       loop do
         case current_token.kind
         when .eof?
-          values << raise current_token, "unexpected end of file"
-        when .right_bracket?
           break
+        when .right_bracket?
+          done = true
+          break
+        when .space?
+          next_token_skip space: true, newline: true
+        when .comma?
+          values << raise current_token, "unexpected token ','" unless delimited
+          delimited = false
+          next_token_skip space: true, newline: true
         else
-          values << parse_expression current_token
+          node = parse_expression current_token
+          if delimited
+            values << node
+            delimited = false
+          else
+            values << raise node, "expected a comma before expression"
+          end
+
+          if current_token.kind.comma?
+            delimited = true
+            next_token_skip space: true, newline: true
+          end
         end
       end
 
       end_loc = current_token.loc
-      next_token_skip space: true, newline: true
-
-      if current_token.kind.of?
-        # if next_token_skip(space: true).kind.of?
+      if peek_token_skip(space: true).kind.of?
+        next_token_skip space: true
         of_type = parse_const_or_path next_token_skip(space: true), false
         end_loc = of_type.loc
       end
 
-      ArrayLiteral.new(values, of_type, false).at(start & end_loc)
+      node = ArrayLiteral.new(values, of_type, false).at(start & end_loc)
+      unless done
+        node = raise node, "missing closing bracket for array literal"
+      end
+
+      node
     end
 
     private def parse_proc(token : Token) : Node
