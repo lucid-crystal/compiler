@@ -47,6 +47,7 @@ module Lucid::Compiler
       BinaryDoubleStar # &**
       BinaryPlus       # &+
       BinaryMinus      # &-
+      Shorthand        # &.
       Star             # *
       DoubleStar       # **
       Plus             # +

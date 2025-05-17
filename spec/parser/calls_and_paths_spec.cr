@@ -647,6 +647,216 @@ describe LC::Parser do
       str.value.should eq "true"
     end
 
+    it "parses call expressions with shorthand block arguments" do
+      call = parse("foo(&.bar)").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 10})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.shorthand?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+
+      call = parse("foo &.bar &.baz").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 15})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.shorthand?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.shorthand?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "baz"
+    end
+
+    it "parses call expressions with a brace block argument" do
+      call = parse("foo { bar }").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 11})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.braces?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+
+      call = parse(<<-CR).should be_a LC::Call
+        foo {
+          bar &.baz
+        }
+        CR
+
+      call.loc.to_tuple.should eq({0, 0, 2, 1})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.braces?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.shorthand?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "baz"
+    end
+
+    it "parses call expressions with a do-end block argument" do
+      call = parse(<<-CR).should be_a LC::Call
+        foo do
+          yield this
+        end
+        CR
+
+      call.loc.to_tuple.should eq({0, 0, 2, 3})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.do_end?.should be_true
+      block.args.should be_empty
+      block.body.size.should eq 1
+
+      call = block.body[0].should be_a LC::Call
+      # TODO: switch to Yield type check
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "yield"
+      call.args.size.should eq 1
+
+      call = call.args[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "this"
+    end
+
+    it "parses call expressions with a block argument and normal block args" do
+      call = parse("foo { |a| }").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 11})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.braces?.should be_true
+      block.body.should be_empty
+      block.args.size.should eq 1
+
+      ident = block.args[0].should be_a LC::Ident
+      ident.value.should eq "a"
+
+      call = parse("foo { |a, b| }").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 14})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.braces?.should be_true
+      block.body.should be_empty
+      block.args.size.should eq 2
+
+      ident = block.args[0].should be_a LC::Ident
+      ident.value.should eq "a"
+
+      ident = block.args[1].should be_a LC::Ident
+      ident.value.should eq "b"
+    end
+
+    it "parses call expressions with a block argument and unpacked block args" do
+      call = parse("foo { |(a, b)| }").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 16})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.braces?.should be_true
+      block.body.should be_empty
+      block.args.size.should eq 1
+
+      unpacked = block.args[0].should be_a LC::UnpackedArgs
+      unpacked.args.size.should eq 2
+
+      ident = unpacked.args[0].should be_a LC::Ident
+      ident.value.should eq "a"
+
+      ident = unpacked.args[1].should be_a LC::Ident
+      ident.value.should eq "b"
+    end
+
+    it "parses call expressions with a block argument and nested unpacked block args" do
+      call = parse("foo { |(a, (_, b)), c| }").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 24})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+      call.args.size.should eq 1
+
+      block = call.args[0].should be_a LC::Block
+      block.kind.braces?.should be_true
+      block.body.should be_empty
+      block.args.size.should eq 2
+
+      unpacked = block.args[0].should be_a LC::UnpackedArgs
+      unpacked.args.size.should eq 2
+
+      ident = unpacked.args[0].should be_a LC::Ident
+      ident.value.should eq "a"
+
+      unpacked = unpacked.args[1].should be_a LC::UnpackedArgs
+      unpacked.args.size.should eq 2
+      unpacked.args[0].should be_a LC::Underscore
+
+      ident = unpacked.args[1].should be_a LC::Ident
+      ident.value.should eq "b"
+
+      ident = block.args[1].should be_a LC::Ident
+      ident.value.should eq "c"
+    end
+
     it "parses pseudo keyword call expressions" do
       {
         {"alignof(Foo)", LC::AlignOf, 12},

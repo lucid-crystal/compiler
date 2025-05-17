@@ -525,6 +525,7 @@ module Lucid::Compiler
                end
              when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?, .pseudo?
                parse_var_or_call token, false
+             when .shorthand?               then parse_block token
              when .integer?                 then parse_integer token
              when .integer_bad_suffix?      then parse_invalid_integer token
              when .float?                   then parse_float token
@@ -650,6 +651,9 @@ module Lucid::Compiler
         when .assign?
           node = parse_expression next_token_skip(space: true), :lowest
           Assign.new(receiver, node).at(receiver.loc & node.loc)
+        when .do?, .left_brace?
+          node = parse_block token
+          Call.new(receiver, [node]).at(receiver.loc & node.loc)
         when .left_paren?
           parse_closed_call receiver
         else
@@ -898,6 +902,99 @@ module Lucid::Compiler
       end
 
       call
+    end
+
+    private def parse_block(token : Token) : Node
+      if token.kind.shorthand?
+        call = parse_expression next_token, :lowest
+        return Block.new(:shorthand, [] of Node, [call] of Node).at(token.loc & call.loc)
+      end
+
+      start_loc = token.loc
+      if token.kind.left_brace?
+        closing = Token::Kind::RightBrace
+        kind = Block::Kind::Braces
+      else
+        closing = Token::Kind::End
+        kind = Block::Kind::DoEnd
+      end
+
+      next_token_skip space: true, newline: true
+
+      if current_token.kind.bit_or?
+        next_token_skip space: true
+        args = parse_block_args_until :bit_or
+      else
+        args = [] of Node
+      end
+
+      body = [] of Node
+
+      loop do
+        break if current_token.kind == closing
+        return raise token, "unexpected end of file" if current_token.kind.eof?
+
+        body << parse_expression current_token
+      end
+
+      end_loc = current_token.loc
+      skip_token
+
+      Block.new(kind, args, body).at(start_loc & end_loc)
+    end
+
+    private def parse_block_args_until(stop_kind : Token::Kind) : Array(Node)
+      args = [] of Node
+      delimited = true
+      done = false
+
+      loop do
+        case current_token.kind
+        when .eof?
+          break
+        when .space?
+          next_token_skip space: true
+        when .comma?
+          args << raise current_token, "unexpected token ','" unless delimited
+          delimited = false
+          next_token_skip space: true
+        when .left_paren?
+          start = current_token.loc
+          next_token_skip space: true
+          inner = parse_block_args_until :right_paren
+          args << UnpackedArgs.new(inner).at(start & current_token.loc)
+        when .ident?, .underscore?
+          if current_token.kind.underscore?
+            args << Underscore.new.at(current_token.loc)
+          else
+            args << parse_ident_or_path current_token, false
+          end
+
+          token = peek_token_skip space: true
+          case token.kind
+          when .eof?
+            break
+          when .comma?
+            delimited = true
+            next_token_skip space: true
+          when stop_kind
+            done = true
+            next_token_skip space: true
+          else
+            raise "Unexpected token #{token}"
+          end
+        when stop_kind
+          done = true
+          next_token_skip space: true, newline: true
+          break
+        else
+          raise "Unexpected token #{current_token}"
+        end
+      end
+
+      raise "Missing closing argument character #{stop_kind}" unless done
+
+      args
     end
 
     private def parse_integer(token : Token) : Node
