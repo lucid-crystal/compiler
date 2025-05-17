@@ -1133,6 +1133,36 @@ module Lucid::Compiler
     end
   end
 
+  class UnpackedArgs < Node
+    property args : Array(Node)
+
+    def initialize(@args : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '('
+      @args.join(io, ", ")
+      io << ')'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "UnpackedArgs["
+      pp.group 1 do
+        pp.breakable ""
+        @args[0].pretty_print pp
+
+        if @args.size > 1
+          @args.skip(1).each do |arg|
+            pp.comma
+            arg.pretty_print pp
+          end
+        end
+      end
+      pp.text "]"
+    end
+  end
+
   class Call < Node
     property receiver : Node
     property args : Array(Node)

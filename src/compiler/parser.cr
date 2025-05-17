@@ -959,7 +959,10 @@ module Lucid::Compiler
           delimited = false
           next_token_skip space: true
         when .left_paren?
-          raise "unimplemented"
+          start = current_token.loc
+          next_token_skip space: true
+          inner = parse_block_args_until :right_paren
+          args << UnpackedArgs.new(inner).at(start & current_token.loc)
         when .ident?, .underscore?
           if current_token.kind.underscore?
             args << Underscore.new.at(current_token.loc)
