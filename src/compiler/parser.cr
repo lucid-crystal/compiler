@@ -538,6 +538,7 @@ module Lucid::Compiler
              when .symbol_key?              then parse_symbol_key token
              when .is_nil?                  then parse_nil token
              when .left_paren?              then parse_grouped_expression
+             when .left_bracket?            then parse_array_literal token
              when .annotation_open?         then parse_annotation token
              when .proc?                    then parse_proc token
              when .magic_line?              then parse_integer token
@@ -1117,6 +1118,34 @@ module Lucid::Compiler
       else
         raise current_token, "expected closing parenthesis after expression"
       end
+    end
+
+    private def parse_array_literal(token : Token) : Node
+      next_token_skip space: true, newline: true
+      values = [] of Node
+      start = token.loc
+
+      loop do
+        case current_token.kind
+        when .eof?
+          values << raise current_token, "unexpected end of file"
+        when .right_bracket?
+          break
+        else
+          values << parse_expression current_token
+        end
+      end
+
+      end_loc = current_token.loc
+      next_token_skip space: true, newline: true
+
+      if current_token.kind.of?
+        # if next_token_skip(space: true).kind.of?
+        of_type = parse_const_or_path next_token_skip(space: true), false
+        end_loc = of_type.loc
+      end
+
+      ArrayLiteral.new(values, of_type, false).at(start & end_loc)
     end
 
     private def parse_proc(token : Token) : Node
