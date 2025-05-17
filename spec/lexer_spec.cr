@@ -19,6 +19,37 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens %("hello world"), {t!(string), 0, 0, 0, 13}, {t!(eof), 0, 13, 0, 13}
   end
 
+  it "parses interpolated string expressions" do
+    assert_tokens %q("foo #{bar}"),
+      {t!(string_start), 0, 0, 0, 6},
+      {t!(ident), 0, 7, 0, 10},
+      {t!(string_end), 0, 10, 0, 12},
+      {t!(eof), 0, 12, 0, 12}
+
+    # TODO: this might need further review...
+    assert_tokens %q("foo #{bar} baz #{qux} quack"),
+      {t!(string_start), 0, 0, 0, 6},
+      {t!(ident), 0, 7, 0, 10},
+      {t!(string_part), 0, 10, 0, 18},
+      {t!(ident), 0, 18, 0, 21},
+      {t!(string_end), 0, 21, 0, 29},
+      {t!(eof), 0, 29, 0, 29}
+
+    assert_tokens %q("foo #{"bar"}"),
+      {t!(string_start), 0, 0, 0, 6},
+      {t!(string), 0, 7, 0, 12},
+      {t!(string_end), 0, 12, 0, 14},
+      {t!(eof), 0, 14, 0, 14}
+
+    assert_tokens %q("foo #{"bar #{baz}"}"),
+      {t!(string_start), 0, 0, 0, 6},
+      {t!(string_start), 0, 7, 0, 13},
+      {t!(ident), 0, 14, 0, 17},
+      {t!(string_end), 0, 17, 0, 19},
+      {t!(string_end), 0, 19, 0, 21},
+      {t!(eof), 0, 21, 0, 21}
+  end
+
   it "parses integer expressions" do
     assert_tokens "123", {t!(integer), 0, 0, 0, 3}, {t!(eof), 0, 3, 0, 3}
     assert_tokens "123_45", {t!(integer), 0, 0, 0, 6}, {t!(eof), 0, 6, 0, 6}

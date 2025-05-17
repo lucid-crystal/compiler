@@ -6,6 +6,69 @@ describe LC::Parser do
       assert_node LC::StringLiteral, %("hello world")
     end
 
+    it "parses interpolated string expressions" do
+      lit = parse(%q("foo #{bar}")).should be_a LC::StringInterpolation
+      lit.loc.to_tuple.should eq({0, 0, 0, 12})
+      lit.parts.size.should eq 3
+
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should eq "foo "
+
+      call = lit.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should be_empty
+
+      lit = parse(%q("foo #{bar} baz #{qux} quack")).should be_a LC::StringInterpolation
+      lit.loc.to_tuple.should eq({0, 0, 0, 29})
+      lit.parts.size.should eq 5
+
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should eq "foo "
+
+      call = lit.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should eq " baz "
+
+      call = lit.parts[3].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "qux"
+
+      str = lit.parts[4].should be_a LC::StringLiteral
+      str.value.should eq " quack"
+    end
+
+    it "parses nested interpolated string expressions" do
+      lit = parse(%q("foo #{"bar #{baz}"} qux")).should be_a LC::StringInterpolation
+      lit.loc.to_tuple.should eq({0, 0, 0, 25})
+      lit.parts.size.should eq 3
+
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should eq "foo "
+
+      inner = lit.parts[1].should be_a LC::StringInterpolation
+      inner.loc.to_tuple.should eq({0, 7, 0, 19})
+      inner.parts.size.should eq 3
+
+      str = inner.parts[0].should be_a LC::StringLiteral
+      str.value.should eq "bar "
+
+      call = inner.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "baz"
+
+      str = inner.parts[2].should be_a LC::StringLiteral
+      str.value.should be_empty
+
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should eq " qux"
+    end
+
     it "parses integer expressions" do
       assert_node LC::IntLiteral, "123_45"
     end

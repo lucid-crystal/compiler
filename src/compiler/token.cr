@@ -12,6 +12,9 @@ module Lucid::Compiler
       ClassVar
 
       String
+      StringStart
+      StringPart
+      StringEnd
       Char
       Symbol
       QuotedSymbol

@@ -530,7 +530,8 @@ module Lucid::Compiler
              when .integer_bad_suffix?      then parse_invalid_integer token
              when .float?                   then parse_float token
              when .float_bad_suffix?        then parse_invalid_float token
-             when .string?                  then parse_string token
+             when .string?, .string_part?   then parse_string token
+             when .string_start?            then parse_interpolated_string token
              when .true?, .false?           then parse_bool token
              when .char?                    then parse_char token
              when .symbol?, .quoted_symbol? then parse_symbol token
@@ -1033,6 +1034,26 @@ module Lucid::Compiler
 
     private def parse_string(token : Token) : Node
       StringLiteral.new(token.str_value).at(token.loc)
+    end
+
+    private def parse_interpolated_string(token : Token) : Node
+      next_token_skip space: true, newline: true
+      parts = [parse_string token] of Node
+      start = token.loc
+
+      loop do
+        case current_token.kind
+        when .eof?
+          parts << raise current_token, "unterminated quote string"
+        when .string_end?
+          parts << parse_string current_token
+          break
+        else
+          parts << parse_expression current_token
+        end
+      end
+
+      StringInterpolation.new(parts).at(start & current_token.loc)
     end
 
     private def parse_bool(token : Token) : Node
