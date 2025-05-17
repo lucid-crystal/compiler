@@ -135,6 +135,75 @@ describe LC::Parser do
       end
     end
 
+    it "parses array literal expressions" do
+      arr = parse("[1, 2]").should be_a LC::ArrayLiteral
+      arr.loc.to_tuple.should eq({0, 0, 0, 6})
+      arr.of_type.should be_nil
+      arr.percent_literal?.should be_false
+      arr.values.size.should eq 2
+
+      int = arr.values[0].should be_a LC::IntLiteral
+      int.value.should eq 1
+
+      int = arr.values[1].should be_a LC::IntLiteral
+      int.value.should eq 2
+
+      arr = parse("[] of Nil").should be_a LC::ArrayLiteral
+      arr.loc.to_tuple.should eq({0, 0, 0, 9})
+      arr.values.should be_empty
+      arr.percent_literal?.should be_false
+
+      const = arr.of_type.should be_a LC::Const
+      const.value.should eq "Nil"
+    end
+
+    it "parses nested array literal expressions" do
+      arr = parse("[[1, 2], 3]").should be_a LC::ArrayLiteral
+      arr.loc.to_tuple.should eq({0, 0, 0, 11})
+      arr.percent_literal?.should be_false
+      arr.of_type.should be_nil
+      arr.values.size.should eq 2
+
+      inner = arr.values[0].should be_a LC::ArrayLiteral
+      inner.loc.to_tuple.should eq({0, 1, 0, 7})
+      inner.percent_literal?.should be_false
+      inner.of_type.should be_nil
+      inner.values.size.should eq 2
+
+      int = inner.values[0].should be_a LC::IntLiteral
+      int.value.should eq 1
+
+      int = inner.values[1].should be_a LC::IntLiteral
+      int.value.should eq 2
+
+      int = arr.values[1].should be_a LC::IntLiteral
+      int.value.should eq 3
+    end
+
+    it "errors on invalid array literals" do
+      error = parse("[1, 2").should be_a LC::Error
+      error.message.should eq "missing closing bracket for array literal"
+
+      arr = error.target.should be_a LC::ArrayLiteral
+      arr.percent_literal?.should be_false
+      arr.of_type.should be_nil
+      arr.values.size.should eq 2
+
+      int = arr.values[0].should be_a LC::IntLiteral
+      int.value.should eq 1
+
+      int = arr.values[1].should be_a LC::IntLiteral
+      int.value.should eq 2
+
+      error = parse("[]").should be_a LC::Error
+      error.message.should eq "an empty array literal must have an explicit type"
+
+      arr = error.target.should be_a LC::ArrayLiteral
+      arr.percent_literal?.should be_false
+      arr.of_type.should be_nil
+      arr.values.should be_empty
+    end
+
     it "parses symbol key expressions" do
       assert_node LC::SymbolKey, "foo:"
       assert_node LC::SymbolKey, %("foo bar":)
