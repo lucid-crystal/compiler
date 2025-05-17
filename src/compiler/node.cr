@@ -1277,6 +1277,44 @@ module Lucid::Compiler
     end
   end
 
+  class StringInterpolation < Node
+    property parts : Array(Node)
+
+    def initialize(@parts : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '"'
+      parts.each do |part|
+        if part.is_a? StringLiteral
+          part.inspect io
+        else
+          io << "\#{"
+          part.inspect io
+          io << '}'
+        end
+      end
+      io << '"'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "StringInterpolation["
+      pp.group 1 do
+        pp.breakable ""
+        @parts[0].pretty_print pp
+
+        if @parts.size > 1
+          @parts.skip(1).each do |part|
+            pp.comma
+            part.pretty_print pp
+          end
+        end
+      end
+      pp.text "]"
+    end
+  end
+
   class IntLiteral < Node
     enum Base
       I8
