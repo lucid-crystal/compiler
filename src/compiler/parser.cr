@@ -538,6 +538,7 @@ module Lucid::Compiler
              when .symbol_key?              then parse_symbol_key token
              when .is_nil?                  then parse_nil token
              when .left_paren?              then parse_grouped_expression
+             when .left_bracket?            then parse_array_literal token
              when .annotation_open?         then parse_annotation token
              when .proc?                    then parse_proc token
              when .magic_line?              then parse_integer token
@@ -1109,14 +1110,67 @@ module Lucid::Compiler
 
       case current_token.kind
       when .right_paren?
-        expr = GroupedExpression.new(expr).at(start & current_token.loc)
-        skip_token
-        expr
+        GroupedExpression.new(expr).at(start & current_token.loc)
       when .eof?
         raise expr, "unexpected end of file"
       else
         raise current_token, "expected closing parenthesis after expression"
       end
+    end
+
+    private def parse_array_literal(token : Token) : Node
+      next_token_skip space: true, newline: true
+      values = [] of Node
+      start = token.loc
+      delimited = true
+      done = false
+
+      loop do
+        case current_token.kind
+        when .eof?
+          break
+        when .right_bracket?
+          done = true
+          break
+        when .space?
+          next_token_skip space: true, newline: true
+        when .comma?
+          values << raise current_token, "unexpected token ','" unless delimited
+          delimited = false
+          next_token_skip space: true, newline: true
+        else
+          node = parse_expression current_token
+          if delimited
+            values << node
+            delimited = false
+          else
+            values << raise node, "expected a comma before expression"
+          end
+
+          if current_token.kind.comma?
+            delimited = true
+            next_token_skip space: true, newline: true
+          end
+        end
+      end
+
+      end_loc = current_token.loc
+      if peek_token_skip(space: true).kind.of?
+        next_token_skip space: true
+        of_type = parse_const_or_path next_token_skip(space: true), false
+        end_loc = of_type.loc
+      end
+
+      node = ArrayLiteral.new(values, of_type, false).at(start & end_loc)
+      unless done
+        node = raise node, "missing closing bracket for array literal"
+      end
+
+      if values.empty? && !of_type
+        node = raise node, "an empty array literal must have an explicit type"
+      end
+
+      node
     end
 
     private def parse_proc(token : Token) : Node

@@ -544,4 +544,14 @@ describe LC::Lexer, tags: "lexer" do
       {t!(:alignof), 0, 59, 0, 66},
       {t!(eof), 0, 66, 0, 66}
   end
+
+  it "parses other keywords" do
+    assert_tokens "offsetof of off",
+      {t!(:offsetof), 0, 0, 0, 8},
+      {t!(space), 0, 8, 0, 9},
+      {t!(of), 0, 9, 0, 11},
+      {t!(space), 0, 11, 0, 12},
+      {t!(ident), 0, 12, 0, 15},
+      {t!(eof), 0, 15, 0, 15}
+  end
 end

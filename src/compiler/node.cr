@@ -1487,6 +1487,56 @@ module Lucid::Compiler
     end
   end
 
+  class ArrayLiteral < Node
+    property values : Array(Node)
+    property of_type : Node?
+    property? percent_literal : Bool
+
+    def initialize(@values : Array(Node), @of_type : Node?, @percent_literal : Bool)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '['
+      @values.join(io, ", ")
+      io << ']'
+
+      if @of_type
+        io << " of " << @of_type
+      end
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ArrayLiteral("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "values: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @values.empty?
+
+          @values[0].pretty_print pp
+          if @values.size > 1
+            @values.skip(1).each do |value|
+              pp.comma
+              value.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "of_type: "
+        @of_type.pretty_print pp
+        pp.comma
+
+        pp.text "percent_literal: "
+        @percent_literal.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class ProcLiteral < Node
     property params : Array(Parameter)
     property body : Array(Node)

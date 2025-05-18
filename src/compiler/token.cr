@@ -115,6 +115,7 @@ module Lucid::Compiler
       IsA
       # Lib
       Module
+      Of
       Offsetof
       Pointerof
       Private

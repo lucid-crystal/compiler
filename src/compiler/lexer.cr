@@ -570,8 +570,17 @@ module Lucid::Compiler
         end
       when 'o'
         start = current_pos
-        if next_sequence?('f', 'f', 's', 'e', 't', 'o', 'f')
-          lex_keyword_or_ident :offsetof, start
+        if next_char == 'f'
+          unless peek_char.ascii_alphanumeric? || peek_char.in?('_', '!', '?', '=')
+            # Dev: I fucking hate this keyword
+            return lex_keyword_or_ident :of, start
+          end
+
+          if next_sequence?('f', 's', 'e', 't', 'o', 'f')
+            lex_keyword_or_ident :offsetof, start
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end
