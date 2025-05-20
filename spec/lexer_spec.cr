@@ -50,6 +50,57 @@ describe LC::Lexer, tags: "lexer" do
       {t!(eof), 0, 21, 0, 21}
   end
 
+  it "parses quoted/escaped percent literal strings" do
+    assert_tokens "%q(foo bar)",
+      {t!(percent_string_escaped), 0, 0, 0, 11},
+      {t!(eof), 0, 11, 0, 11}
+
+    assert_tokens "%q[%q[]]",
+      {t!(percent_string_escaped), 0, 0, 0, 8},
+      {t!(eof), 0, 8, 0, 8}
+
+    assert_tokens %q<%q|foo \ bar|>,
+      {t!(percent_string_escaped), 0, 0, 0, 13},
+      {t!(eof), 0, 13, 0, 13}
+  end
+
+  it "parses percent literal arrays" do
+    assert_tokens "%w(foo bar)",
+      {t!(percent_string_array), 0, 0, 0, 11},
+      {t!(eof), 0, 11, 0, 11}
+
+    assert_tokens %q(%w{#{foo}}),
+      {t!(percent_string_array), 0, 0, 0, 10},
+      {t!(eof), 0, 10, 0, 10}
+
+    assert_tokens "%i[foo [] bar]",
+      {t!(percent_symbol_array), 0, 0, 0, 14},
+      {t!(eof), 0, 14, 0, 14}
+
+    expect_raises(Exception, "unterminated percent literal") do
+      assert_tokens "%w{foo bar", {t!(eof), 0, 0, 0, 0}
+    end
+
+    expect_raises(Exception, "unterminated percent literal") do
+      assert_tokens "%i<foo <bar>", {t!(eof), 0, 0, 0, 0}
+    end
+
+    expect_raises(Exception, "unterminated percent literal") do
+      assert_tokens "%w(foo bar", {t!(eof), 0, 0, 0, 0}
+    end
+
+    assert_tokens "%i|foo | bar|",
+      {t!(percent_symbol_array), 0, 0, 0, 8},
+      {t!(space), 0, 8, 0, 9},
+      {t!(ident), 0, 9, 0, 12},
+      {t!(bit_or), 0, 12, 0, 13},
+      {t!(eof), 0, 13, 0, 13}
+
+    assert_tokens %q[%i|foo \| bar|],
+      {t!(percent_symbol_array), 0, 0, 0, 14},
+      {t!(eof), 0, 14, 0, 14}
+  end
+
   it "parses integer expressions" do
     assert_tokens "123", {t!(integer), 0, 0, 0, 3}, {t!(eof), 0, 3, 0, 3}
     assert_tokens "123_45", {t!(integer), 0, 0, 0, 6}, {t!(eof), 0, 6, 0, 6}
