@@ -173,9 +173,61 @@ module Lucid::Compiler
           Token.new :bang, location
         end
       when '%'
-        if next_char == '='
+        case next_char
+        when '='
           next_char
           Token.new :modulo_assign, location
+        when '(', '[', '{', '<', '|'
+          raise "unimplemented"
+          # lex_percent_literal_string start
+        when 'i'
+          case peek_char
+          when '(', '[', '{', '<', '|'
+            next_char
+            lex_raw_percent_literal :percent_symbol_array
+          else
+            Token.new :modulo, location
+          end
+        when 'q'
+          case peek_char
+          when '(', '[', '{', '<', '|'
+            next_char
+            lex_raw_percent_literal :percent_string_escaped
+          else
+            Token.new :modulo, location
+          end
+          # when 'Q'
+          #   case peek_char
+          #   when '(', '[', '{', '<', '|'
+          #     next_char
+          #     lex_percent_literal_string 'Q', start
+          #   else
+          #     Token.new :modulo, location
+          #   end
+          # when 'r'
+          #   case peek_char
+          #   when '(', '[', '{', '<', '|'
+          #     next_char
+          #     lex_percent_literal_string 'r', start
+          #   else
+          #     Token.new :modulo, location
+          #   end
+          # when 'x'
+          #   case peek_char
+          #   when '(', '[', '{', '<', '|'
+          #     next_char
+          #     lex_percent_literal_string 'x', start
+          #   else
+          #     Token.new :modulo, location
+          #   end
+        when 'w'
+          case peek_char
+          when '(', '[', '{', '<', '|'
+            next_char
+            lex_raw_percent_literal :percent_string_array
+          else
+            Token.new :modulo, location
+          end
         else
           Token.new :modulo, location
         end
@@ -1070,6 +1122,59 @@ module Lucid::Compiler
       end
 
       Token.new kind, location, read_string_from start
+    end
+
+    private def closing_char : Char
+      case current_char
+      when '(' then ')'
+      when '[' then ']'
+      when '{' then '}'
+      when '<' then '>'
+      when '|' then '|'
+      else
+        raise "BUG: closing char called on #{current_char.inspect}"
+      end
+    end
+
+    private def lex_raw_percent_literal(kind : Token::Kind) : Token
+      opening = current_char
+      closing = closing_char
+      @string_nest << closing
+      next_char
+
+      start = current_pos
+      count = 1
+      escaped = false
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated percent literal"
+        when '\\'
+          escaped = !escaped
+          next_char
+        when closing
+          unless escaped
+            count -= 1
+            break if count == 0
+          end
+
+          escaped = false
+          next_char
+        when opening
+          count += 1 unless escaped
+          escaped = false
+          next_char
+        else
+          escaped = false
+          next_char
+        end
+      end
+
+      value = read_string_from start
+      next_char
+
+      Token.new kind, location, value
     end
 
     private def lex_string_or_symbol_key(end_char : Char) : Token

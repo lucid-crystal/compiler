@@ -15,6 +15,12 @@ module Lucid::Compiler
       StringStart
       StringPart
       StringEnd
+      PercentString        # %() or %Q()
+      PercentStringEscaped # %q()
+      PercentRegex         # %r()
+      PercentCommand       # %x()
+      PercentStringArray   # %w()
+      PercentSymbolArray   # %i()
       Char
       Symbol
       QuotedSymbol
