@@ -5,7 +5,7 @@ module Lucid::Compiler
     @line : Int32
     @column : Int32
     @loc : Location
-    @string_nest : Array(Char)
+    @string_nest : Array({Char, Int32})
 
     def self.run(source : String, filename : String = "STDIN", dirname : String = "") : Array(Token)
       new(source, filename, dirname).run
@@ -16,7 +16,7 @@ module Lucid::Compiler
       @pool = StringPool.new
       @line = @column = 0
       @loc = Location[0, 0, 0, 0]
-      @string_nest = [] of Char
+      @string_nest = [] of {Char, Int32}
     end
 
     def run : Array(Token)
@@ -94,7 +94,7 @@ module Lucid::Compiler
         if @string_nest.empty?
           Token.new :right_brace, location
         else
-          lex_string_part @string_nest[-1]
+          lex_string_part *@string_nest[-1]
         end
       when ','
         next_char
@@ -178,8 +178,7 @@ module Lucid::Compiler
           next_char
           Token.new :modulo_assign, location
         when '(', '[', '{', '<', '|'
-          raise "unimplemented"
-          # lex_percent_literal_string start
+          lex_string_or_symbol_key
         when 'i'
           case peek_char
           when '(', '[', '{', '<', '|'
@@ -196,14 +195,14 @@ module Lucid::Compiler
           else
             Token.new :modulo, location
           end
-          # when 'Q'
-          #   case peek_char
-          #   when '(', '[', '{', '<', '|'
-          #     next_char
-          #     lex_percent_literal_string 'Q', start
-          #   else
-          #     Token.new :modulo, location
-          #   end
+        when 'Q'
+          case peek_char
+          when '(', '[', '{', '<', '|'
+            next_char
+            lex_string_or_symbol_key
+          else
+            Token.new :modulo, location
+          end
           # when 'r'
           #   case peek_char
           #   when '(', '[', '{', '<', '|'
@@ -410,8 +409,7 @@ module Lucid::Compiler
         next_char
         Token.new :tilde, location
       when '"'
-        next_char
-        lex_string_or_symbol_key '"'
+        lex_string_or_symbol_key
       when '\''
         case next_char
         when '\0'
@@ -1124,22 +1122,23 @@ module Lucid::Compiler
       Token.new kind, location, read_string_from start
     end
 
-    private def closing_char : Char
-      case current_char
+    private def closing_char(char : Char = current_char) : Char
+      case char
       when '(' then ')'
       when '[' then ']'
       when '{' then '}'
       when '<' then '>'
       when '|' then '|'
+      when '"' then '"'
       else
-        raise "BUG: closing char called on #{current_char.inspect}"
+        raise "BUG: closing char called on #{char.inspect}"
       end
     end
 
     private def lex_raw_percent_literal(kind : Token::Kind) : Token
       opening = current_char
       closing = closing_char
-      @string_nest << closing
+      @string_nest << {closing, 0}
       next_char
 
       start = current_pos
@@ -1177,10 +1176,15 @@ module Lucid::Compiler
       Token.new kind, location, value
     end
 
-    private def lex_string_or_symbol_key(end_char : Char) : Token
+    private def lex_string_or_symbol_key : Token
+      opening = current_char
+      closing = closing_char
+      @string_nest << {opening, 1}
+      next_char
+
       start = current_pos
+      count = 1
       escaped = false
-      @string_nest << end_char
 
       loop do
         case current_char
@@ -1196,8 +1200,16 @@ module Lucid::Compiler
             return Token.new :string_start, loc, read_string_from(start)[..-3]
           end
           escaped = false
-        when end_char
-          break unless escaped
+        when closing
+          unless escaped
+            count -= 1
+            break if count == 0
+          end
+
+          escaped = false
+          next_char
+        when opening
+          count += 1 unless escaped
           escaped = false
           next_char
         else
@@ -1217,8 +1229,9 @@ module Lucid::Compiler
       end
     end
 
-    private def lex_string_part(end_char : Char) : Token
+    private def lex_string_part(opening : Char, count : Int32) : Token
       start = current_pos
+      closing = closing_char opening
       escaped = false
 
       loop do
@@ -1234,9 +1247,18 @@ module Lucid::Compiler
             return Token.new :string_part, location, read_string_from(start)[..-3]
           end
           escaped = false
-        when end_char
-          break unless escaped
+        when closing
+          unless escaped
+            count -= 1
+            break if count == 0
+          end
+
           escaped = false
+          next_char
+        when opening
+          count += 1 unless escaped
+          escaped = false
+          next_char
         else
           next_char
           escaped = false
