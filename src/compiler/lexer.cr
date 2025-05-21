@@ -1228,8 +1228,9 @@ module Lucid::Compiler
 
       value = read_string_from start
       @string_nest.pop
+      next_char
 
-      if check_colon && next_char == ':'
+      if check_colon && current_char == ':'
         next_char
         Token.new :symbol_key, location, value
       else
