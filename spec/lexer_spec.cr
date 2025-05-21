@@ -66,6 +66,24 @@ describe LC::Lexer, tags: "lexer" do
       {t!(eof), 0, 9, 0, 9}
   end
 
+  it "parses command and regex precent literal strings" do
+    assert_tokens "%x(foo bar)",
+      {t!(command), 0, 0, 0, 11},
+      {t!(eof), 0, 11, 0, 11}
+
+    assert_tokens %q(%r{foo #{bar}}),
+      {t!(regex_start), 0, 0, 0, 8},
+      {t!(ident), 0, 9, 0, 12},
+      {t!(string_end), 0, 12, 0, 14},
+      {t!(eof), 0, 14, 0, 14}
+
+    assert_tokens %q(%x[foo #{%x<bar>}]),
+      {t!(command_start), 0, 0, 0, 8},
+      {t!(command), 0, 9, 0, 16},
+      {t!(string_end), 0, 16, 0, 18},
+      {t!(eof), 0, 18, 0, 18}
+  end
+
   it "parses quoted/escaped percent literal strings" do
     assert_tokens "%q(foo bar)",
       {t!(string_escaped), 0, 0, 0, 11},
