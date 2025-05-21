@@ -178,12 +178,12 @@ module Lucid::Compiler
           next_char
           Token.new :modulo_assign, location
         when '(', '[', '{', '<', '|'
-          lex_string_or_symbol_key :percent_string, true
+          lex_string_or_symbol_key :string_start, true
         when 'i'
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_raw_percent_literal :percent_symbol_array
+            lex_raw_percent_literal :symbol_array
           else
             Token.new :modulo, location
           end
@@ -191,7 +191,7 @@ module Lucid::Compiler
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_raw_percent_literal :percent_string_escaped
+            lex_raw_percent_literal :string_escaped
           else
             Token.new :modulo, location
           end
@@ -199,7 +199,7 @@ module Lucid::Compiler
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_string_or_symbol_key :percent_string, true
+            lex_string_or_symbol_key :string_start, true
           else
             Token.new :modulo, location
           end
@@ -207,7 +207,7 @@ module Lucid::Compiler
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_string_or_symbol_key :percent_regex, false
+            lex_string_or_symbol_key :regex_start, false
           else
             Token.new :modulo, location
           end
@@ -215,7 +215,7 @@ module Lucid::Compiler
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_string_or_symbol_key :percent_command, false
+            lex_string_or_symbol_key :command_start, false
           else
             Token.new :modulo, location
           end
@@ -223,7 +223,7 @@ module Lucid::Compiler
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_raw_percent_literal :percent_string_array
+            lex_raw_percent_literal :string_array
           else
             Token.new :modulo, location
           end
@@ -1218,7 +1218,14 @@ module Lucid::Compiler
         end
       end
 
-      kind = Token::Kind::String if kind.string_start?
+      kind = case kind
+             when .string_start?  then Token::Kind::String
+             when .regex_start?   then Token::Kind::Regex
+             when .command_start? then Token::Kind::Command
+             else
+               kind
+             end
+
       value = read_string_from start
       @string_nest.pop
 

@@ -11,16 +11,17 @@ module Lucid::Compiler
       InstanceVar
       ClassVar
 
-      String
-      StringStart
-      StringPart
-      StringEnd
-      PercentString        # %() or %Q()
-      PercentStringEscaped # %q()
-      PercentRegex         # %r()
-      PercentCommand       # %x()
-      PercentStringArray   # %w()
-      PercentSymbolArray   # %i()
+      String        # "" or %Q()
+      StringStart   # + #{
+      StringPart    # } +
+      StringEnd     #
+      StringEscaped # %q()
+      StringArray   # %w()
+      SymbolArray   # %i()
+      Regex         # // or %r()
+      RegexStart    # + #{
+      Command       # `` or %x()
+      CommandStart  # + #{
       Char
       Symbol
       QuotedSymbol
