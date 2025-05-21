@@ -50,6 +50,22 @@ describe LC::Lexer, tags: "lexer" do
       {t!(eof), 0, 21, 0, 21}
   end
 
+  it "parses normal/unquoted percent literal strings" do
+    assert_tokens "%(foo bar)",
+      {t!(string), 0, 0, 0, 10},
+      {t!(eof), 0, 10, 0, 10}
+
+    assert_tokens %[%(foo %<> bar)],
+      {t!(string), 0, 0, 0, 14},
+      {t!(eof), 0, 14, 0, 14}
+
+    assert_tokens %q(%Q{q#{Q}}),
+      {t!(string_start), 0, 0, 0, 5},
+      {t!(const), 0, 6, 0, 7},
+      {t!(string_end), 0, 7, 0, 9},
+      {t!(eof), 0, 9, 0, 9}
+  end
+
   it "parses quoted/escaped percent literal strings" do
     assert_tokens "%q(foo bar)",
       {t!(percent_string_escaped), 0, 0, 0, 11},
