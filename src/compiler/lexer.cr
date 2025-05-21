@@ -178,7 +178,7 @@ module Lucid::Compiler
           next_char
           Token.new :modulo_assign, location
         when '(', '[', '{', '<', '|'
-          lex_string_or_symbol_key
+          lex_string_or_symbol_key :percent_string, true
         when 'i'
           case peek_char
           when '(', '[', '{', '<', '|'
@@ -199,26 +199,26 @@ module Lucid::Compiler
           case peek_char
           when '(', '[', '{', '<', '|'
             next_char
-            lex_string_or_symbol_key
+            lex_string_or_symbol_key :percent_string, true
           else
             Token.new :modulo, location
           end
-          # when 'r'
-          #   case peek_char
-          #   when '(', '[', '{', '<', '|'
-          #     next_char
-          #     lex_percent_literal_string 'r', start
-          #   else
-          #     Token.new :modulo, location
-          #   end
-          # when 'x'
-          #   case peek_char
-          #   when '(', '[', '{', '<', '|'
-          #     next_char
-          #     lex_percent_literal_string 'x', start
-          #   else
-          #     Token.new :modulo, location
-          #   end
+        when 'r'
+          case peek_char
+          when '(', '[', '{', '<', '|'
+            next_char
+            lex_string_or_symbol_key :percent_regex, false
+          else
+            Token.new :modulo, location
+          end
+        when 'x'
+          case peek_char
+          when '(', '[', '{', '<', '|'
+            next_char
+            lex_string_or_symbol_key :percent_command, false
+          else
+            Token.new :modulo, location
+          end
         when 'w'
           case peek_char
           when '(', '[', '{', '<', '|'
@@ -409,7 +409,7 @@ module Lucid::Compiler
         next_char
         Token.new :tilde, location
       when '"'
-        lex_string_or_symbol_key
+        lex_string_or_symbol_key :string_start, true
       when '\''
         case next_char
         when '\0'
@@ -1176,7 +1176,7 @@ module Lucid::Compiler
       Token.new kind, location, value
     end
 
-    private def lex_string_or_symbol_key : Token
+    private def lex_string_or_symbol_key(kind : Token::Kind, check_colon : Bool) : Token
       opening = current_char
       closing = closing_char
       @string_nest << {opening, 1}
@@ -1197,7 +1197,7 @@ module Lucid::Compiler
           if next_char == '{' && !escaped
             loc = location
             next_char
-            return Token.new :string_start, loc, read_string_from(start)[..-3]
+            return Token.new kind, loc, read_string_from(start)[..-3]
           end
           escaped = false
         when closing
@@ -1218,14 +1218,15 @@ module Lucid::Compiler
         end
       end
 
+      kind = Token::Kind::String if kind.string_start?
       value = read_string_from start
       @string_nest.pop
 
-      if next_char == ':'
+      if check_colon && next_char == ':'
         next_char
         Token.new :symbol_key, location, value
       else
-        Token.new :string, location, value
+        Token.new kind, location, value
       end
     end
 
