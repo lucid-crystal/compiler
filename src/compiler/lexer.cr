@@ -1138,7 +1138,6 @@ module Lucid::Compiler
     private def lex_raw_percent_literal(kind : Token::Kind) : Token
       opening = current_char
       closing = closing_char
-      @string_nest << {closing, 0}
       next_char
 
       start = current_pos
