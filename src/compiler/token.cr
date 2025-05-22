@@ -81,7 +81,6 @@ module Lucid::Compiler
       GreaterEqual     # >=
       Question         # ?
       Caret            # ^
-      Backtick         # `
       BitOr            # |
       Or               # ||
       Tilde            # ~
