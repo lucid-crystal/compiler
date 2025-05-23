@@ -239,6 +239,66 @@ describe LC::Parser do
       arr.values.should be_empty
     end
 
+    it "parses string/symbol array percent literals" do
+      arr = parse("%w(foo bar)").should be_a LC::ArrayLiteral
+      arr.loc.to_tuple.should eq({0, 0, 0, 11})
+      arr.percent_literal?.should be_true
+      arr.values.size.should eq 2
+
+      str = arr.values[0].should be_a LC::StringLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq "foo"
+
+      str = arr.values[1].should be_a LC::StringLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq "bar"
+
+      const = arr.of_type.should be_a LC::Const
+      const.loc.to_tuple.should eq({0, 0, 0, 11})
+      const.value.should eq "String"
+      const.global?.should be_true
+
+      arr = parse("%i<baz qux>").should be_a LC::ArrayLiteral
+      arr.loc.to_tuple.should eq({0, 0, 0, 11})
+      arr.percent_literal?.should be_true
+      arr.values.size.should eq 2
+
+      str = arr.values[0].should be_a LC::SymbolLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq "baz"
+
+      str = arr.values[1].should be_a LC::SymbolLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq "qux"
+
+      const = arr.of_type.should be_a LC::Const
+      const.loc.to_tuple.should eq({0, 0, 0, 11})
+      const.value.should eq "Symbol"
+      const.global?.should be_true
+
+      arr = parse(%q[%i{~ <> \ }]).should be_a LC::ArrayLiteral
+      arr.loc.to_tuple.should eq({0, 0, 0, 11})
+      arr.percent_literal?.should be_true
+      arr.values.size.should eq 3
+
+      str = arr.values[0].should be_a LC::SymbolLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq "~"
+
+      str = arr.values[1].should be_a LC::SymbolLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq "<>"
+
+      str = arr.values[2].should be_a LC::SymbolLiteral
+      str.loc.to_tuple.should eq({0, 0, 0, 11})
+      str.value.should eq " "
+
+      const = arr.of_type.should be_a LC::Const
+      const.loc.to_tuple.should eq({0, 0, 0, 11})
+      const.value.should eq "Symbol"
+      const.global?.should be_true
+    end
+
     it "parses symbol key expressions" do
       assert_node LC::SymbolKey, "foo:"
       assert_node LC::SymbolKey, %("foo bar":)
