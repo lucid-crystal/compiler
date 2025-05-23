@@ -284,7 +284,7 @@ describe LC::Lexer, tags: "lexer" do
   end
 
   it "parses complex operators" do
-    assert_tokens ".|..||...<=>^===`=~!~=>;->{}&&",
+    assert_tokens ".|..||...<=>^====~!~=>;->{}&&",
       {t!(period), 0, 0, 0, 1},
       {t!(bit_or), 0, 1, 0, 2},
       {t!(double_period), 0, 2, 0, 4},
@@ -293,16 +293,15 @@ describe LC::Lexer, tags: "lexer" do
       {t!(comparison), 0, 9, 0, 12},
       {t!(caret), 0, 12, 0, 13},
       {t!(case_equal), 0, 13, 0, 16},
-      {t!(backtick), 0, 16, 0, 17},
-      {t!(pattern_match), 0, 17, 0, 19},
-      {t!(pattern_unmatch), 0, 19, 0, 21},
-      {t!(rocket), 0, 21, 0, 23},
-      {t!(semicolon), 0, 23, 0, 24},
-      {t!(proc), 0, 24, 0, 26},
-      {t!(left_brace), 0, 26, 0, 27},
-      {t!(right_brace), 0, 27, 0, 28},
-      {t!(and), 0, 28, 0, 30}
-    {t!(eof), 0, 30, 0, 30}
+      {t!(pattern_match), 0, 16, 0, 18},
+      {t!(pattern_unmatch), 0, 18, 0, 20},
+      {t!(rocket), 0, 20, 0, 22},
+      {t!(semicolon), 0, 22, 0, 23},
+      {t!(proc), 0, 23, 0, 25},
+      {t!(left_brace), 0, 25, 0, 26},
+      {t!(right_brace), 0, 26, 0, 27},
+      {t!(and), 0, 27, 0, 29},
+      {t!(eof), 0, 29, 0, 29}
 
     assert_tokens "%=//=<<=>>=**=&+=&-==",
       {t!(modulo_assign), 0, 0, 0, 2},

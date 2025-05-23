@@ -388,8 +388,7 @@ module Lucid::Compiler
         next_char
         Token.new :caret, location
       when '`'
-        next_char
-        Token.new :backtick, location
+        lex_string_or_symbol_key :command_start, false
       when '|'
         case next_char
         when '|'
@@ -1130,6 +1129,7 @@ module Lucid::Compiler
       when '<' then '>'
       when '|' then '|'
       when '"' then '"'
+      when '`' then '`'
       else
         raise "BUG: closing char called on #{char.inspect}"
       end

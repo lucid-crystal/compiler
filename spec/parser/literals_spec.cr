@@ -69,6 +69,41 @@ describe LC::Parser do
       str.value.should eq " qux"
     end
 
+    it "parses command literals" do
+      call = parse("`foo bar`").should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 9})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.loc.to_tuple.should eq({0, 0, 0, 9})
+      ident.value.should eq "`"
+      call.args.size.should eq 1
+
+      str = call.args[0].should be_a LC::StringLiteral
+      str.value.should eq "foo bar"
+
+      call = parse(%q[%x(foo #{bar})]).should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 0, 0, 14})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.loc.to_tuple.should eq({0, 0, 0, 14})
+      ident.value.should eq "`"
+      call.args.size.should eq 1
+
+      lit = call.args[0].should be_a LC::StringInterpolation
+      lit.loc.to_tuple.should eq({0, 0, 0, 14})
+      lit.parts.size.should eq 3
+
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should eq "foo "
+
+      call = lit.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "bar"
+
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should eq ""
+    end
+
     it "parses integer expressions" do
       assert_node LC::IntLiteral, "123_45"
     end
