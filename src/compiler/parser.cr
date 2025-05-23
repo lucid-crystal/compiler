@@ -525,26 +525,27 @@ module Lucid::Compiler
                end
              when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?, .pseudo?
                parse_var_or_call token, false
-             when .command?, .command_start? then parse_command_call token
-             when .shorthand?                then parse_block token
-             when .integer?                  then parse_integer token
-             when .integer_bad_suffix?       then parse_invalid_integer token
-             when .float?                    then parse_float token
-             when .float_bad_suffix?         then parse_invalid_float token
-             when .string?, .string_part?    then parse_string token
-             when .string_start?             then parse_interpolated_string token
-             when .true?, .false?            then parse_bool token
-             when .char?                     then parse_char token
-             when .symbol?, .quoted_symbol?  then parse_symbol token
-             when .symbol_key?               then parse_symbol_key token
-             when .is_nil?                   then parse_nil token
-             when .left_paren?               then parse_grouped_expression
-             when .left_bracket?             then parse_array_literal token
-             when .annotation_open?          then parse_annotation token
-             when .proc?                     then parse_proc token
-             when .magic_line?               then parse_integer token
-             when .magic_dir?                then parse_string token
-             when .magic_file?               then parse_string token
+             when .command?, .command_start?     then parse_command_call token
+             when .shorthand?                    then parse_block token
+             when .integer?                      then parse_integer token
+             when .integer_bad_suffix?           then parse_invalid_integer token
+             when .float?                        then parse_float token
+             when .float_bad_suffix?             then parse_invalid_float token
+             when .string?, .string_part?        then parse_string token
+             when .string_start?                 then parse_interpolated_string token
+             when .true?, .false?                then parse_bool token
+             when .char?                         then parse_char token
+             when .symbol?, .quoted_symbol?      then parse_symbol token
+             when .symbol_key?                   then parse_symbol_key token
+             when .is_nil?                       then parse_nil token
+             when .left_paren?                   then parse_grouped_expression
+             when .left_bracket?                 then parse_array_literal token
+             when .string_array?, .symbol_array? then parse_percent_array_literal token
+             when .annotation_open?              then parse_annotation token
+             when .proc?                         then parse_proc token
+             when .magic_line?                   then parse_integer token
+             when .magic_dir?                    then parse_string token
+             when .magic_file?                   then parse_string token
              else
                return unless token.operator?
 
@@ -1183,6 +1184,23 @@ module Lucid::Compiler
       end
 
       node
+    end
+
+    private def parse_percent_array_literal(token : Token) : Node
+      values = token.str_value.split %r[(?<!\\)\s+]
+      values.each_with_index do |value, index|
+        values[index] = " " if value == "\\ "
+      end
+
+      if token.kind.string_array?
+        values = values.map { |v| StringLiteral.new(v).at(token.loc) }
+        of_type = Const.new("String", true).at(token.loc)
+      else
+        values = values.map { |v| SymbolLiteral.new(v, true).at(token.loc) }
+        of_type = Const.new("Symbol", true).at(token.loc)
+      end
+
+      ArrayLiteral.new(values.unsafe_as(Array(Node)), of_type, true).at(token.loc)
     end
 
     private def parse_proc(token : Token) : Node
