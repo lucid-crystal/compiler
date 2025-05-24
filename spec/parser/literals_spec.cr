@@ -239,6 +239,43 @@ describe LC::Parser do
       arr.values.should be_empty
     end
 
+    it "parses tuple literal expressions" do
+      tuple = parse("{foo}").should be_a LC::TupleLiteral
+      tuple.loc.to_tuple.should eq({0, 0, 0, 5})
+      tuple.types.should be_empty
+      tuple.values.size.should eq 1
+
+      call = tuple.values[0].should be_a LC::Call
+      call.loc.to_tuple.should eq({0, 1, 0, 4})
+
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+
+      tuple = parse(%[{"foo", "bar"}]).should be_a LC::TupleLiteral
+      tuple.loc.to_tuple.should eq({0, 0, 0, 14})
+      tuple.types.should be_empty
+      tuple.values.size.should eq 2
+
+      str = tuple.values[0].should be_a LC::StringLiteral
+      str.value.should eq "foo"
+
+      str = tuple.values[1].should be_a LC::StringLiteral
+      str.value.should eq "bar"
+    end
+
+    it "errors on invalid tuple literals" do
+      error = parse("{foo,").should be_a LC::Error
+      error.message.should eq "missing closing brace for tuple literal"
+
+      tuple = error.target.should be_a LC::TupleLiteral
+      tuple.types.should be_empty
+      tuple.values.size.should eq 1
+
+      call = tuple.values[0].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+    end
+
     it "parses string/symbol array percent literals" do
       arr = parse("%w(foo bar)").should be_a LC::ArrayLiteral
       arr.loc.to_tuple.should eq({0, 0, 0, 11})
