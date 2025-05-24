@@ -540,7 +540,7 @@ module Lucid::Compiler
              when .is_nil?                       then parse_nil token
              when .left_paren?                   then parse_grouped_expression
              when .left_bracket?                 then parse_array_literal token
-             when .left_brace? then parse_hash_or_tuple_literal token
+             when .left_brace?                   then parse_hash_or_tuple_literal token
              when .string_array?, .symbol_array? then parse_percent_array_literal token
              when .annotation_open?              then parse_annotation token
              when .proc?                         then parse_proc token
@@ -1205,8 +1205,11 @@ module Lucid::Compiler
     end
 
     private def parse_hash_or_tuple_literal(token : Token) : Node
-      node = parse_expression next_token_skip(space: true, newline: true)
+      if next_token_skip(space: true, newline: true).kind.right_brace?
+        return parse_hash_literal token.loc, nil
+      end
 
+      node = parse_expression current_token
       case current_token.kind
       when .eof?
         raise current_token, "unexpected end of file"
@@ -1216,8 +1219,7 @@ module Lucid::Compiler
         raise "unimplemented"
         # parse_named_tuple_literal token.loc, node
       else
-        raise "unimplemented"
-        # parse_hash_literal token.loc, node
+        parse_hash_literal token.loc, node
       end
     end
 
@@ -1268,6 +1270,126 @@ module Lucid::Compiler
       end
 
       node
+    end
+
+    private def parse_hash_literal(start : Location, key : Node?) : Node
+      unless key
+        of_type = parse_hash_explicit_typing
+        return HashLiteral.new([] of Node, of_type).at(start & of_type.loc)
+      end
+
+      case current_token.kind
+      when .eof?
+        return raise current_token, "unexpected end of file"
+      when .rocket?
+        value = parse_expression next_token_skip(space: true, newline: true)
+      else
+        value = parse_expression current_token
+        value = raise value, "expected token '=>' before value"
+      end
+
+      entries = [HashLiteral::Entry.new(key, value).at(key.loc & value.loc)] of Node
+      delimited = true
+      done = false
+
+      loop do
+        case current_token.kind
+        when .eof?
+          break
+        when .right_brace?
+          done = true
+          break
+        when .comma?
+          entries << raise current_token, "unexpected token ','" unless delimited
+          delimited = false
+          next_token_skip space: true, newline: true
+        else
+          key = parse_expression current_token
+
+          case current_token.kind
+          when .eof?
+            entries << HashLiteral::Entry.new(key, raise current_token, "unexpected end of file")
+              .at(key.loc & current_token.loc)
+            break
+          when .rocket?
+            value = parse_expression next_token_skip(space: true, newline: true)
+          else
+            value = parse_expression current_token
+            value = raise value, "expected token '=>' before value"
+          end
+
+          node = HashLiteral::Entry.new(key, value).at(key.loc & value.loc)
+          if delimited
+            entries << raise node, "expected a comma before expression"
+          else
+            entries << node
+            delimited = false
+          end
+
+          if current_token.kind.comma?
+            delimited = true
+            next_token_skip space: true, newline: true
+          end
+        end
+      end
+
+      node = HashLiteral.new(entries, nil).at(start & current_token.loc)
+      if done
+        if peek_token_skip(space: true).kind.of?
+          node.of_type = parse_hash_explicit_typing.tap do |type|
+            node.loc &= type.loc
+          end
+          next_token_skip(space: true, newline: true) unless current_token.kind.eof?
+        end
+      else
+        node = raise node, "missing closing brace for tuple literal"
+      end
+
+      node
+    end
+
+    private def parse_hash_explicit_typing : Node
+      case next_token_skip(space: true).kind
+      when .eof?
+        return raise current_token, "unexpected end of file"
+      when .of?
+        # expected
+      else
+        return raise current_token, "for empty hashes use '{} of KeyType => ValueType'"
+      end
+
+      case next_token_skip(space: true).kind
+      when .eof?
+        return raise current_token, "unexpected end of file"
+      when .const?
+        key_type = parse_const_or_path current_token, false
+      when .underscore?
+        key_type = raise current_token, "can't use underscore as generic type argument"
+      else
+        return raise current_token, "unexpected token #{current_token.inspect}"
+      end
+
+      case next_token_skip(space: true).kind
+      when .eof?
+        return raise current_token, "unexpected end of file"
+      when .rocket?
+        # expected
+      else
+        return raise current_token, "unexpected token #{current_token.inspect}"
+      end
+
+      case next_token_skip(space: true).kind
+      when .eof?
+        return raise current_token, "unexpected end of file"
+      when .const?
+        value_type = parse_const_or_path current_token, false
+      when .underscore?
+        value_type = raise current_token, "can't use underscore as generic type argument"
+      else
+        return raise current_token, "unexpected token #{current_token.inspect}"
+      end
+
+      HashLiteral::Entry.new(key_type, value_type).at(key_type.loc & value_type.loc)
     end
 
     private def parse_proc(token : Token) : Node
