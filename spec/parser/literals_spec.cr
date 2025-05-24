@@ -276,6 +276,80 @@ describe LC::Parser do
       ident.value.should eq "foo"
     end
 
+    it "parses hash literal expressions" do
+      hash = parse(%({"foo" => "bar"})).should be_a LC::HashLiteral
+      hash.loc.to_tuple.should eq({0, 0, 0, 16})
+      hash.of_type.should be_nil
+      hash.entries.size.should eq 1
+
+      entry = hash.entries[0].should be_a LC::HashLiteral::Entry
+      entry.loc.to_tuple.should eq({0, 1, 0, 15})
+
+      str = entry.key.should be_a LC::StringLiteral
+      str.value.should eq "foo"
+
+      str = entry.value.should be_a LC::StringLiteral
+      str.value.should eq "bar"
+
+      hash = parse(%({1 => "one", 2 => "two"})).should be_a LC::HashLiteral
+      hash.loc.to_tuple.should eq({0, 0, 0, 24})
+      hash.of_type.should be_nil
+      hash.entries.size.should eq 2
+
+      entry = hash.entries[0].should be_a LC::HashLiteral::Entry
+      entry.loc.to_tuple.should eq({0, 1, 0, 11})
+
+      int = entry.key.should be_a LC::IntLiteral
+      int.value.should eq 1
+
+      str = entry.value.should be_a LC::StringLiteral
+      str.value.should eq "one"
+
+      entry = hash.entries[1].should be_a LC::HashLiteral::Entry
+      entry.loc.to_tuple.should eq({0, 13, 0, 23})
+
+      int = entry.key.should be_a LC::IntLiteral
+      int.value.should eq 2
+
+      str = entry.value.should be_a LC::StringLiteral
+      str.value.should eq "two"
+
+      hash = parse(%({true => false} of Bool => Bool)).should be_a LC::HashLiteral
+      hash.loc.to_tuple.should eq({0, 0, 0, 31})
+      hash.entries.size.should eq 1
+
+      entry = hash.entries[0].should be_a LC::HashLiteral::Entry
+      entry.loc.to_tuple.should eq({0, 1, 0, 14})
+
+      str = entry.key.should be_a LC::BoolLiteral
+      str.value.should be_true
+
+      str = entry.value.should be_a LC::BoolLiteral
+      str.value.should be_false
+
+      entry = hash.of_type.should be_a LC::HashLiteral::Entry
+      entry.loc.to_tuple.should eq({0, 19, 0, 31})
+
+      const = entry.key.should be_a LC::Const
+      const.value.should eq "Bool"
+
+      const = entry.value.should be_a LC::Const
+      const.value.should eq "Bool"
+
+      hash = parse("{} of Int32 => String").should be_a LC::HashLiteral
+      hash.loc.to_tuple.should eq({0, 0, 0, 21})
+      hash.entries.should be_empty
+
+      entry = hash.of_type.should be_a LC::HashLiteral::Entry
+      entry.loc.to_tuple.should eq({0, 6, 0, 21})
+
+      const = entry.key.should be_a LC::Const
+      const.value.should eq "Int32"
+
+      const = entry.value.should be_a LC::Const
+      const.value.should eq "String"
+    end
+
     it "parses string/symbol array percent literals" do
       arr = parse("%w(foo bar)").should be_a LC::ArrayLiteral
       arr.loc.to_tuple.should eq({0, 0, 0, 11})
