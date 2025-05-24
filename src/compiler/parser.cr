@@ -540,6 +540,7 @@ module Lucid::Compiler
              when .is_nil?                       then parse_nil token
              when .left_paren?                   then parse_grouped_expression
              when .left_bracket?                 then parse_array_literal token
+             when .left_brace? then parse_hash_or_tuple_literal token
              when .string_array?, .symbol_array? then parse_percent_array_literal token
              when .annotation_open?              then parse_annotation token
              when .proc?                         then parse_proc token
@@ -1201,6 +1202,72 @@ module Lucid::Compiler
       end
 
       ArrayLiteral.new(values.unsafe_as(Array(Node)), of_type, true).at(token.loc)
+    end
+
+    private def parse_hash_or_tuple_literal(token : Token) : Node
+      node = parse_expression next_token_skip(space: true, newline: true)
+
+      case current_token.kind
+      when .eof?
+        raise current_token, "unexpected end of file"
+      when .comma?, .right_brace?
+        parse_tuple_literal token.loc, node
+      when .symbol_key?
+        raise "unimplemented"
+        # parse_named_tuple_literal token.loc, node
+      else
+        raise "unimplemented"
+        # parse_hash_literal token.loc, node
+      end
+    end
+
+    private def parse_tuple_literal(start : Location, node : Node) : Node
+      if current_token.kind.right_brace?
+        expr = TupleLiteral.new([node] of Node, [] of Node).at(start & current_token.loc)
+        next_token_skip space: true, newline: true
+        return expr
+      end
+
+      next_token_skip space: true, newline: true
+      values = [node] of Node
+      delimited = true
+      done = false
+
+      loop do
+        case current_token.kind
+        when .eof?
+          break
+        when .right_brace?
+          done = true
+          break
+        when .comma?
+          values << raise current_token, "unexpected token ','" unless delimited
+          delimited = false
+          next_token_skip space: true, newline: true
+        else
+          node = parse_expression current_token
+          if delimited
+            values << node
+            delimited = false
+          else
+            values << raise node, "expected a comma before expression"
+          end
+
+          if current_token.kind.comma?
+            delimited = true
+            next_token_skip space: true, newline: true
+          end
+        end
+      end
+
+      node = TupleLiteral.new(values, [] of Node).at(start & current_token.loc)
+      if done
+        next_token_skip space: true, newline: true
+      else
+        node = raise node, "missing closing brace for tuple literal"
+      end
+
+      node
     end
 
     private def parse_proc(token : Token) : Node

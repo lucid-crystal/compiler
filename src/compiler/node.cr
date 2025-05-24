@@ -1537,6 +1537,59 @@ module Lucid::Compiler
     end
   end
 
+  class TupleLiteral < Node
+    property values : Array(Node)
+    property types : Array(Node)
+
+    def initialize(@values : Array(Node), @types : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '{'
+      @values.join(io, ", ")
+      io << '}'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "TupleLiteral("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "values: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @values.empty?
+
+          @values[0].pretty_print pp
+          if @values.size > 1
+            @values.skip(1).each do |value|
+              pp.comma
+              value.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "types: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @types.empty?
+
+          @types[0].pretty_print pp
+          if @types.size > 1
+            @types.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
+
   class ProcLiteral < Node
     property params : Array(Parameter)
     property body : Array(Node)
