@@ -1537,6 +1537,134 @@ module Lucid::Compiler
     end
   end
 
+  class TupleLiteral < Node
+    property values : Array(Node)
+    property types : Array(Node)
+
+    def initialize(@values : Array(Node), @types : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '{'
+      @values.join(io, ", ")
+      io << '}'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "TupleLiteral("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "values: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @values.empty?
+
+          @values[0].pretty_print pp
+          if @values.size > 1
+            @values.skip(1).each do |value|
+              pp.comma
+              value.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "types: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @types.empty?
+
+          @types[0].pretty_print pp
+          if @types.size > 1
+            @types.skip(1).each do |type|
+              pp.comma
+              type.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
+
+  class HashLiteral < Node
+    class Entry < Node
+      property key : Node
+      property value : Node
+
+      def initialize(@key : Node, @value : Node)
+        super()
+      end
+
+      def to_s(io : IO) : Nil
+        @key.to_s io
+        io << " => "
+        @value.to_s io
+      end
+
+      def pretty_print(pp : PrettyPrint) : Nil
+        pp.text "Entry("
+        pp.group 1 do
+          pp.breakable ""
+          pp.text "key: "
+          @key.pretty_print pp
+          pp.comma
+
+          pp.text "value: "
+          @value.pretty_print pp
+        end
+        pp.text ")"
+      end
+    end
+
+    property entries : Array(Node)
+    property of_type : Node?
+
+    def initialize(@entries : Array(Node), @of_type : Node?)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << '{'
+      @entries.join(io, ", ")
+      io << '}'
+
+      if entry = @of_type
+        io << " of "
+        entry.to_s io
+      end
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "HashLiteral("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "entries: ["
+        pp.group 1 do
+          pp.breakable ""
+          next if @entries.empty?
+
+          @entries[0].pretty_print pp
+          if @entries.size > 1
+            @entries.skip(1).each do |entry|
+              pp.comma
+              entry.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        pp.text "of_type: "
+        @of_type.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class ProcLiteral < Node
     property params : Array(Parameter)
     property body : Array(Node)
