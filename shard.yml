@@ -7,6 +7,14 @@ crystal: '>= 1.8.0'
 license: MIT
 repository: https://github.com/lucid-crystal/compiler
 
+dependencies:
+  cling:
+    github: devnote-dev/cling
+    branch: main
+
+  reply:
+    github: I3oris/reply
+
 targets:
-  compiler:
-    main: src/compiler.cr
+  lcc:
+    main: src/cli.cr
