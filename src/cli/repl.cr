@@ -1,5 +1,5 @@
 module Lucid
-  class REPLCommand < Cling::Command
+  class REPLCommand < Command
     WORD_DELIMITERS = [
       ' ', '\n', '\t', '+', '-',
       '*', '/', ',', ';', '@',
@@ -10,6 +10,7 @@ module Lucid
 
     def setup : Nil
       @name = "repl"
+      @summary = @description = "An interactive REPL for analysis"
 
       add_option 'm', "mode", type: :single, default: "nodes"
     end

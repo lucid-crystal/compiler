@@ -9,9 +9,10 @@ require "./compiler"
 require "./cli/*"
 
 module Lucid
-  class App < Cling::Command
+  class App < Command
     def setup : Nil
       @name = "lcc"
+      @description = "Parsing and analysis tools for Crystal Language."
 
       add_command REPLCommand.new
     end
