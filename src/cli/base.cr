@@ -80,5 +80,10 @@ module Lucid
       stderr.puts %(#{"Error:".colorize.red} unexpected options: #{options.join ", "})
       exit_program
     end
+
+    def on_invalid_option(message : String) : Nil
+      stderr.puts %(#{"Error:".colorize.red} #{message})
+      exit_program
+    end
   end
 end
