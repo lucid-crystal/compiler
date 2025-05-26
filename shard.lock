@@ -1,2 +1,10 @@
 version: 2.0
-shards: {}
+shards:
+  cling:
+    git: https://github.com/devnote-dev/cling.git
+    version: 3.0.0+git.commit.3cd8b0baebb4b887b48a374f7e3f0887699fa4e5
+
+  reply:
+    git: https://github.com/i3oris/reply.git
+    version: 0.4.0
+
