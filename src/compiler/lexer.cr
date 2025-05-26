@@ -495,6 +495,13 @@ module Lucid::Compiler
         else
           lex_ident start
         end
+      when 'b'
+        start = current_pos
+        if next_sequence?('e', 'g', 'i', 'n')
+          lex_keyword_or_ident :begin, start
+        else
+          lex_ident start
+        end
       when 'c'
         start = current_pos
         if next_sequence?('l', 'a', 's', 's')
@@ -519,10 +526,22 @@ module Lucid::Compiler
       when 'e'
         start = current_pos
         case next_char
+        when 'l'
+          if next_char == 's' && next_char == 'e'
+            lex_keyword_or_ident :else, start
+          else
+            lex_ident start
+          end
         when 'n'
           case next_char
           when 'd'
             lex_keyword_or_ident :end, start
+          when 's'
+            if next_sequence?('u', 'r', 'e')
+              lex_keyword_or_ident :ensure, start
+            else
+              lex_ident start
+            end
           when 'u'
             if next_char == 'm'
               lex_keyword_or_ident :enum, start
@@ -664,8 +683,23 @@ module Lucid::Compiler
         end
       when 'r'
         start = current_pos
-        if next_sequence?('e', 'q', 'u', 'i', 'r', 'e')
-          lex_keyword_or_ident :require, start
+        if next_char == 'e'
+          case next_char
+          when 'q'
+            if next_sequence?('u', 'i', 'r', 'e')
+              lex_keyword_or_ident :require, start
+            else
+              lex_ident start
+            end
+          when 's'
+            if next_sequence?('c', 'u', 'e')
+              lex_keyword_or_ident :rescue, start
+            else
+              lex_ident start
+            end
+          else
+            lex_ident start
+          end
         else
           lex_ident start
         end

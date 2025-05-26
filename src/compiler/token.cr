@@ -108,10 +108,13 @@ module Lucid::Compiler
       Alias
       Alignof
       Annotation
+      Begin
       Class
       Def
       Do
+      Else
       End
+      Ensure
       Enum
       Extend
       Forall
@@ -126,6 +129,7 @@ module Lucid::Compiler
       Pointerof
       Private
       Protected
+      Rescue
       RespondsTo
       Self
       Sizeof
