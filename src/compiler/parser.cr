@@ -525,6 +525,7 @@ module Lucid::Compiler
                end
              when .ident?, .const?, .self?, .underscore?, .instance_var?, .class_var?, .pseudo?
                parse_var_or_call token, false
+             when .begin?                        then parse_begin token
              when .command?, .command_start?     then parse_command_call token
              when .shorthand?                    then parse_block token
              when .integer?                      then parse_integer token
@@ -907,6 +908,76 @@ module Lucid::Compiler
       end
 
       call
+    end
+
+    private def parse_begin(start : Token) : Node
+      next_token_skip space: true, newline: true, semicolon: true
+      body = parse_begin_branch
+      ensure_alt = else_alt = nil
+      rescues = [] of Rescue
+      order = [] of Begin::OrderKind
+      done = false
+
+      loop do
+        case current_token.kind
+        when .eof?
+          break
+        when .end?
+          done = true
+          break
+        when .ensure?
+          order << :ensure
+          next_token_skip space: true, newline: true, semicolon: true
+          if ensure_alt
+            void = VoidExpression.new parse_begin_branch
+            ensure_alt << raise void, "duplicate ensure clause for begin"
+          else
+            ensure_alt = parse_begin_branch
+          end
+        when .else?
+          order << :else
+          next_token_skip space: true, newline: true, semicolon: true
+          if else_alt
+            void = VoidExpression.new parse_begin_branch
+            else_alt << raise void, "duplicate else clause for begin"
+          else
+            else_alt = parse_begin_branch
+          end
+        when .rescue?
+          order << :rescue
+          maybe_type = next_token_skip(space: true).kind
+          if maybe_type.ident? || maybe_type.const?
+            type = parse_var_or_call current_token, false
+            next_token_skip space: true, newline: true, semicolon: true
+          elsif maybe_type.newline?
+            next_token_skip space: true, newline: true
+          end
+
+          rescues << Rescue.new(type, parse_begin_branch)
+        else
+          raise "unexpected token #{current_token}"
+        end
+      end
+
+      Begin.new(body, rescues, ensure_alt, else_alt, order).at(start.loc & current_token.loc)
+    end
+
+    private def parse_begin_branch : Array(Node)
+      body = [] of Node
+
+      loop do
+        case current_token.kind
+        when .eof?
+          body << raise current_token, "unexpected end of file"
+          break
+        when .rescue?, .ensure?, .else?, .end?
+          break
+        else
+          body << parse_expression current_token
+        end
+      end
+
+      body
     end
 
     private def parse_command_call(token : Token) : Node
