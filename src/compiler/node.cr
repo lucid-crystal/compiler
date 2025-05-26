@@ -723,7 +723,6 @@ module Lucid::Compiler
     end
 
     def pretty_print(pp : PrettyPrint) : Nil
-      pp.text "#{self.class.name}("
       pp.group 1 do
         pp.breakable ""
         pp.text "value: "
@@ -738,9 +737,17 @@ module Lucid::Compiler
   end
 
   class Ident < Identifiable
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Ident("
+      super
+    end
   end
 
   class Const < Identifiable
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Const("
+      super
+    end
   end
 
   class Self < Identifiable
@@ -772,9 +779,17 @@ module Lucid::Compiler
   end
 
   class InstanceVar < Identifiable
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "InstanceVar("
+      super
+    end
   end
 
   class ClassVar < Identifiable
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "ClassVar("
+      super
+    end
   end
 
   class Var < Node
