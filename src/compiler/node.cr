@@ -1259,6 +1259,205 @@ module Lucid::Compiler
   def_pseudo PointerOf, "pointerof"
   def_pseudo SizeOf, "sizeof"
 
+  class VoidExpression < Node
+    property expr : Array(Node)
+
+    def initialize(@expr : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      @expr.each &.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "VoidExpression["
+      pp.group 1 do
+        pp.breakable ""
+        @expr[0].pretty_print pp
+
+        if @expr.size > 1
+          @expr.skip(1).each do |expr|
+            pp.comma
+            expr.pretty_print pp
+          end
+        end
+      end
+      pp.text "]"
+    end
+  end
+
+  class Begin < Node
+    enum OrderKind
+      Rescue
+      Ensure
+      Else
+    end
+
+    property body : Array(Node)
+    property rescues : Array(Rescue)?
+    property ensure : Array(Node)?
+    property else : Array(Node)?
+    property order : Array(OrderKind)
+
+    def initialize(@body : Array(Node), @rescues : Array(Rescue)?, @ensure : Array(Node)?,
+                   @else : Array(Node)?, @order : Array(OrderKind))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "begin\n"
+      @body.join(io) { |i, e| i << "  " << e << '\n' }
+
+      if rescues = @rescues
+        rescues.each &.to_s io
+      end
+
+      if alt = @ensure
+        io << "else\n"
+        alt.join(io) { |i, e| i << "  " << e << '\n' }
+      end
+
+      if alt = @else
+        io << "else\n"
+        alt.join(io) { |i, e| i << "  " << e << '\n' }
+      end
+
+      io << "end"
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Begin("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "body: ["
+        pp.group 1 do
+          pp.breakable ""
+          @body[0].pretty_print pp
+
+          if @body.size > 1
+            @body.skip(1).each do |expr|
+              pp.comma
+              expr.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+        pp.comma
+
+        if alt = @rescues
+          pp.text "rescues: ["
+          pp.group 1 do
+            pp.breakable ""
+            alt.each &.pretty_print pp
+          end
+          pp.text "]"
+        else
+          pp.text "rescues: []"
+        end
+        pp.comma
+
+        if alt = @ensure
+          pp.text "ensure: ["
+          pp.group 1 do
+            pp.breakable ""
+            alt[0].pretty_print pp
+
+            if alt.size > 1
+              alt.skip(1).each do |expr|
+                pp.comma
+                expr.pretty_print pp
+              end
+            end
+          end
+          pp.text "]"
+        else
+          pp.text "ensure: []"
+        end
+        pp.comma
+
+        if alt = @else
+          pp.text "else: ["
+          pp.group 1 do
+            pp.breakable ""
+            alt[0].pretty_print pp
+
+            if alt.size > 1
+              alt.skip(1).each do |expr|
+                pp.comma
+                expr.pretty_print pp
+              end
+            end
+          end
+          pp.text "]"
+        else
+          pp.text "else: []"
+        end
+        pp.comma
+
+        pp.text "order: ["
+        pp.group 1 do
+          pp.breakable ""
+          pp.text @order[0].member_name
+
+          if @order.size > 1
+            @order.skip(1).each do |kind|
+              pp.comma
+              pp.text kind.member_name
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
+
+  class Rescue < Node
+    property type : Node?
+    property body : Array(Node)
+
+    def initialize(@type : Node?, @body : Array(Node))
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "rescue"
+      if @type
+        io << ' '
+        @type.to_s io
+      else
+        io << '\n'
+      end
+      @body.join(io, "\n  ")
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Rescue("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "type: "
+        @type.pretty_print pp
+        pp.comma
+
+        pp.text "body: ["
+        pp.group 1 do
+          pp.breakable ""
+          @body[0].pretty_print pp
+
+          if @body.size > 1
+            @body.skip(1).each do |expr|
+              pp.comma
+              expr.pretty_print pp
+            end
+          end
+        end
+        pp.text "]"
+      end
+      pp.text ")"
+    end
+  end
+
   class StringLiteral < Node
     property value : String
 
