@@ -14,6 +14,7 @@ module Lucid
       @name = "lcc"
       @description = "Parsing and analysis tools for Crystal Language."
 
+      add_command HelpCommand.new
       add_command REPLCommand.new
     end
 

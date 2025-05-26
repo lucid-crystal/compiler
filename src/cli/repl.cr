@@ -16,6 +16,7 @@ module Lucid
     end
 
     def pre_run(arguments : Cling::Arguments, options : Cling::Options) : Nil
+      super
       mode = options.get("mode").as_s
       unless mode.in?("tokens", "nodes")
         STDERR.puts "invalid parsing mode (tokens, nodes)"
