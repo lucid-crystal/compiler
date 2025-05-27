@@ -4,8 +4,20 @@ describe LC::Parser do
   context "literals", tags: %w[parser literals] do
     it "parses string expressions" do
       assert_node LC::StringLiteral, %("hello world")
+
+      expect_raises(Exception, "unterminated string literal") do
+        assert_node LC::RegexLiteral, %("foo)
+      end
     end
 
+    it "parses regex expressions" do
+      assert_node LC::RegexLiteral, "/foo bar/"
+      assert_node LC::RegexLiteral, "%r(foo bar)"
+
+      expect_raises(Exception, "unterminated regular expression") do
+        assert_node LC::RegexLiteral, "/bar"
+      end
+    end
     it "parses interpolated string expressions" do
       lit = parse(%q("foo #{bar}")).should be_a LC::StringInterpolation
       lit.loc.to_tuple.should eq({0, 0, 0, 12})
