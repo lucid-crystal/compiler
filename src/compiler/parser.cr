@@ -1061,10 +1061,17 @@ module Lucid::Compiler
       parts = [parse_string token] of Node
       start = token.loc
 
+      error = case token.kind
+              when .string_start?  then "unterminated string literal"
+              when .command_start? then "unterminated command literal"
+              when .regex_start?   then "unterminated regular expression"
+              else                      raise "unreachable"
+              end
+
       loop do
         case current_token.kind
         when .eof?
-          parts << raise current_token, "unterminated quote string"
+          parts << raise current_token, error
         when .string_end?
           parts << parse_string current_token
           break
