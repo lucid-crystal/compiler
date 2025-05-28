@@ -19,6 +19,10 @@ describe LC::Lexer, tags: "lexer" do
     assert_tokens %("hello world"), {t!(string), 0, 0, 0, 13}, {t!(eof), 0, 13, 0, 13}
   end
 
+  it "parses regex expressions" do
+    assert_tokens "/foo bar/", {t!(regex), 0, 0, 0, 9}, {t!(eof), 0, 9, 0, 9}
+  end
+
   it "parses interpolated string expressions" do
     assert_tokens %q("foo #{bar}"),
       {t!(string_start), 0, 0, 0, 6},

@@ -315,8 +315,9 @@ module Lucid::Compiler
           Token.new :period, location
         end
       when '/'
-        case next_char
+        case peek_char
         when '/'
+          next_char
           if next_char == '='
             next_char
             Token.new :double_slash_assign, location
@@ -325,9 +326,13 @@ module Lucid::Compiler
           end
         when '='
           next_char
+          next_char
           Token.new :slash_assign, location
-        else
+        when '\0', ' '
+          next_char
           Token.new :slash, location
+        else
+          lex_string_or_symbol_key :regex_start, true
         end
       when '<'
         case next_char
@@ -1128,6 +1133,7 @@ module Lucid::Compiler
       when '{' then '}'
       when '<' then '>'
       when '|' then '|'
+      when '/' then '/'
       when '"' then '"'
       when '`' then '`'
       else
@@ -1185,10 +1191,17 @@ module Lucid::Compiler
       count = 1
       escaped = false
 
+      error = case kind
+              when .string_start?  then "unterminated string literal"
+              when .command_start? then "unterminated command literal"
+              when .regex_start?   then "unterminated regular expression"
+              else                      raise "unreachable"
+              end
+
       loop do
         case current_char
         when '\0'
-          raise "unterminated quote literal"
+          raise error
         when '\\'
           escaped = !escaped
           next_char

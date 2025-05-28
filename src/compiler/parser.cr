@@ -532,7 +532,8 @@ module Lucid::Compiler
              when .float?                        then parse_float token
              when .float_bad_suffix?             then parse_invalid_float token
              when .string?, .string_part?        then parse_string token
-             when .string_start?                 then parse_interpolated_string token
+             when .string_start?, .regex_start?  then parse_interpolated token
+             when .regex?                        then parse_regex token
              when .true?, .false?                then parse_bool token
              when .char?                         then parse_char token
              when .symbol?, .quoted_symbol?      then parse_symbol token
@@ -911,7 +912,7 @@ module Lucid::Compiler
 
     private def parse_command_call(token : Token) : Node
       if token.kind.command_start?
-        expr = parse_interpolated_string token
+        expr = parse_interpolated token
       else
         expr = parse_string token
       end
@@ -1051,15 +1052,26 @@ module Lucid::Compiler
       StringLiteral.new(token.str_value).at(token.loc)
     end
 
-    private def parse_interpolated_string(token : Token) : Node
+    private def parse_regex(token : Token) : Node
+      RegexLiteral.new(token.str_value).at(token.loc)
+    end
+
+    private def parse_interpolated(token : Token) : Node
       next_token_skip space: true, newline: true
       parts = [parse_string token] of Node
       start = token.loc
 
+      error = case token.kind
+              when .string_start?  then "unterminated string literal"
+              when .command_start? then "unterminated command literal"
+              when .regex_start?   then "unterminated regular expression"
+              else                      raise "unreachable"
+              end
+
       loop do
         case current_token.kind
         when .eof?
-          parts << raise current_token, "unterminated quote string"
+          parts << raise current_token, error
         when .string_end?
           parts << parse_string current_token
           break
@@ -1068,7 +1080,11 @@ module Lucid::Compiler
         end
       end
 
-      StringInterpolation.new(parts).at(start & current_token.loc)
+      if token.kind.regex_start?
+        RegexInterpolation.new(parts).at(start & current_token.loc)
+      else
+        StringInterpolation.new(parts).at(start & current_token.loc)
+      end
     end
 
     private def parse_bool(token : Token) : Node
