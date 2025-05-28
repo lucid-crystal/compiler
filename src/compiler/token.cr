@@ -22,6 +22,7 @@ module Lucid::Compiler
       RegexStart    # + #{
       Command       # `` or %x()
       CommandStart  # + #{
+      HeredocStart  # <<-
       Char
       Symbol
       QuotedSymbol

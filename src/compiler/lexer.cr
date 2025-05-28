@@ -6,6 +6,9 @@ module Lucid::Compiler
     @column : Int32
     @loc : Location
     @string_nest : Array({Char, Int32})
+    @heredoc_nest : Array(String)
+    @heredoc_found : Bool
+    @heredoc_start : Bool
 
     def self.run(source : String, filename : String = "STDIN", dirname : String = "") : Array(Token)
       new(source, filename, dirname).run
@@ -17,6 +20,8 @@ module Lucid::Compiler
       @line = @column = 0
       @loc = Location[0, 0, 0, 0]
       @string_nest = [] of {Char, Int32}
+      @heredoc_nest = [] of String
+      @heredoc_found = @heredoc_start = false
     end
 
     def run : Array(Token)
@@ -32,6 +37,11 @@ module Lucid::Compiler
 
     private def next_token : Token
       @loc = Location[@line, @column, @line, @column]
+
+      if @heredoc_start
+        @heredoc_start = false
+        return lex_heredoc @heredoc_nest.pop
+      end
 
       case current_char
       when '\0'
@@ -50,6 +60,7 @@ module Lucid::Compiler
         loc = location
         @line += 1
         @column = 0
+        @heredoc_start = @heredoc_found
         Token.new :newline, loc
       when '#'
         lex_comment
@@ -344,9 +355,15 @@ module Lucid::Compiler
             Token.new :lesser_equal, location
           end
         when '<'
-          if next_char == '='
+          case next_char
+          when '='
             next_char
             Token.new :shift_left_assign, location
+          when '-'
+            next_char
+            @heredoc_nest << (name = lex_ident.str_value)
+            @heredoc_found = true
+            Token.new :heredoc_start, location, name
           else
             Token.new :shift_left, location
           end
@@ -1291,6 +1308,26 @@ module Lucid::Compiler
       @string_nest.pop
 
       Token.new :string_end, location, value
+    end
+
+    private def lex_heredoc(end_seq : String) : Token
+      start = current_pos
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated heredoc"
+        when .ascii_letter?
+          break if end_seq.chars.all? do |char|
+                     char == current_char && true.tap { next_char }
+                   end
+          next_char
+        else
+          next_char
+        end
+      end
+
+      Token.new :string, location, read_string_from(start)[...-end_seq.size]
     end
 
     private def read_string_from(start : Int32) : String
