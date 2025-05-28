@@ -1356,7 +1356,7 @@ module Lucid::Compiler
     end
 
     def to_s(io : IO) : Nil
-      io << '"'
+      io << '/'
       parts.each do |part|
         if part.is_a? StringLiteral
           part.inspect io
@@ -1366,7 +1366,7 @@ module Lucid::Compiler
           io << '}'
         end
       end
-      io << '"'
+      io << '/'
     end
 
     def pretty_print(pp : PrettyPrint) : Nil
