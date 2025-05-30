@@ -40,7 +40,7 @@ module Lucid::Compiler
 
       if @heredoc_start
         @heredoc_start = false
-        return lex_heredoc @heredoc_nest.pop
+        return lex_heredoc @heredoc_nest.shift
       end
 
       case current_char
@@ -361,9 +361,7 @@ module Lucid::Compiler
             Token.new :shift_left_assign, location
           when '-'
             next_char
-            @heredoc_nest << (name = lex_ident.str_value)
-            @heredoc_found = true
-            Token.new :heredoc_start, location, name
+            lex_heredoc_marker
           else
             Token.new :shift_left, location
           end
@@ -1308,6 +1306,45 @@ module Lucid::Compiler
       @string_nest.pop
 
       Token.new :string_end, location, value
+    end
+
+    private def lex_heredoc_marker : Token
+      start = current_pos
+      kind = Token::Kind::Heredoc
+      done = true
+
+      if current_char == '\''
+        next_char
+        start = current_pos
+        kind = Token::Kind::HeredocEscaped
+        done = false
+      end
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated heredoc"
+        when .ascii_alphanumeric?, '_'
+          next_char
+        when '\n'
+          break
+        when '\''
+          unless done
+            done = true
+            break
+          end
+          next_char
+        else
+          next_char
+        end
+      end
+
+      raise "expected closing single quote" unless done
+      @heredoc_nest << (value = read_string_from start)
+      @heredoc_found = true
+      next_char if kind.heredoc_escaped?
+
+      Token.new kind, location, value
     end
 
     private def lex_heredoc(end_seq : String) : Token
