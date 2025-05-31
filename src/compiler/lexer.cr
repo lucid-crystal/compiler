@@ -6,7 +6,7 @@ module Lucid::Compiler
     @column : Int32
     @loc : Location
     @string_nest : Array({Char, Int32})
-    @heredoc_nest : Array(String)
+    @heredoc_nest : Array({String, Bool})
     @heredoc_found : Bool
     @heredoc_start : Bool
 
@@ -20,7 +20,7 @@ module Lucid::Compiler
       @line = @column = 0
       @loc = Location[0, 0, 0, 0]
       @string_nest = [] of {Char, Int32}
-      @heredoc_nest = [] of String
+      @heredoc_nest = [] of {String, Bool}
       @heredoc_found = @heredoc_start = false
     end
 
@@ -40,7 +40,7 @@ module Lucid::Compiler
 
       if @heredoc_start
         @heredoc_start = false
-        return lex_heredoc @heredoc_nest.shift
+        return lex_heredoc *@heredoc_nest[-1]
       end
 
       case current_char
@@ -102,8 +102,10 @@ module Lucid::Compiler
         Token.new :left_brace, location
       when '}'
         next_char
-        if @string_nest.empty?
+        if @string_nest.empty? && @heredoc_nest.empty?
           Token.new :right_brace, location
+        elsif @string_nest.empty?
+          lex_heredoc_part @heredoc_nest[-1][0]
         else
           lex_string_part *@string_nest[-1]
         end
@@ -1340,20 +1342,30 @@ module Lucid::Compiler
       end
 
       raise "expected closing single quote" unless done
-      @heredoc_nest << (value = read_string_from start)
+      @heredoc_nest << {value = read_string_from(start), kind.heredoc_escaped?}
       @heredoc_found = true
       next_char if kind.heredoc_escaped?
 
       Token.new kind, location, value
     end
 
-    private def lex_heredoc(end_seq : String) : Token
+    private def lex_heredoc(end_seq : String, is_escaped : Bool) : Token
       start = current_pos
+      escaped = false
 
       loop do
         case current_char
         when '\0'
           raise "unterminated heredoc"
+        when '\\'
+          escaped = !escaped unless is_escaped
+          next_char
+        when '#'
+          if next_char == '{' && !is_escaped
+            next_char
+            return Token.new :string_part, location, read_string_from(start)[..-3]
+          end
+          escaped = false
         when .ascii_letter?
           break if end_seq.chars.all? do |char|
                      char == current_char && true.tap { next_char }
@@ -1365,6 +1377,40 @@ module Lucid::Compiler
       end
 
       Token.new :string, location, read_string_from(start)[...-end_seq.size]
+    end
+
+    private def lex_heredoc_part(end_seq : String) : Token
+      start = current_pos
+      escaped = false
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated quote literal"
+        when '\\'
+          escaped = !escaped
+          next_char
+        when '#'
+          if next_char == '{' && !escaped
+            next_char
+            return Token.new :string_part, location, read_string_from(start)[..-3]
+          end
+          escaped = false
+        when .ascii_letter?
+          break if end_seq.chars.all? do |char|
+                     char == current_char && true.tap { next_char }
+                   end
+          next_char
+        else
+          next_char
+          escaped = false
+        end
+      end
+
+      value = read_string_from(start)[...-end_seq.size]
+      @heredoc_nest.shift
+
+      Token.new :string_end, location, value
     end
 
     private def read_string_from(start : Int32) : String
