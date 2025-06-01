@@ -74,6 +74,8 @@ module Lucid::Compiler
     @tokens : Array(Token)
     @fail_first : Bool
     @pos : Int32 = 0
+    @heredocs : Array(Node)
+    @heredoc_start : Bool
 
     def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Program
       new(tokens, fail_first).parse
@@ -81,6 +83,8 @@ module Lucid::Compiler
 
     private def initialize(@tokens : Array(Token), @fail_first : Bool)
       @errors = [] of Error
+      @heredocs = [] of Node
+      @heredoc_start = false
     end
 
     def parse : Program
@@ -146,6 +150,15 @@ module Lucid::Compiler
     end
 
     private def parse(token : Token) : Node?
+      if @heredoc_start
+        @heredocs.each do |node|
+          parse_heredoc node
+        end
+        @heredocs.clear
+        @heredoc_start = false
+        token = current_token
+      end
+
       case token.kind
       when .eof?
         nil
@@ -532,6 +545,7 @@ module Lucid::Compiler
              when .float?                        then parse_float token
              when .float_bad_suffix?             then parse_invalid_float token
              when .string?, .string_part?        then parse_string token
+             when .heredoc?, .heredoc_escaped?   then parse_heredoc_marker token
              when .string_start?, .regex_start?  then parse_interpolated token
              when .regex?                        then parse_regex token
              when .true?, .false?                then parse_bool token
@@ -1050,6 +1064,26 @@ module Lucid::Compiler
 
     private def parse_string(token : Token) : Node
       StringLiteral.new(token.str_value).at(token.loc)
+    end
+
+    private def parse_heredoc_marker(token : Token) : Node
+      @heredoc_start = true
+      @heredocs << (node = StringInterpolation.new([StringLiteral.new("H")] of Node).at(token.loc))
+
+      node
+    end
+
+    private def parse_heredoc(node : Node) : Nil
+      node.is_a?(StringInterpolation) || raise ""
+
+      if current_token.kind.string?
+        node.parts[0] = parse_string current_token
+        return next_token_skip space: true, newline: true
+      end
+
+      until current_token.kind.string_end?
+        node.parts << parse_expression current_token
+      end
     end
 
     private def parse_regex(token : Token) : Node
