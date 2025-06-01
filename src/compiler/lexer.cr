@@ -40,7 +40,7 @@ module Lucid::Compiler
 
       if @heredoc_start
         @heredoc_start = false
-        return lex_heredoc *@heredoc_nest[-1]
+        return lex_heredoc *@heredoc_nest[0]
       end
 
       case current_char
@@ -1328,8 +1328,9 @@ module Lucid::Compiler
           raise "unterminated heredoc"
         when .ascii_alphanumeric?, '_'
           next_char
-        when '\n'
-          break
+        when ' '
+          break unless kind.heredoc_escaped?
+          next_char
         when '\''
           unless done
             done = true
@@ -1337,7 +1338,7 @@ module Lucid::Compiler
           end
           next_char
         else
-          next_char
+          break
         end
       end
 
@@ -1375,6 +1376,8 @@ module Lucid::Compiler
           next_char
         end
       end
+
+      @heredoc_nest.shift
 
       Token.new :string, location, read_string_from(start)[...-end_seq.size]
     end
