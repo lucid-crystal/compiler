@@ -1366,7 +1366,7 @@ module Lucid::Compiler
             return Token.new :string_part, location, read_string_from(start)[..-3]
           end
           escaped = false
-        when .ascii_letter?
+        when .ascii_alphanumeric?, '_'
           break if end_seq.chars.all? do |char|
                      char == current_char && true.tap { next_char }
                    end
