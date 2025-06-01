@@ -206,6 +206,16 @@ describe LC::Lexer, tags: "lexer" do
       CR
   end
 
+  it "parses nested heredocs" do
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 6}, {t!(comma), 0, 6, 0, 7}, {t!(space), 0, 7, 0, 8}, {t!(heredoc_escaped), 0, 8, 0, 16}, {t!(newline), 0, 16, 0, 17}, {t!(string), 1, 0, 1, 11}, {t!(newline), 1, 11, 1, 12}, {t!(string), 2, 0, 2, 14}, {t!(eof), 2, 14, 2, 14}
+      <<-FOO, <<-'BAR'
+        foo
+        FOO
+        #{bar}
+        BAR
+      CR
+  end
+
   it "parses integer expressions" do
     assert_tokens "123", {t!(integer), 0, 0, 0, 3}, {t!(eof), 0, 3, 0, 3}
     assert_tokens "123_45", {t!(integer), 0, 0, 0, 6}, {t!(eof), 0, 6, 0, 6}
