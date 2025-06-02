@@ -1073,7 +1073,22 @@ module Lucid::Compiler
       node.is_a?(StringInterpolation) || raise ""
 
       if current_token.kind.string?
-        node.parts[0] = parse_string current_token
+        str = current_token.str_value
+        if str.ends_with? ' '
+          lines = str.lines
+          indent = lines[-1]
+
+          if lines.select(&.presence).all?(&.starts_with? indent)
+            lines.map! &.lchop indent
+            node.parts[0] = StringLiteral.new(lines.join('\n').chomp).at(current_token.loc)
+          else
+            error = "heredoc line must have an indent greater than or equal to #{indent.size}"
+            node.parts[0] = raise parse_string(current_token), error
+          end
+        else
+          node.parts[0] = parse_string current_token
+        end
+
         return next_token_skip space: true, newline: true
       end
 
