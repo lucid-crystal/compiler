@@ -75,7 +75,6 @@ module Lucid::Compiler
     @fail_first : Bool
     @pos : Int32 = 0
     @heredocs : Array(Node)
-    @heredoc_start : Bool
 
     def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Program
       new(tokens, fail_first).parse
@@ -84,7 +83,6 @@ module Lucid::Compiler
     private def initialize(@tokens : Array(Token), @fail_first : Bool)
       @errors = [] of Error
       @heredocs = [] of Node
-      @heredoc_start = false
     end
 
     def parse : Program
@@ -150,12 +148,11 @@ module Lucid::Compiler
     end
 
     private def parse(token : Token) : Node?
-      if @heredoc_start
+      unless @heredocs.empty?
         @heredocs.each do |node|
           parse_heredoc node
         end
         @heredocs.clear
-        @heredoc_start = false
         token = current_token
       end
 
@@ -1067,7 +1064,6 @@ module Lucid::Compiler
     end
 
     private def parse_heredoc_marker(token : Token) : Node
-      @heredoc_start = true
       @heredocs << (node = StringInterpolation.new([StringLiteral.new("H")] of Node).at(token.loc))
 
       node
