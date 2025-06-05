@@ -1064,7 +1064,7 @@ module Lucid::Compiler
     end
 
     private def parse_heredoc_marker(token : Token) : Node
-      @heredocs << (node = StringInterpolation.new([StringLiteral.new("H")] of Node).at(token.loc))
+      @heredocs << (node = StringInterpolation.new([] of Node).at(token.loc))
 
       node
     end
@@ -1080,13 +1080,13 @@ module Lucid::Compiler
 
           if lines.select(&.presence).all?(&.starts_with? indent)
             lines.map! &.lchop indent
-            node.parts[0] = StringLiteral.new(lines.join('\n').chomp).at(current_token.loc)
+            node.parts << StringLiteral.new(lines.join('\n').chomp).at(current_token.loc)
           else
             error = "heredoc line must have an indent greater than or equal to #{indent.size}"
-            node.parts[0] = raise parse_string(current_token), error
+            node.parts << raise parse_string(current_token), error
           end
         else
-          node.parts[0] = parse_string current_token
+          node.parts << parse_string current_token
         end
 
         return next_token_skip space: true, newline: true
@@ -1095,6 +1095,8 @@ module Lucid::Compiler
       until current_token.kind.string_end?
         node.parts << parse_expression current_token
       end
+      node.parts << parse_string current_token
+      next_token_skip space: true, newline: true
     end
 
     private def parse_regex(token : Token) : Node
