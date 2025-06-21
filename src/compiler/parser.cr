@@ -74,7 +74,7 @@ module Lucid::Compiler
     @tokens : Array(Token)
     @fail_first : Bool
     @pos : Int32 = 0
-    @heredocs : Array(Node)
+    @heredocs : Array(Heredoc)
 
     def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Program
       new(tokens, fail_first).parse
@@ -82,7 +82,7 @@ module Lucid::Compiler
 
     private def initialize(@tokens : Array(Token), @fail_first : Bool)
       @errors = [] of Error
-      @heredocs = [] of Node
+      @heredocs = [] of Heredoc
     end
 
     def parse : Program
@@ -1064,14 +1064,12 @@ module Lucid::Compiler
     end
 
     private def parse_heredoc_marker(token : Token) : Node
-      @heredocs << (node = StringInterpolation.new([] of Node).at(token.loc))
+      @heredocs << (node = Heredoc.new(token.str_value, token.kind.heredoc_escaped?).at(token.loc))
 
       node
     end
 
-    private def parse_heredoc(node : Node) : Nil
-      node.is_a?(StringInterpolation) || raise ""
-
+    private def parse_heredoc(doc : Heredoc) : Nil
       if current_token.kind.string?
         str = current_token.str_value
         if str.ends_with? ' '
@@ -1080,38 +1078,41 @@ module Lucid::Compiler
 
           if lines.select(&.presence).all?(&.starts_with? indent)
             lines.map! &.lchop indent
-            node.parts << StringLiteral.new(lines.join('\n').chomp).at(current_token.loc)
+            doc.value = StringLiteral.new(lines.join('\n').chomp).at(current_token.loc)
           else
             error = "heredoc line must have an indent greater than or equal to #{indent.size}"
-            node.parts << raise parse_string(current_token), error
+            doc.value = raise parse_string(current_token), error
           end
         else
-          node.parts << parse_string current_token
+          doc.value = parse_string current_token
         end
 
         return next_token_skip space: true, newline: true
       end
 
+      parts = [] of Node
       until current_token.kind.string_end?
-        node.parts << parse_expression current_token
+        parts << parse_expression current_token
       end
-      node.parts << parse_string current_token
+      parts << parse_string current_token
       next_token_skip space: true, newline: true
 
-      if (str = node.parts[-1].as?(StringLiteral)) && str.value.ends_with?(' ')
+      if (str = parts[-1].as?(StringLiteral)) && str.value.ends_with?(' ')
         lines = str.value.lines
         indent = lines[-1]
         str.value = str.value.lchop
         error = "heredoc line must have an indent greater than or equal to #{indent.size}"
 
-        node.parts.each_with_index do |str, index|
+        parts.each_with_index do |str, index|
           next unless str.is_a? StringLiteral
           if str.value.starts_with? indent
             str.value = str.value.lchop indent
           else
-            node.parts[index] = raise str, error
+            parts[index] = raise str, error
           end
         end
+
+        doc.value = StringInterpolation.new(parts).at(parts[0].loc & parts[-1].loc)
       end
     end
 
