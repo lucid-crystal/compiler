@@ -117,34 +117,43 @@ describe LC::Parser do
     end
 
     it "parses heredocs" do
-      lit = parse(<<-CR).should be_a LC::StringInterpolation
+      doc = parse(<<-CR).should be_a LC::Heredoc
         <<-FOO
           bar
           baz
           FOO
         CR
 
-      lit.parts.size.should eq 1
-      str = lit.parts[0].should be_a LC::StringLiteral
+      doc.label.should eq "FOO"
+      doc.escaped?.should be_false
+
+      str = doc.value.should be_a LC::StringLiteral
       str.value.should eq "bar\nbaz"
 
-      lit = parse(<<-CR).should be_a LC::StringInterpolation
+      doc = parse(<<-CR).should be_a LC::Heredoc
         <<-oof
           foo
           oof
         CR
 
-      lit.parts.size.should eq 1
-      str = lit.parts[0].should be_a LC::StringLiteral
+      doc.label.should eq "oof"
+      doc.escaped?.should be_false
+
+      str = doc.value.should be_a LC::StringLiteral
       str.value.should eq "foo"
 
-      lit = parse(<<-'CR').should be_a LC::StringInterpolation
+      doc = parse(<<-'CR').should be_a LC::Heredoc
         <<-BAR
           #{foo}
           BAR
         CR
 
+      doc.label.should eq "BAR"
+      doc.escaped?.should be_false
+
+      lit = doc.value.should be_a LC::StringInterpolation
       lit.parts.size.should eq 3
+
       str = lit.parts[0].should be_a LC::StringLiteral
       str.value.should be_empty
 
