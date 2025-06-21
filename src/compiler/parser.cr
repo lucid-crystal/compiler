@@ -1097,23 +1097,25 @@ module Lucid::Compiler
       parts << parse_string current_token
       next_token_skip space: true, newline: true
 
-      if (str = parts[-1].as?(StringLiteral)) && str.value.ends_with?(' ')
-        lines = str.value.lines
+      str = parts[-1].as(StringLiteral)
+      lines = str.value.lines
+      str.value = str.value.lchop('\n').rchop('\n')
+
+      if lines[-1].blank?
         indent = lines[-1]
-        str.value = str.value.lchop
         error = "heredoc line must have an indent greater than or equal to #{indent.size}"
 
         parts.each_with_index do |str, index|
           next unless str.is_a? StringLiteral
           if str.value.starts_with? indent
-            str.value = str.value.lchop indent
+            str.value = str.value.lchop(indent).rchop(indent)
           else
             parts[index] = raise str, error
           end
         end
-
-        doc.value = StringInterpolation.new(parts).at(parts[0].loc & parts[-1].loc)
       end
+
+      doc.value = StringInterpolation.new(parts).at(parts[0].loc & parts[-1].loc)
     end
 
     private def parse_regex(token : Token) : Node
