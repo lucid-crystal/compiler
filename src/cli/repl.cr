@@ -72,6 +72,7 @@ module Lucid
     CONTINUE_ERRORS = [
       "unterminated percent literal",
       "unterminated quote literal",
+      "unterminated heredoc",
     ]
 
     @incomplete : Bool = false

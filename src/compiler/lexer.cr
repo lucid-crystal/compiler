@@ -6,6 +6,9 @@ module Lucid::Compiler
     @column : Int32
     @loc : Location
     @string_nest : Array({Char, Int32})
+    @heredoc_nest : Array({String, Bool})
+    @heredoc_found : Bool
+    @heredoc_start : Bool
 
     def self.run(source : String, filename : String = "STDIN", dirname : String = "") : Array(Token)
       new(source, filename, dirname).run
@@ -17,6 +20,8 @@ module Lucid::Compiler
       @line = @column = 0
       @loc = Location[0, 0, 0, 0]
       @string_nest = [] of {Char, Int32}
+      @heredoc_nest = [] of {String, Bool}
+      @heredoc_found = @heredoc_start = false
     end
 
     def run : Array(Token)
@@ -32,6 +37,11 @@ module Lucid::Compiler
 
     private def next_token : Token
       @loc = Location[@line, @column, @line, @column]
+
+      if @heredoc_start
+        @heredoc_start = false
+        return lex_heredoc *@heredoc_nest[0]
+      end
 
       case current_char
       when '\0'
@@ -50,6 +60,7 @@ module Lucid::Compiler
         loc = location
         @line += 1
         @column = 0
+        @heredoc_start = @heredoc_found
         Token.new :newline, loc
       when '#'
         lex_comment
@@ -91,8 +102,10 @@ module Lucid::Compiler
         Token.new :left_brace, location
       when '}'
         next_char
-        if @string_nest.empty?
+        if @string_nest.empty? && @heredoc_nest.empty?
           Token.new :right_brace, location
+        elsif @string_nest.empty?
+          lex_heredoc_part @heredoc_nest[-1][0]
         else
           lex_string_part *@string_nest[-1]
         end
@@ -344,9 +357,13 @@ module Lucid::Compiler
             Token.new :lesser_equal, location
           end
         when '<'
-          if next_char == '='
+          case next_char
+          when '='
             next_char
             Token.new :shift_left_assign, location
+          when '-'
+            next_char
+            lex_heredoc_marker
           else
             Token.new :shift_left, location
           end
@@ -1289,6 +1306,112 @@ module Lucid::Compiler
       value = read_string_from start
       next_char
       @string_nest.pop
+
+      Token.new :string_end, location, value
+    end
+
+    private def lex_heredoc_marker : Token
+      start = current_pos
+      kind = Token::Kind::Heredoc
+      done = true
+
+      if current_char == '\''
+        next_char
+        start = current_pos
+        kind = Token::Kind::HeredocEscaped
+        done = false
+      end
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated heredoc"
+        when .ascii_alphanumeric?, '_'
+          next_char
+        when ' '
+          break unless kind.heredoc_escaped?
+          next_char
+        when '\''
+          unless done
+            done = true
+            break
+          end
+          next_char
+        else
+          break
+        end
+      end
+
+      raise "expected closing single quote" unless done
+      @heredoc_nest << {value = read_string_from(start), kind.heredoc_escaped?}
+      @heredoc_found = true
+      next_char if kind.heredoc_escaped?
+
+      Token.new kind, location, value
+    end
+
+    private def lex_heredoc(end_seq : String, is_escaped : Bool) : Token
+      start = current_pos
+      escaped = false
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated heredoc"
+        when '\\'
+          escaped = !escaped unless is_escaped
+          next_char
+        when '#'
+          if next_char == '{' && !is_escaped
+            next_char
+            return Token.new :string_part, location, read_string_from(start)[..-3]
+          end
+          escaped = false
+        when .ascii_alphanumeric?, '_'
+          break if end_seq.chars.all? do |char|
+                     char == current_char && true.tap { next_char }
+                   end
+          next_char
+        else
+          next_char
+        end
+      end
+
+      @heredoc_nest.shift
+
+      Token.new :string, location, read_string_from(start)[...-end_seq.size]
+    end
+
+    private def lex_heredoc_part(end_seq : String) : Token
+      start = current_pos
+      escaped = false
+
+      loop do
+        case current_char
+        when '\0'
+          raise "unterminated quote literal"
+        when '\\'
+          escaped = !escaped
+          next_char
+        when '#'
+          if next_char == '{' && !escaped
+            next_char
+            return Token.new :string_part, location, read_string_from(start)[..-3]
+          end
+          escaped = false
+        when .ascii_letter?
+          break if end_seq.chars.all? do |char|
+                     char == current_char && true.tap { next_char }
+                   end
+          next_char
+        else
+          next_char
+          escaped = false
+        end
+      end
+
+      value = read_string_from(start)[...-end_seq.size]
+      @heredoc_nest.shift
 
       Token.new :string_end, location, value
     end

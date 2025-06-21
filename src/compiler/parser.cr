@@ -74,6 +74,7 @@ module Lucid::Compiler
     @tokens : Array(Token)
     @fail_first : Bool
     @pos : Int32 = 0
+    @heredocs : Array(Heredoc)
 
     def self.parse(tokens : Array(Token), *, fail_first : Bool = false) : Program
       new(tokens, fail_first).parse
@@ -81,6 +82,7 @@ module Lucid::Compiler
 
     private def initialize(@tokens : Array(Token), @fail_first : Bool)
       @errors = [] of Error
+      @heredocs = [] of Heredoc
     end
 
     def parse : Program
@@ -146,6 +148,14 @@ module Lucid::Compiler
     end
 
     private def parse(token : Token) : Node?
+      unless @heredocs.empty?
+        @heredocs.each do |node|
+          parse_heredoc node
+        end
+        @heredocs.clear
+        token = current_token
+      end
+
       case token.kind
       when .eof?
         nil
@@ -532,6 +542,7 @@ module Lucid::Compiler
              when .float?                        then parse_float token
              when .float_bad_suffix?             then parse_invalid_float token
              when .string?, .string_part?        then parse_string token
+             when .heredoc?, .heredoc_escaped?   then parse_heredoc_marker token
              when .string_start?, .regex_start?  then parse_interpolated token
              when .regex?                        then parse_regex token
              when .true?, .false?                then parse_bool token
@@ -1050,6 +1061,61 @@ module Lucid::Compiler
 
     private def parse_string(token : Token) : Node
       StringLiteral.new(token.str_value).at(token.loc)
+    end
+
+    private def parse_heredoc_marker(token : Token) : Node
+      @heredocs << (node = Heredoc.new(token.str_value, token.kind.heredoc_escaped?).at(token.loc))
+
+      node
+    end
+
+    private def parse_heredoc(doc : Heredoc) : Nil
+      if current_token.kind.string?
+        str = current_token.str_value
+        if str.ends_with? ' '
+          lines = str.lines
+          indent = lines[-1]
+
+          if lines.select(&.presence).all?(&.starts_with? indent)
+            lines.map! &.lchop indent
+            doc.value = StringLiteral.new(lines.join('\n').chomp).at(current_token.loc)
+          else
+            error = "heredoc line must have an indent greater than or equal to #{indent.size}"
+            doc.value = raise parse_string(current_token), error
+          end
+        else
+          doc.value = parse_string current_token
+        end
+
+        return next_token_skip space: true, newline: true
+      end
+
+      parts = [] of Node
+      until current_token.kind.string_end?
+        parts << parse_expression current_token
+      end
+      parts << parse_string current_token
+      next_token_skip space: true, newline: true
+
+      str = parts[-1].as(StringLiteral)
+      lines = str.value.lines
+      str.value = str.value.lchop('\n').rchop('\n')
+
+      if lines[-1].blank?
+        indent = lines[-1]
+        error = "heredoc line must have an indent greater than or equal to #{indent.size}"
+
+        parts.each_with_index do |str, index|
+          next unless str.is_a? StringLiteral
+          if str.value.starts_with? indent
+            str.value = str.value.lchop(indent).rchop(indent)
+          else
+            parts[index] = raise str, error
+          end
+        end
+      end
+
+      doc.value = StringInterpolation.new(parts).at(parts[0].loc & parts[-1].loc)
     end
 
     private def parse_regex(token : Token) : Node

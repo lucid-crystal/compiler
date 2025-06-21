@@ -116,6 +116,108 @@ describe LC::Parser do
       str.value.should eq ""
     end
 
+    it "parses heredocs" do
+      doc = parse(<<-CR).should be_a LC::Heredoc
+        <<-FOO
+          bar
+          baz
+          FOO
+        CR
+
+      doc.label.should eq "FOO"
+      doc.escaped?.should be_false
+
+      str = doc.value.should be_a LC::StringLiteral
+      str.value.should eq "bar\nbaz"
+
+      doc = parse(<<-CR).should be_a LC::Heredoc
+        <<-oof
+          foo
+          oof
+        CR
+
+      doc.label.should eq "oof"
+      doc.escaped?.should be_false
+
+      str = doc.value.should be_a LC::StringLiteral
+      str.value.should eq "foo"
+
+      doc = parse(<<-'CR').should be_a LC::Heredoc
+        <<-BAR
+          #{foo}
+          BAR
+        CR
+
+      doc.label.should eq "BAR"
+      doc.escaped?.should be_false
+
+      lit = doc.value.should be_a LC::StringInterpolation
+      lit.parts.size.should eq 3
+
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should be_empty
+
+      call = lit.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
+
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should be_empty
+
+      doc = parse(<<-CR).should be_a LC::Heredoc
+        <<-'foo bar'
+            baz qux
+          foo bar
+        CR
+
+      doc.label.should eq "foo bar"
+      doc.escaped?.should be_true
+
+      str = doc.value.should be_a LC::StringLiteral
+      str.value.should eq "  baz qux"
+
+      doc = parse(<<-'CR').should be_a LC::Heredoc
+        <<-foo
+            bar
+              #{baz}
+          qux
+        foo
+        CR
+
+      doc.label.should eq "foo"
+      doc.escaped?.should be_false
+
+      lit = doc.value.should be_a LC::StringInterpolation
+      lit.parts.size.should eq 3
+
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should eq "    bar\n      "
+
+      call = lit.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "baz"
+
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should eq "  qux"
+
+      doc = parse(<<-CR).should be_a LC::Heredoc
+        <<-FOO
+          foo
+
+            foo
+
+          foo
+
+          FOO
+        CR
+
+      doc.label.should eq "FOO"
+      doc.escaped?.should be_false
+
+      str = doc.value.should be_a LC::StringLiteral
+      str.value.should eq "foo\n\n  foo\n\nfoo\n"
+    end
+
     it "parses integer expressions" do
       assert_node LC::IntLiteral, "123_45"
     end

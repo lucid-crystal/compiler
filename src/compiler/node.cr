@@ -1330,6 +1330,46 @@ module Lucid::Compiler
     end
   end
 
+  class Heredoc < Node
+    property label : String
+    property? escaped : Bool
+    property value : Node
+
+    def initialize(@label : String, @escaped : Bool)
+      @value = NilLiteral.new
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      io << "<<-"
+      io << '\'' if @escaped
+      io << @label
+      io << '\'' if @escaped
+      io << '\n'
+
+      @value.inspect io
+      io << "\n  " << @label << '\n'
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "Heredoc("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "label: "
+        @label.pretty_print pp
+        pp.comma
+
+        pp.text "escaped: "
+        pp.text @escaped
+        pp.comma
+
+        pp.text "value: "
+        @value.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class RegexLiteral < Node
     property value : String
 

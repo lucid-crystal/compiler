@@ -11,17 +11,19 @@ module Lucid::Compiler
       InstanceVar
       ClassVar
 
-      String        # "" or %Q()
-      StringStart   # + #{
-      StringPart    # } +
-      StringEnd     #
-      StringEscaped # %q()
-      StringArray   # %w()
-      SymbolArray   # %i()
-      Regex         # // or %r()
-      RegexStart    # + #{
-      Command       # `` or %x()
-      CommandStart  # + #{
+      String         # "" or %Q()
+      StringStart    # + #{
+      StringPart     # } +
+      StringEnd      #
+      StringEscaped  # %q()
+      StringArray    # %w()
+      SymbolArray    # %i()
+      Regex          # // or %r()
+      RegexStart     # + #{
+      Command        # `` or %x()
+      CommandStart   # + #{
+      Heredoc        # <<-
+      HeredocEscaped # <<-''
       Char
       Symbol
       QuotedSymbol

@@ -139,6 +139,83 @@ describe LC::Lexer, tags: "lexer" do
       {t!(eof), 0, 14, 0, 14}
   end
 
+  it "parses heredocs" do
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 6}, {t!(newline), 0, 6, 0, 7}, {t!(string), 1, 0, 1, 17}, {t!(eof), 1, 17, 1, 17}
+      <<-FOO
+        bar
+        baz
+        FOO
+      CR
+
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 10}, {t!(newline), 0, 10, 0, 11}, {t!(string), 1, 0, 1, 19}, {t!(eof), 1, 19, 1, 19}
+      <<-foo_bar
+        baz_qux
+        foo_bar
+      CR
+
+    # should not technically be valid:
+    # https://github.com/crystal-lang/crystal/issues/15855
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 4}, {t!(newline), 0, 4, 0, 5}, {t!(string), 1, 0, 1, 9}, {t!(eof), 1, 9, 1, 9}
+      <<-_
+        foo
+        _
+      CR
+
+    # ditto ^
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 4}, {t!(newline), 0, 4, 0, 5}, {t!(string), 1, 0, 1, 7}, {t!(eof), 1, 7, 1, 7}
+      <<-1
+        2
+        1
+      CR
+  end
+
+  it "parses interpolated heredocs" do
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 6}, {t!(newline), 0, 6, 0, 7}, {t!(string_part), 1, 0, 1, 4}, {t!(ident), 1, 4, 1, 7}, {t!(string_end), 1, 7, 1, 20}, {t!(eof), 1, 20, 1, 20}
+      <<-Foo
+        #{bar}
+        baz
+        Foo
+      CR
+
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 6}, {t!(newline), 0, 6, 0, 7}, {t!(string_part), 1, 0, 1, 4}, {t!(ident), 1, 4, 1, 7}, {t!(string_part), 1, 7, 1, 10}, {t!(ident), 1, 10, 1, 13}, {t!(string_end), 1, 13, 1, 20}, {t!(eof), 1, 20, 1, 20}
+      <<-Foo
+        #{bar}#{baz}
+        Foo
+      CR
+  end
+
+  it "parses escaped heredocs" do
+    assert_tokens <<-'CR', {t!(heredoc_escaped), 0, 0, 0, 8}, {t!(newline), 0, 8, 0, 9}, {t!(string), 1, 0, 1, 11}, {t!(eof), 1, 11, 1, 11}
+      <<-'FOO'
+        OOF
+        FOO
+      CR
+
+    assert_tokens <<-'CR', {t!(heredoc_escaped), 0, 0, 0, 8}, {t!(newline), 0, 8, 0, 9}, {t!(string), 1, 0, 1, 14}, {t!(eof), 1, 14, 1, 14}
+      <<-'Foo'
+        #{bar}
+        Foo
+      CR
+
+    # should not technically be valid:
+    # https://github.com/crystal-lang/crystal/issues/15855
+    assert_tokens <<-'CR', {t!(heredoc_escaped), 0, 0, 0, 12}, {t!(newline), 0, 12, 0, 13}, {t!(string), 1, 0, 1, 19}, {t!(eof), 1, 19, 1, 19}
+      <<-'foo bar'
+        baz qux
+        foo bar
+      CR
+  end
+
+  it "parses nested heredocs" do
+    assert_tokens <<-'CR', {t!(heredoc), 0, 0, 0, 6}, {t!(comma), 0, 6, 0, 7}, {t!(space), 0, 7, 0, 8}, {t!(heredoc_escaped), 0, 8, 0, 16}, {t!(newline), 0, 16, 0, 17}, {t!(string), 1, 0, 1, 11}, {t!(newline), 1, 11, 1, 12}, {t!(string), 2, 0, 2, 14}, {t!(eof), 2, 14, 2, 14}
+      <<-FOO, <<-'BAR'
+        foo
+        FOO
+        #{bar}
+        BAR
+      CR
+  end
+
   it "parses integer expressions" do
     assert_tokens "123", {t!(integer), 0, 0, 0, 3}, {t!(eof), 0, 3, 0, 3}
     assert_tokens "123_45", {t!(integer), 0, 0, 0, 6}, {t!(eof), 0, 6, 0, 6}
