@@ -138,21 +138,22 @@ describe LC::Parser do
       str = lit.parts[0].should be_a LC::StringLiteral
       str.value.should eq "foo"
 
-      # lit = parse(<<-'CR').should be_a LC::StringInterpolation
-      #   <<-BAR
-      #     #{foo}
-      #     BAR
-      #   CR
+      lit = parse(<<-'CR').should be_a LC::StringInterpolation
+        <<-BAR
+          #{foo}
+          BAR
+        CR
 
-      # lit.parts.should eq 3
-      # str = lit.parts[0].should be_a LC::StringLiteral
-      # str.value.should be_empty
+      lit.parts.size.should eq 3
+      str = lit.parts[0].should be_a LC::StringLiteral
+      str.value.should be_empty
 
-      # ident = lit.parts[1].should be_a LC::Ident
-      # ident.value.should eq "foo"
+      call = lit.parts[1].should be_a LC::Call
+      ident = call.receiver.should be_a LC::Ident
+      ident.value.should eq "foo"
 
-      # str = lit.parts[2].should be_a LC::StringLiteral
-      # str.value.should be_empty
+      str = lit.parts[2].should be_a LC::StringLiteral
+      str.value.should be_empty
     end
 
     it "parses integer expressions" do
