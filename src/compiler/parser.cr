@@ -182,6 +182,10 @@ module Lucid::Compiler
       end
     end
 
+    def parse!(token : Token) : Node
+      parse(token) || raise "unexpected eof"
+    end
+
     private def parse_type_modifier_expression(token : Token) : Node
       loc = token.loc
       kind = case token.kind
@@ -796,21 +800,26 @@ module Lucid::Compiler
 
       if current_token.kind.symbol_key?
         key = current_token.str_value
-        named_args[key] = parse_expression next_token_skip(space: true), :lowest
+        # named_args[key] = parse_expression next_token_skip(space: true), :lowest
+        named_args[key] = parse! next_token_skip space: true
       else
-        args << parse_expression current_token, :lowest
+        # args << parse_expression current_token, :lowest
+        args << parse! current_token
       end
 
+      last_comma : Token? = nil
+
       loop do
-        token = peek_token_skip space: true
-        case token.kind
+        # token = peek_token_skip space: true
+        case current_token.kind
         when .eof?, .semicolon?, .right_brace?, .right_paren?, .end?
           break
         when .newline?
           break unless delimited
           next_token_skip space: true
         when .comma?
-          args << raise token, "unexpected token ','" if delimited
+          args << raise current_token, "unexpected token ','" if delimited
+          last_comma = current_token
           next_token_skip space: true
           delimited = true
           received = false
@@ -826,7 +835,8 @@ module Lucid::Compiler
           delimited = false
           received = true
         else
-          node = parse_expression next_token_skip(space: true), :lowest
+          # node = parse_expression next_token_skip(space: true), :lowest
+          node = parse! current_token
           if received
             args << raise node, "expected a comma after the last argument"
           else
@@ -839,7 +849,7 @@ module Lucid::Compiler
       end
 
       if delimited && !args.last.is_a?(Error)
-        args << raise current_token, "invalid trailing comma in call"
+        args << raise (last_comma || current_token), "invalid trailing comma in call"
       end
 
       Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
@@ -1198,7 +1208,8 @@ module Lucid::Compiler
 
     private def parse_grouped_expression : Node
       start = current_token.loc
-      expr = parse_expression next_token_skip(space: true), :lowest
+      # expr = parse_expression next_token_skip(space: true), :lowest
+      expr = parse! next_token_skip space: true
 
       if expr.is_a? Call
         next_token_skip space: true
