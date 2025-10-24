@@ -506,9 +506,9 @@ module Lucid::Compiler
 
     private def parse_expression(token : Token) : Node
       expr = parse_expression token, :lowest
-      unless current_token.kind.eof?
-        next_token_skip space: true, newline: true, semicolon: true
-      end
+      # unless current_token.kind.eof?
+      #   next_token_skip space: true, newline: true, semicolon: true
+      # end
 
       expr
     end
@@ -619,7 +619,7 @@ module Lucid::Compiler
         receiver = raise token, "unexpected token #{token}"
       end
 
-      peek = peek_token_skip space: true
+      peek = current_token
       is_call = if peek.kind.eof? ||
                    peek.kind.newline? ||
                    peek.kind.right_paren? ||
@@ -629,6 +629,7 @@ module Lucid::Compiler
                    peek.kind.end?
                   true
                 elsif peek.operator?
+                  # peek_token_skip(space: true).kind.space?
                   pos = @pos
                   next_token_skip space: true
                   stop = peek_token.kind.space?
@@ -656,7 +657,7 @@ module Lucid::Compiler
         end
       end
 
-      case peek_token.kind
+      case current_token.kind
       when .space?
         token = next_token_skip space: true
         case token.kind
@@ -727,6 +728,8 @@ module Lucid::Compiler
         end
       end
 
+      next_token
+
       if names.size > 1
         Path
           .new(names, names[0].as?(Ident).try(&.global?) || false)
@@ -781,6 +784,8 @@ module Lucid::Compiler
           names << raise token, "unexpected token #{token}"
         end
       end
+
+      next_token_skip space: true
 
       if names.size > 1
         Path
@@ -857,7 +862,6 @@ module Lucid::Compiler
 
     # CLOSED_CALL ::= (IDENT | PATH) '(' [EXPRESSION (',' [NEWLINE] EXPRESSION)*] ')'
     private def parse_closed_call(receiver : Node) : Node
-      skip_token
       args = [] of Node
       named_args = {} of String => Node
       delimited = true
@@ -870,6 +874,7 @@ module Lucid::Compiler
         when .space?, .newline?
           skip_token
         when .right_paren?
+          # next_token
           closed = true
           break
         when .comma?
@@ -893,9 +898,9 @@ module Lucid::Compiler
             raise "Unexpected token #{token}"
           end
         else
-          args << parse_expression current_token, :lowest
-          token = peek_token_skip space: true, newline: true
-          case token.kind
+          args << parse! current_token
+          # token = peek_token_skip space: true, newline: true
+          case current_token.kind
           when .eof?
             break
           when .comma?
@@ -905,7 +910,7 @@ module Lucid::Compiler
             closed = true
             skip_token
           else
-            raise "Unexpected token #{token}"
+            raise "Unexpected token #{current_token}"
           end
         end
       end
@@ -913,9 +918,9 @@ module Lucid::Compiler
       call = Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
       call = raise call, "expected closing parenthesis for call" unless closed
 
-      if peek_token_skip(space: true, newline: true).kind.period?
+      if next_token_skip(space: true, newline: true).kind.period?
         next_token_skip space: true, newline: true
-        expr = parse_var_or_call next_token_skip(space: true, newline: true), false
+        expr = parse_var_or_call current_token, false
 
         case receiver
         when Call, Const, Ident
@@ -1042,11 +1047,12 @@ module Lucid::Compiler
           IntLiteral
             .new(value.rchop($0).to_i64(strict: false), IntLiteral::Base.from($0))
             .at(token.loc)
+            .tap { next_token }
         else
-          IntLiteral.new(value.to_i64(strict: false), :dynamic).at(token.loc)
+          IntLiteral.new(value.to_i64(strict: false), :dynamic).at(token.loc).tap { next_token }
         end
       when Int64
-        IntLiteral.new(value, :dynamic).at(token.loc)
+        IntLiteral.new(value, :dynamic).at(token.loc).tap { next_token }
       else
         raise "BUG: type '#{value.class}' lexed for integer"
       end
@@ -1061,20 +1067,21 @@ module Lucid::Compiler
       value = token.str_value
       base = value.ends_with?("f64") ? FloatLiteral::Base::F64 : FloatLiteral::Base::F32
 
-      FloatLiteral.new(value.to_f64(strict: false), base).at(token.loc)
+      FloatLiteral.new(value.to_f64(strict: false), base).at(token.loc).tap { next_token }
     end
 
     private def parse_invalid_float(token : Token) : Node
-      raise FloatLiteral.new(token.str_value.split('f')[0].to_f64, :invalid).at(token.loc),
+      raise FloatLiteral.new(token.str_value.split('f')[0].to_f64, :invalid).at(token.loc).tap { next_token },
         "invalid float literal suffix"
     end
 
     private def parse_string(token : Token) : Node
-      StringLiteral.new(token.str_value).at(token.loc)
+      StringLiteral.new(token.str_value).at(token.loc).tap { next_token }
     end
 
     private def parse_heredoc_marker(token : Token) : Node
       @heredocs << (node = Heredoc.new(token.str_value, token.kind.heredoc_escaped?).at(token.loc))
+      next_token
 
       node
     end
@@ -1129,7 +1136,7 @@ module Lucid::Compiler
     end
 
     private def parse_regex(token : Token) : Node
-      RegexLiteral.new(token.str_value).at(token.loc)
+      RegexLiteral.new(token.str_value).at(token.loc).tap { next_token }
     end
 
     private def parse_interpolated(token : Token) : Node
@@ -1164,15 +1171,15 @@ module Lucid::Compiler
     end
 
     private def parse_bool(token : Token) : Node
-      BoolLiteral.new(token.kind.true?).at(token.loc)
+      BoolLiteral.new(token.kind.true?).at(token.loc).tap { next_token }
     end
 
     private def parse_char(token : Token) : Node
-      CharLiteral.new(token.char_value).at(token.loc)
+      CharLiteral.new(token.char_value).at(token.loc).tap { next_token }
     end
 
     private def parse_symbol(token : Token) : Node
-      SymbolLiteral.new(token.str_value, token.kind.quoted_symbol?).at(token.loc)
+      SymbolLiteral.new(token.str_value, token.kind.quoted_symbol?).at(token.loc).tap { next_token }
     end
 
     private def parse_symbol_key(token : Token) : Node
@@ -1180,7 +1187,7 @@ module Lucid::Compiler
     end
 
     private def parse_nil(token : Token) : Node
-      NilLiteral.new.at(token.loc)
+      NilLiteral.new.at(token.loc).tap { next_token }
     end
 
     private def parse_annotation(token : Token) : Node
