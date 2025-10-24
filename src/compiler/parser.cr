@@ -517,7 +517,12 @@ module Lucid::Compiler
     private def parse_expression(token : Token, prec : Precedence) : Node
       left = parse_prefix_expression token
       # TODO: should this error message change?
-      return raise token, "cannot parse expression #{token}" if left.nil?
+      # return raise token, "cannot parse expression #{token}" if left.nil?
+
+      if left.nil?
+        skip_token
+        return raise token, "cannot parse expression #{token}"
+      end
 
       loop do
         token = peek_token_skip space: true, newline: true
@@ -662,7 +667,8 @@ module Lucid::Compiler
         token = next_token_skip space: true
         case token.kind
         when .colon?
-          case node = parse_var_or_call next_token_skip(space: true), false
+          p! peek_token, peek_token_skip space: true
+          case node = parse_var_or_call next_token, false
           when Assign
             Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
           when Ident, Const
@@ -739,6 +745,7 @@ module Lucid::Compiler
       end
     end
 
+    # TODO: review edge-cases
     # CONST ::= ('A'..'Z') ('a'..'z' | 'A'..'Z' | '0'..'9' | '_')*
     private def parse_const_or_path(token : Token, global : Bool) : Node
       return raise token, "unexpected end of file" if token.kind.eof?
@@ -829,8 +836,9 @@ module Lucid::Compiler
           delimited = true
           received = false
         when .symbol_key?
-          key = next_token_skip(space: true).str_value
-          node = parse_expression next_token_skip(space: true), :lowest
+          key = current_token.str_value
+          # key = next_token_skip(space: true).str_value
+          node = parse! next_token_skip(space: true)
           if received
             named_args[key] = raise node, "expected a comma after the last argument"
           else
@@ -874,7 +882,6 @@ module Lucid::Compiler
         when .space?, .newline?
           skip_token
         when .right_paren?
-          # next_token
           closed = true
           break
         when .comma?
@@ -883,22 +890,7 @@ module Lucid::Compiler
           skip_token
         when .symbol_key?
           key = current_token.str_value
-          named_args[key] = parse_expression next_token_skip(space: true), :lowest
-          token = peek_token_skip space: true, newline: true
-          case token.kind
-          when .eof?
-            break
-          when .comma?
-            delimited = true
-            skip_token
-          when .right_paren?
-            closed = true
-            skip_token
-          else
-            raise "Unexpected token #{token}"
-          end
-        else
-          args << parse! current_token
+          named_args[key] = parse! next_token_skip(space: true)
           # token = peek_token_skip space: true, newline: true
           case current_token.kind
           when .eof?
@@ -908,7 +900,21 @@ module Lucid::Compiler
             skip_token
           when .right_paren?
             closed = true
+            break
+          else
+            raise "Unexpected token #{current_token}"
+          end
+        else
+          args << parse! current_token
+          case current_token.kind
+          when .eof?
+            break
+          when .comma?
+            delimited = true
             skip_token
+          when .right_paren?
+            closed = true
+            break
           else
             raise "Unexpected token #{current_token}"
           end
@@ -918,9 +924,8 @@ module Lucid::Compiler
       call = Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
       call = raise call, "expected closing parenthesis for call" unless closed
 
-      if next_token_skip(space: true, newline: true).kind.period?
-        next_token_skip space: true, newline: true
-        expr = parse_var_or_call current_token, false
+      if !current_token.kind.eof? && next_token_skip(space: true, newline: true).kind.period?
+        expr = parse_var_or_call next_token_skip(space: true, newline: true), false
 
         case receiver
         when Call, Const, Ident
