@@ -608,23 +608,30 @@ module Lucid::Compiler
         receiver = parse_const_or_path token, global
       when .alignof?
         receiver = AlignOf.new.at(token.loc)
+        skip_token
       when .instance_alignof?
         receiver = InstanceAlignOf.new.at(token.loc)
+        skip_token
       when .instance_sizeof?
         receiver = InstanceSizeOf.new.at(token.loc)
+        skip_token
       when .offsetof?
         receiver = OffsetOf.new.at(token.loc)
+        skip_token
       when .pointerof?
         receiver = PointerOf.new.at(token.loc)
+        skip_token
       when .sizeof?
         receiver = SizeOf.new.at(token.loc)
+        skip_token
       when .underscore?
         receiver = Underscore.new.at(token.loc)
+        skip_token
       else
         receiver = raise token, "unexpected token #{token}"
       end
 
-      peek = current_token
+      peek = peek_token_skip space: true
       is_call = if peek.kind.eof? ||
                    peek.kind.newline? ||
                    peek.kind.right_paren? ||
@@ -643,6 +650,10 @@ module Lucid::Compiler
                 else
                   false
                 end
+
+      if current_token.kind.space? && peek.kind.right_brace?
+        next_token_skip space: true
+      end
 
       if !is_call && receiver.is_a?(Underscore)
         receiver = raise receiver, "underscore cannot be called as a method"
@@ -667,8 +678,7 @@ module Lucid::Compiler
         token = next_token_skip space: true
         case token.kind
         when .colon?
-          p! peek_token, peek_token_skip space: true
-          case node = parse_var_or_call next_token, false
+          case node = parse_var_or_call next_token_skip(space: true), false
           when Assign
             Var.new(receiver, node.target, node.value).at(receiver.loc & node.loc)
           when Ident, Const
@@ -677,7 +687,7 @@ module Lucid::Compiler
             raise "BUG: expected Assign, Ident or Const; got #{node.class}"
           end
         when .assign?
-          node = parse_expression next_token_skip(space: true), :lowest
+          node = parse! next_token_skip(space: true)
           Assign.new(receiver, node).at(receiver.loc & node.loc)
         when .do?, .left_brace?
           node = parse_block token
@@ -792,7 +802,7 @@ module Lucid::Compiler
         end
       end
 
-      next_token_skip space: true
+      next_token
 
       if names.size > 1
         Path
@@ -812,19 +822,17 @@ module Lucid::Compiler
 
       if current_token.kind.symbol_key?
         key = current_token.str_value
-        # named_args[key] = parse_expression next_token_skip(space: true), :lowest
         named_args[key] = parse! next_token_skip space: true
       else
-        # args << parse_expression current_token, :lowest
         args << parse! current_token
       end
 
       last_comma : Token? = nil
 
       loop do
-        # token = peek_token_skip space: true
         case current_token.kind
         when .eof?, .semicolon?, .right_brace?, .right_paren?, .end?
+          # TODO: may need to review
           break
         when .newline?
           break unless delimited
@@ -837,7 +845,6 @@ module Lucid::Compiler
           received = false
         when .symbol_key?
           key = current_token.str_value
-          # key = next_token_skip(space: true).str_value
           node = parse! next_token_skip(space: true)
           if received
             named_args[key] = raise node, "expected a comma after the last argument"
@@ -848,7 +855,6 @@ module Lucid::Compiler
           delimited = false
           received = true
         else
-          # node = parse_expression next_token_skip(space: true), :lowest
           node = parse! current_token
           if received
             args << raise node, "expected a comma after the last argument"
@@ -891,7 +897,6 @@ module Lucid::Compiler
         when .symbol_key?
           key = current_token.str_value
           named_args[key] = parse! next_token_skip(space: true)
-          # token = peek_token_skip space: true, newline: true
           case current_token.kind
           when .eof?
             break
@@ -954,7 +959,7 @@ module Lucid::Compiler
 
     private def parse_block(token : Token) : Node
       if token.kind.shorthand?
-        call = parse_expression next_token, :lowest
+        call = parse! next_token
         return Block.new(:shorthand, [] of Node, [call] of Node).at(token.loc & call.loc)
       end
 
@@ -982,7 +987,10 @@ module Lucid::Compiler
         break if current_token.kind == closing
         return raise token, "unexpected end of file" if current_token.kind.eof?
 
-        body << parse_expression current_token
+        body << parse! current_token
+        if current_token.kind.space? || current_token.kind.newline?
+          next_token_skip space: true, newline: true
+        end
       end
 
       end_loc = current_token.loc
@@ -993,9 +1001,10 @@ module Lucid::Compiler
 
     private def parse_block_args_until(stop_kind : Token::Kind) : Array(Node)
       args = [] of Node
-      delimited = true
+      delimited = false
       done = false
 
+      # TODO: comma edge cases
       loop do
         case current_token.kind
         when .eof?
@@ -1003,7 +1012,7 @@ module Lucid::Compiler
         when .space?
           next_token_skip space: true
         when .comma?
-          args << raise current_token, "unexpected token ','" unless delimited
+          args << raise current_token, "unexpected token ','" if delimited
           delimited = false
           next_token_skip space: true
         when .left_paren?
@@ -1014,23 +1023,11 @@ module Lucid::Compiler
         when .ident?, .underscore?
           if current_token.kind.underscore?
             args << Underscore.new.at(current_token.loc)
+            next_token_skip space: true
           else
             args << parse_ident_or_path current_token, false
           end
-
-          token = peek_token_skip space: true
-          case token.kind
-          when .eof?
-            break
-          when .comma?
-            delimited = true
-            next_token_skip space: true
-          when stop_kind
-            done = true
-            next_token_skip space: true
-          else
-            raise "Unexpected token #{token}"
-          end
+          delimited = false
         when stop_kind
           done = true
           next_token_skip space: true, newline: true
