@@ -1157,6 +1157,35 @@ module Lucid::Compiler
     end
   end
 
+  class NamedArg < Node
+    property key : String
+    property value : Node
+
+    def initialize(@key : String, @value : Node)
+      super()
+    end
+
+    def to_s(io : IO) : Nil
+      @key.to_s io
+      io << ": "
+      @value.to_s io
+    end
+
+    def pretty_print(pp : PrettyPrint) : Nil
+      pp.text "NamedArg("
+      pp.group 1 do
+        pp.breakable ""
+        pp.text "key: "
+        @key.pretty_print pp
+
+        pp.comma
+        pp.text "value: "
+        @value.pretty_print pp
+      end
+      pp.text ")"
+    end
+  end
+
   class UnpackedArgs < Node
     property args : Array(Node)
 
@@ -1191,15 +1220,12 @@ module Lucid::Compiler
     property name : Node
     property receiver : Node?
     property args : Array(Node)
-    property named_args : Hash(String, Node)
 
-    def self.new(name : Node, args : Array(Node),
-                 named_args : Hash(String, Node) = {} of String => Node)
-      new(name, nil, args, named_args)
+    def self.new(name : Node, args : Array(Node))
+      new(name, nil, args)
     end
 
-    def initialize(@name : Node, @receiver : Node?, @args : Array(Node),
-                   @named_args : Hash(String, Node) = {} of String => Node)
+    def initialize(@name : Node, @receiver : Node? = nil, @args : Array(Node) = [] of Node)
       super()
     end
 
@@ -1207,10 +1233,6 @@ module Lucid::Compiler
       @receiver.to_s(io) if @receiver
       io << @name << '('
       @args.join(io, ", ") unless @args.empty?
-
-      unless @named_args.empty?
-        @named_args.join(io, ", ") { |(k, v), i| i << k << ": " << v }
-      end
       io << ')'
     end
 
@@ -1240,10 +1262,6 @@ module Lucid::Compiler
           end
         end
         pp.text "]"
-
-        pp.comma
-        pp.text "named_args: "
-        @named_args.pretty_print pp
       end
       pp.text ")"
     end
