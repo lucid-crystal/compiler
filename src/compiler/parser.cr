@@ -622,15 +622,14 @@ module Lucid::Compiler
       end
     end
 
-    private def parse_open_call(receiver : Node) : Node
+    private def parse_open_call(method : Node) : Node
       args = [] of Node
-      named_args = {} of String => Node
       delimited = false
       received = true
 
       if current_token.kind.symbol_key?
         key = current_token.str_value
-        named_args[key] = parse next_token_skip space: true
+        args << NamedArg.new key, parse next_token_skip space: true
       else
         args << parse current_token
       end
@@ -655,9 +654,9 @@ module Lucid::Compiler
           key = current_token.str_value
           node = parse next_token_skip(space: true)
           if received
-            named_args[key] = raise node, "expected a comma after the last argument"
+            args << NamedArg.new key, raise(node, "expected a comma after the last argument")
           else
-            named_args[key] = node
+            args << NamedArg.new key, node
           end
 
           delimited = false
@@ -679,12 +678,11 @@ module Lucid::Compiler
         args << raise (last_comma || current_token), "invalid trailing comma in call"
       end
 
-      Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
+      Call.new(method, args).at(method.loc & current_token.loc)
     end
 
-    private def parse_closed_call(receiver : Node) : Node
+    private def parse_closed_call(method : Node) : Node
       args = [] of Node
-      named_args = {} of String => Node
       delimited = true
       closed = false
 
@@ -703,7 +701,7 @@ module Lucid::Compiler
           skip_token
         when .symbol_key?
           key = current_token.str_value
-          named_args[key] = parse next_token_skip(space: true)
+          args << NamedArg.new key, parse next_token_skip space: true
           case current_token.kind
           when .eof?
             break
@@ -733,22 +731,8 @@ module Lucid::Compiler
         end
       end
 
-      call = Call.new(receiver, args, named_args).at(receiver.loc & current_token.loc)
+      call = Call.new(method, args).at(method.loc & current_token.loc)
       call = raise call, "expected closing parenthesis for call" unless closed
-
-      # if !current_token.kind.eof? && next_token_skip(space: true, newline: true).kind.period?
-      #   expr = parse_var_or_call next_token_skip(space: true, newline: true), false
-
-      #   case receiver
-      #   when Call, Const, Ident
-      #     new_receiver = Path.new([call, expr], false).at(call.loc & expr.loc)
-      #     call = Call.new(new_receiver, [] of Node).at(new_receiver.loc)
-      #   when Path
-      #     receiver.names << expr
-      #   else
-      #     raise "BUG: expected Call or Path for closed call; got #{receiver.class}"
-      #   end
-      # end
 
       call
     end
