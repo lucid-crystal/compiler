@@ -668,6 +668,15 @@ module Lucid::Compiler
       super()
     end
 
+    def into_call : Node
+      call : Node? = nil
+      @names.each do |part|
+        call = Call.new(part, call, [] of Node).at(part.loc)
+      end
+
+      call.not_nil!
+    end
+
     def to_s(io : IO) : Nil
       @names.each do |name|
         case name
@@ -1179,17 +1188,24 @@ module Lucid::Compiler
   end
 
   class Call < Node
-    property receiver : Node
+    property name : Node
+    property receiver : Node?
     property args : Array(Node)
     property named_args : Hash(String, Node)
 
-    def initialize(@receiver : Node, @args : Array(Node),
+    def self.new(name : Node, args : Array(Node),
+                 named_args : Hash(String, Node) = {} of String => Node)
+      new(name, nil, args, named_args)
+    end
+
+    def initialize(@name : Node, @receiver : Node?, @args : Array(Node),
                    @named_args : Hash(String, Node) = {} of String => Node)
       super()
     end
 
     def to_s(io : IO) : Nil
-      io << @receiver << '('
+      @receiver.to_s(io) if @receiver
+      io << @name << '('
       @args.join(io, ", ") unless @args.empty?
 
       unless @named_args.empty?
@@ -1202,6 +1218,10 @@ module Lucid::Compiler
       pp.text "Call("
       pp.group 1 do
         pp.breakable ""
+        pp.text "name: "
+        @name.pretty_print pp
+
+        pp.comma
         pp.text "receiver: "
         @receiver.pretty_print pp
 
